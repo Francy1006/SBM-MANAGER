@@ -1,14 +1,14 @@
 <template>
   <aside class="sidebar">
     <a href="#" class="brand">
-      <i class="fas fa-cubes"></i>
-      <span>SBM Manager</span>
+      <i class="fa-solid fa-cubes"></i>
+      <span style="font-family: 'DINAlternate', Arial, sans-serif;">SBM Manager</span>
     </a>
     <ul class="nav">
-      <li><a href="#" class="active"><i class="fas fa-home"></i>Inicio</a></li>
-      <li><a href="#"><i class="fas fa-users"></i>Usuarios</a></li>
-      <li><a href="#"><i class="fas fa-chart-bar"></i>Reportes</a></li>
-      <li><a href="#"><i class="fas fa-cog"></i>Configuración</a></li>
+      <li><a href="#" class="active"><i class="fa-solid fa-home"></i>Dashboard</a></li>
+      <li><a href="#"><i class="fa-solid fa-users"></i>Franquicias</a></li>
+      <li><a href="#"><i class="fa-solid fa-chart-bar"></i>Catálogos</a></li>
+      <li><a href="#"><i class="fa-solid fa-cog"></i>Configuración</a></li>
     </ul>
     <div class="user">
       <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">
@@ -16,8 +16,8 @@
         <span>Usuario</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark">
-        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Perfil</a></li>
-        <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Salir</a></li>
+        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-user me-2"></i>Perfil</a></li>
+        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-right-from-bracket me-2"></i>Salir</a></li>
       </ul>
     </div>
   </aside>
@@ -42,7 +42,7 @@ export default {
   flex-direction: column;
   padding: 1.5rem 1rem;
   box-shadow: 2px 0 8px #0002;
-  font-family: 'DINAlternate';
+  font-family: Arial, sans-serif;
 }
 .brand {
   display: flex;
@@ -74,11 +74,13 @@ export default {
   color: #212529; /* texto oscuro */
   opacity: 0.85;
   transition: background 0.3s, opacity 0.3s, color 0.3s;
-  font-family: 'DINAlternate';
+  font-family: 'DINAlternate', Arial, sans-serif;
   font-weight: bold;
 }
 .nav a i {
   margin-right: 0.75rem;
+  font-family: 'Font Awesome 6 Free' !important;
+  font-weight: 900 !important;
 }
 .nav a:hover {
   background: #f5f5f5; /* hover claro */
@@ -99,7 +101,7 @@ export default {
   align-items: center;
   text-decoration: none;
   color: #212529;
-  font-family: 'DINAlternate';
+  font-family: 'DINAlternate', Arial, sans-serif;
 }
 .user img {
   width: 32px;
