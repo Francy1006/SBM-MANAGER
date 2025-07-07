@@ -1,40 +1,23 @@
 <template>
-  <aside class="d-flex flex-column flex-shrink-0 p-3 bg-light border-end" style="width: 220px; height: 100vh; position: fixed; left: 0; top: 0;">
-    <a href="#" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-decoration-none">
-      <span class="fs-4 fw-bold text-success">SBM</span>
+  <aside class="sidebar">
+    <a href="#" class="brand">
+      <i class="fas fa-cubes"></i>
+      <span>SBM Manager</span>
     </a>
-    <hr>
-    <ul class="nav nav-pills flex-column mb-auto">
-      <li class="nav-item mb-2">
-        <a href="#" class="nav-link active" aria-current="page">
-          <i class="bi bi-house-door me-2"></i>Inicio
-        </a>
-      </li>
-      <li class="nav-item mb-2">
-        <a href="#" class="nav-link text-dark">
-          <i class="bi bi-people me-2"></i>Usuarios
-        </a>
-      </li>
-      <li class="nav-item mb-2">
-        <a href="#" class="nav-link text-dark">
-          <i class="bi bi-bar-chart me-2"></i>Reportes
-        </a>
-      </li>
-      <li class="nav-item">
-        <a href="#" class="nav-link text-dark">
-          <i class="bi bi-gear me-2"></i>Configuración
-        </a>
-      </li>
+    <ul class="nav">
+      <li><a href="#" class="active"><i class="fas fa-home"></i>Inicio</a></li>
+      <li><a href="#"><i class="fas fa-users"></i>Usuarios</a></li>
+      <li><a href="#"><i class="fas fa-chart-bar"></i>Reportes</a></li>
+      <li><a href="#"><i class="fas fa-cog"></i>Configuración</a></li>
     </ul>
-    <hr>
-    <div class="dropdown">
-      <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-        <img src="https://ui-avatars.com/api/?name=SBM+User" alt="user" width="32" height="32" class="rounded-circle me-2">
-        <strong>Usuario</strong>
+    <div class="user">
+      <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">
+        <img src="https://ui-avatars.com/api/?name=SBM+User&background=23272b&color=fff" alt="user" />
+        <span>Usuario</span>
       </a>
-      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser1">
-        <li><a class="dropdown-item" href="#">Perfil</a></li>
-        <li><a class="dropdown-item" href="#">Salir</a></li>
+      <ul class="dropdown-menu dropdown-menu-dark">
+        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Perfil</a></li>
+        <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Salir</a></li>
       </ul>
     </div>
   </aside>
@@ -44,4 +27,87 @@
 export default {
   name: 'Sidebar',
 };
-</script> 
+</script>
+
+<style scoped>
+.sidebar {
+  width: 240px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: #ffffff; /* fondo claro */
+  color: #212529;       /* texto oscuro */
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+  box-shadow: 2px 0 8px #0002;
+  font-family: 'DINAlternate';
+}
+.brand {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+  text-decoration: none;
+  color: #e53935; /* rojo */
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+.brand i {
+  margin-right: 0.5rem;
+}
+.nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1;
+}
+.nav li {
+  margin-bottom: 0.75rem;
+}
+.nav a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  color: #212529; /* texto oscuro */
+  opacity: 0.85;
+  transition: background 0.3s, opacity 0.3s, color 0.3s;
+  font-family: 'DINAlternate';
+  font-weight: bold;
+}
+.nav a i {
+  margin-right: 0.75rem;
+}
+.nav a:hover {
+  background: #f5f5f5; /* hover claro */
+  opacity: 1;
+  color: #e53935;     /* rojo al pasar */
+}
+.nav a.active {
+  background: #e53935; /* fondo activo rojo */
+  color: #ffffff;      /* texto claro */
+  opacity: 1;
+}
+.user {
+  border-top: 1px solid #dee2e6;
+  padding-top: 1rem;
+}
+.user a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: #212529;
+  font-family: 'DINAlternate';
+}
+.user img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  border: 1px solid #dee2e6;
+}
+
+</style>
+
