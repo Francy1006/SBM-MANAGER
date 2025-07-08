@@ -12,11 +12,11 @@
       </li>
       <li>
         <router-link to="/franquicias" class="nav-link" active-class="active">
-          <i class="fa-solid fa-user"></i>Franquicias
+          <i class="fa-solid fa-cubes"></i>Franquicias
         </router-link>
       </li>
       <li>
-        <a href="#" class="nav-link"><i class="fa-solid fa-chart-bar"></i>Catálogos</a>
+        <a href="#" class="nav-link"><i class="fa-cube fa-chart-bar"></i>Catálogos</a>
       </li>
       <li>
         <a href="#" class="nav-link"><i class="fa-solid fa-cog"></i>Configuración</a>

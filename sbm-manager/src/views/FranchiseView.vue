@@ -13,7 +13,12 @@
       @close="() => {}"
       @save="onSave"
     />
-    <CRUDGridComponent resourceName="franquicias" />
+    <CRUDGridComponent
+      resourceName="franquicias"
+      endpoint="http://localhost:8082/api/franchises/"
+      :states="states"
+      iconClass="fas fa-cubes me-2 text-secondary"
+    />
   </div>
 </template>
 
