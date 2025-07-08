@@ -3,7 +3,7 @@
     <small>&copy; 2025 SBM Manager. Todos los derechos reservados.</small>
   </footer>
 </template>
-
+ 
 <script>
 export default {
   name: 'Footer',

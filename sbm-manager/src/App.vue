@@ -1,22 +1,21 @@
 <template>
   <div style="display:flex;">
-    <Sidebar />
-    <div style="flex:1; margin-left:220px; min-height:100vh; display:flex; flex-direction:column;">
-      <Header />
-      <Home />
-      <Footer />
+    <SidebarComponent />
+    <div style="flex:1; min-height:100vh; display:flex; flex-direction:column; margin-left:1.5rem;">
+      <HeaderComponent />
+      <router-view />
+      <FooterComponent />
     </div>
   </div>
 </template>
 
 <script>
-import Sidebar from './components/Sidebar.vue';
-import Header from './components/Header.vue';
-import Footer from './components/Footer.vue';
-import Home from './views/Home.vue';
+import SidebarComponent from './components/SidebarComponent.vue';
+import HeaderComponent from './components/HeaderComponent.vue';
+import FooterComponent from './components/FooterComponent.vue';
 
 export default {
   name: 'App',
-  components: { Sidebar, Header, Home, Footer },
+  components: { SidebarComponent, HeaderComponent, FooterComponent },
 };
 </script> 

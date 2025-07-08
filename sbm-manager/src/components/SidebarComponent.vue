@@ -1,14 +1,26 @@
 <template>
   <aside class="sidebar">
-    <a href="#" class="brand">
+    <router-link to="/" class="brand" style="text-decoration:none;">
       <i class="fa-solid fa-cubes"></i>
       <span style="font-family: 'DINAlternate', Arial, sans-serif;">SBM Manager</span>
-    </a>
+    </router-link>
     <ul class="nav">
-      <li><a href="#" class="active"><i class="fa-solid fa-home"></i>Dashboard</a></li>
-      <li><a href="#"><i class="fa-solid fa-users"></i>Franquicias</a></li>
-      <li><a href="#"><i class="fa-solid fa-chart-bar"></i>Catálogos</a></li>
-      <li><a href="#"><i class="fa-solid fa-cog"></i>Configuración</a></li>
+      <li>
+        <router-link to="/" class="nav-link" active-class="active" exact>
+          <i class="fa-solid fa-home"></i>Dashboard
+        </router-link>
+      </li>
+      <li>
+        <router-link to="/franquicias" class="nav-link" active-class="active">
+          <i class="fa-solid fa-user"></i>Franquicias
+        </router-link>
+      </li>
+      <li>
+        <a href="#" class="nav-link"><i class="fa-solid fa-chart-bar"></i>Catálogos</a>
+      </li>
+      <li>
+        <a href="#" class="nav-link"><i class="fa-solid fa-cog"></i>Configuración</a>
+      </li>
     </ul>
     <div class="user">
       <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">
@@ -33,7 +45,7 @@ export default {
 .sidebar {
   width: 240px;
   height: 100vh;
-  position: fixed;
+  position: relative;
   top: 0;
   left: 0;
   background: #ffffff; /* fondo claro */
@@ -61,15 +73,16 @@ export default {
   padding: 0;
   margin: 0;
   flex-grow: 1;
+  display: block !important; /* Fuerza columna, ignora display:flex de Bootstrap */
 }
 .nav li {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
 }
-.nav a {
+.nav-link {
   display: flex;
   align-items: center;
   text-decoration: none;
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
   color: #212529; /* texto oscuro */
   opacity: 0.85;
@@ -77,19 +90,19 @@ export default {
   font-family: 'DINAlternate', Arial, sans-serif;
   font-weight: bold;
 }
-.nav a i {
+.nav-link i {
   margin-right: 0.75rem;
   font-family: 'Font Awesome 6 Free' !important;
   font-weight: 900 !important;
 }
-.nav a:hover {
+.nav-link:hover {
   background: #f5f5f5; /* hover claro */
   opacity: 1;
   color: #e53935;     /* rojo al pasar */
 }
-.nav a.active {
-  background: #e53935; /* fondo activo rojo */
-  color: #ffffff;      /* texto claro */
+.active {
+  background: #e53935 !important; /* fondo activo rojo */
+  color: #ffffff !important;      /* texto claro */
   opacity: 1;
 }
 .user {
