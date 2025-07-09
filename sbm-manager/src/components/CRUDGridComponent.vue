@@ -8,15 +8,13 @@
     </div>
 
     <div v-if="loading" class="text-center py-5">
-      <div class="spinner-border text-primary" role="status">
-      </div>
+      <div class="spinner-border text-primary" role="status"></div>
     </div>
 
     <div v-else>
-      <!-- Barra de búsqueda -->
       <div class="mb-4">
         <div class="row">
-          <div class="col-md-6">
+          <div class="col-12 col-md-6">
             <div class="input-group">
               <span class="input-group-text bg-light border-end-0">
                 <i class="fas fa-search text-muted"></i>
@@ -24,57 +22,52 @@
               <input 
                 type="text" 
                 class="form-control border-start-0" 
-                placeholder="Buscar franquicias..."
+                :placeholder="`Buscar ${resourceName.toLowerCase()}...`"
                 v-model="searchTerm"
                 @input="debouncedSearch"
                 :disabled="loading"
               />
               <span v-if="loading" class="input-group-text bg-light border-start-0">
-                <div class="spinner-border spinner-border-sm text-primary" role="status">
-                  <span class="visually-hidden">Buscando...</span>
-                </div>
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
               </span>
             </div>
           </div>
         </div>
       </div>
       
-      <div class="mb-4">
-        <div v-if="selectedCount > 0" class="row justify-content-end align-items-center">
-          <div class="col-auto">
-            <span class="badge bg-light">
-              {{ selectedCount }} seleccionados
-            </span>
+      <div class="mb-4" v-if="selectedCount > 0">
+        <div class="row justify-content-end align-items-center">
+          <div class="col-auto mb-2 mb-md-0">
+            <span class="badge bg-light">{{ selectedCount }} seleccionados</span>
           </div>
-          <div class="col-auto ms-3">
+          <div class="col-auto mb-2 mb-md-0">
             <button class="btn btn-outline-primary btn-sm rounded-pill px-3" :disabled="selectedCount !== 1" @click="configureSelected">
               <i class="fas fa-cog me-1"></i> Configurar
             </button>
           </div>
-          <div class="col-auto ms-3">
+          <div class="col-auto">
             <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="deleteSelected" :disabled="selectedCount > 1">
               <i class="fas fa-trash me-1"></i> Eliminar
             </button>
           </div>
         </div>
       </div>
-      <div class="table-responsive">
+
+      <div class="table-responsive" style="overflow-x: auto; width: 98em;">
         <table class="table table-hover align-middle table-bordered">
           <thead class="table-dark text-center">
             <tr>
-              <th v-if="filteredRows.length > 0" style="width:40px;">
+              <th v-if="filteredRows.length > 0" style="width:60px!important;" class="align-middle">
                 <input type="checkbox" :checked="allSelected" @change="toggleAllSelection" />
               </th>
-              <th v-for="col in visibleColumns" :key="col">
-                {{ verboseNames[col] || capitalize(col) }}
-              </th>
+              <th v-for="col in visibleColumns" :key="col" style="min-width:200px!important;" class="align-middle">{{ verboseNames[col] }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="filteredRows.length === 0">
               <td :colspan="visibleColumns.length" class="text-center text-muted py-4">
                 <i class="fas fa-info-circle me-2"></i> 
-                {{ searchTerm ? 'No se encontraron franquicias para "' + searchTerm + '"' : 'No hay franquicias disponibles' }}
+                {{ searchTerm ? 'No se encontraron resultados para "' + searchTerm + '"' : 'No hay elementos disponibles' }}
               </td>
             </tr>
             <tr v-for="row in filteredRows" :key="row.id" :class="{ 
@@ -88,16 +81,17 @@
                 <span v-if="col === 'state' && (states && (Array.isArray(states) || states.value))">
                   {{ getStateName(row[col]) }}
                 </span>
-                <span v-else>
-                  {{ formatValue(row[col]) }}
+                <span v-else-if="typeof row[col] === 'boolean'">
+                  <i v-if="row[col]" class="fas fa-check text-success" style="font-size: x-large;"></i>
+                  <i v-else class="fas fa-times text-danger" style="font-size: x-large;"></i>
                 </span>
+                <span v-else>{{ formatValue(row[col]) }}</span>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
       
-      <!-- Controles de paginación -->
       <div v-if="totalItems > 0" class="mt-4">
         <div class="row align-items-center">
           <div class="col-md-6">
@@ -108,39 +102,21 @@
           <div class="col-md-6">
             <nav aria-label="Navegación de páginas">
               <ul class="pagination pagination-sm justify-content-end mb-0">
-                <!-- Botón Anterior -->
                 <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                  <button 
-                    class="page-link" 
-                    @click="goToPage(currentPage - 1)"
-                    :disabled="currentPage === 1"
-                  >
+                  <button class="page-link" @click="goToPage(currentPage - 1)" :disabled="currentPage === 1">
                     <i class="fas fa-chevron-left"></i>
                   </button>
                 </li>
-                
-                <!-- Números de página -->
                 <li 
                   v-for="page in visiblePages" 
                   :key="page"
                   class="page-item"
                   :class="{ active: page === currentPage }"
                 >
-                  <button 
-                    class="page-link" 
-                    @click="goToPage(page)"
-                  >
-                    {{ page }}
-                  </button>
+                  <button class="page-link" @click="goToPage(page)">{{ page }}</button>
                 </li>
-                
-                <!-- Botón Siguiente -->
                 <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                  <button 
-                    class="page-link" 
-                    @click="goToPage(currentPage + 1)"
-                    :disabled="currentPage === totalPages"
-                  >
+                  <button class="page-link" @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages">
                     <i class="fas fa-chevron-right"></i>
                   </button>
                 </li>
@@ -565,5 +541,70 @@ export default {
   color: #6c757d;
   background-color: #fff;
   border-color: #dee2e6;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.85rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.85rem;
+  }
+  
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .pagination {
+    justify-content: center;
+  }
+  
+  .page-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .input-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-control {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-responsive {
+    font-size: 0.75rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.25rem 0.125rem;
+    font-size: 0.75rem;
+  }
+  
+  .btn-sm {
+    padding: 0.125rem 0.25rem;
+    font-size: 0.7rem;
+  }
+  
+  .page-link {
+    padding: 0.125rem 0.25rem;
+    font-size: 0.7rem;
+  }
+  
+  .form-control {
+    font-size: 0.8rem;
+  }
+  
+  .badge {
+    font-size: 0.7rem;
+  }
 }
 </style>

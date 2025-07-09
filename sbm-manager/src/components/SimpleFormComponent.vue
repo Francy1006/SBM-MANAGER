@@ -37,13 +37,13 @@
       <div class="row mt-4">
         <div class="col-12">
           <div class="row justify-content-end">
-            <div class="col-auto">
-              <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @click="close">
+            <div class="col-12 col-md-auto mb-2 mb-md-0">
+              <button type="button" class="btn btn-outline-secondary rounded-pill px-4 w-100 w-md-auto" @click="close">
                 <i class="fa-solid fa-times me-2"></i> Cancelar
               </button>
             </div>
-            <div class="col-auto ms-3">
-              <button type="submit" class="btn btn-primary rounded-pill px-4" :disabled="loading">
+            <div class="col-12 col-md-auto">
+              <button type="submit" class="btn btn-primary rounded-pill px-4 w-100 w-md-auto" :disabled="loading">
                 <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
                 <i :class="['fa-solid', isEdit ? 'fa-sync-alt' : 'fa-save', 'me-2']"></i>
                 {{ isEdit ? 'Actualizar' : 'Crear' }}
@@ -125,4 +125,39 @@ export default {
     },
   },
 };
-</script> 
+</script>
+
+<style scoped>
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .form-control,
+  .form-select {
+    font-size: 0.9rem;
+  }
+  
+  .form-label {
+    font-size: 0.9rem;
+  }
+  
+  .btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-control,
+  .form-select {
+    font-size: 0.85rem;
+  }
+  
+  .form-label {
+    font-size: 0.85rem;
+  }
+  
+  .btn {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+  }
+}
+</style> 

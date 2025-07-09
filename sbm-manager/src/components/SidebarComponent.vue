@@ -2,32 +2,38 @@
   <aside class="sidebar">
     <router-link to="/" class="brand" style="text-decoration:none;">
       <i class="fa-solid fa-cubes"></i>
-      <span style="font-family: 'DINAlternate', Arial, sans-serif;">SBM Manager</span>
+      <span class="brand-text">SBM Manager</span>
     </router-link>
     <ul class="nav">
       <li>
         <router-link to="/" class="nav-link" active-class="active" exact>
-          <i class="fa-solid fa-home"></i>Dashboard
+          <i class="fa-solid fa-home"></i>
+          <span class="nav-text">Dashboard</span>
         </router-link>
       </li>
       <li>
         <router-link to="/franquicias" class="nav-link" active-class="active">
-          <i class="fa-solid fa-cubes"></i>Franquicias
+          <i class="fa-solid fa-cube"></i>
+          <span class="nav-text">Franquicias</span>
         </router-link>
       </li>
       <li>
         <router-link to="/catalogos" class="nav-link" active-class="active">
-          <i class="fa-solid fa-book"></i>Catálogos
+          <i class="fa-solid fa-book"></i>
+          <span class="nav-text">Catálogos</span>
         </router-link>
       </li>
       <li>
-        <a href="#" class="nav-link"><i class="fa-solid fa-cog"></i>Configuración</a>
+        <a href="#" class="nav-link">
+          <i class="fa-solid fa-cog"></i>
+          <span class="nav-text">Configuración</span>
+        </a>
       </li>
     </ul>
     <div class="user">
       <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">
         <img src="https://ui-avatars.com/api/?name=SBM+User&background=23272b&color=fff" alt="user" />
-        <span>Usuario</span>
+        <span class="user-text">Usuario</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark">
         <li><a class="dropdown-item" href="#"><i class="fa-solid fa-user me-2"></i>Perfil</a></li>
@@ -126,5 +132,62 @@ export default {
   border: 1px solid #dee2e6;
 }
 
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 1rem 0.5rem;
+  }
+  
+  .brand {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .nav-link {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .nav-link i {
+    margin-right: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .user {
+    padding-top: 0.5rem;
+  }
+  
+  .user img {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    padding: 0.75rem 0.25rem;
+  }
+  
+  .brand {
+    font-size: 1.1rem;
+  }
+  
+  .nav-link {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.85rem;
+  }
+  
+  .nav-link i {
+    margin-right: 0.25rem;
+    font-size: 0.85rem;
+  }
+  
+  .user-text, .nav-text {
+    font-size: 0.85rem;
+  }
+}
 </style>
 

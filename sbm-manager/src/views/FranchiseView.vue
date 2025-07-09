@@ -148,4 +148,20 @@ export default {
     };
   },
 };
-</script> 
+</script>
+
+<style scoped>
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 1.5rem !important;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.25rem !important;
+  }
+}
+</style> 

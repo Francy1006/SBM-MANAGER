@@ -8,6 +8,8 @@ module.exports = {
       }),
     ],
   },
+  // DEV LOCAL
+  // COMMENT FOR PROD
   devServer: {
     allowedHosts: 'all',
     host: '0.0.0.0',
@@ -17,4 +19,5 @@ module.exports = {
       webSocketURL: 'auto://0.0.0.0:0/ws'
     }
   }
+  // DEV LOCAL
 }; 
