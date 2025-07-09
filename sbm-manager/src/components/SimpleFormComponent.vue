@@ -86,14 +86,26 @@ export default {
   },
   methods: {
     resetForm() {
+      // Limpiar todos los campos del formulario
       this.form = {};
+      
+      // Limpiar también los valores de los campos específicos
+      this.fields.forEach(field => {
+        this.form[field.key] = '';
+      });
     },
     onSave() {
       this.$emit('save', { ...this.form });
     },
     close() {
-      this.$emit('close');
+      // Limpiar el formulario completamente
       this.resetForm();
+      
+      // Emitir evento de cierre
+      this.$emit('close');
+      
+      // Mostrar mensaje de confirmación (opcional)
+      console.log('Formulario cancelado y limpiado');
     },
     getOptions(field) {
       let options = [];
