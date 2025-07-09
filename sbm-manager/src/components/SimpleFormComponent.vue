@@ -29,21 +29,28 @@
           :required="field.required"
           :disabled="field.disabled"
         >
-          <option value="">Seleccionar {{ field.label.toLowerCase() }}</option>
           <option v-for="option in getOptions(field)" :key="option.id" :value="option.id">
             {{ option.state || option.label || option.name }}
           </option>
         </select>
       </div>
-      <div class="d-flex gap-2 justify-content-end mt-4">
-        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @click="close">
-          <i class="fa-solid fa-times me-2"></i> Cancelar
-        </button>
-        <button type="submit" class="btn btn-primary rounded-pill px-4" :disabled="loading">
-          <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-          <i :class="['fa-solid', isEdit ? 'fa-sync-alt' : 'fa-save', 'me-2']"></i>
-          {{ isEdit ? 'Actualizar' : 'Crear' }}
-        </button>
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="row justify-content-end">
+            <div class="col-auto">
+              <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @click="close">
+                <i class="fa-solid fa-times me-2"></i> Cancelar
+              </button>
+            </div>
+            <div class="col-auto ms-3">
+              <button type="submit" class="btn btn-primary rounded-pill px-4" :disabled="loading">
+                <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+                <i :class="['fa-solid', isEdit ? 'fa-sync-alt' : 'fa-save', 'me-2']"></i>
+                {{ isEdit ? 'Actualizar' : 'Crear' }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </form>
   </div>
@@ -57,7 +64,7 @@ export default {
     isEdit: Boolean,
     fields: Array,
     values: Object,
-    states: Array,
+    states: { type: [Array, Object], default: null },
     loading: Boolean,
   },
   data() {
@@ -89,9 +96,20 @@ export default {
       this.resetForm();
     },
     getOptions(field) {
-      if (field.options) return field.options;
-      if (field.optionsKey && this[field.optionsKey]) return this[field.optionsKey];
-      return [];
+      let options = [];
+      if (field.options) {
+        options = field.options;
+      } else if (field.optionsKey && this[field.optionsKey]) {
+        // Handle both regular arrays and Vue 3 refs
+        const optionsData = this[field.optionsKey];
+        options = Array.isArray(optionsData) ? optionsData : (optionsData?.value || []);
+      }
+      // Asegura que options sea un array
+      if (!Array.isArray(options)) {
+        options = [];
+      }
+      // Filtra elementos null o sin id
+      return options.filter(option => option && option.id !== undefined && option.id !== null);
     },
   },
 };

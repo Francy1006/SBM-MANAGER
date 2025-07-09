@@ -15,7 +15,7 @@
     />
     <CRUDGridComponent
       resourceName="franquicias"
-      endpoint="http://localhost:8082/api/franchises/"
+      endpoint="franchises/"
       :states="states"
       iconClass="fas fa-cubes me-2 text-secondary"
     />
@@ -25,27 +25,44 @@
 <script>
 import SimpleFormComponent from '../components/SimpleFormComponent.vue';
 import CRUDGridComponent from '../components/CRUDGridComponent.vue';
+import api from '../api/axios';
+import { ref, onMounted } from 'vue';
 
 export default {
   name: 'FranchiseView',
   components: { SimpleFormComponent, CRUDGridComponent },
-  data() {
-    return {
-      states: [
-        { id: 1, state: 'Activo' },
-        { id: 2, state: 'Inactivo' },
-      ],
-      fields: [
-        { key: 'franchise', label: 'Nombre', type: 'text', required: true, maxlength: 50 },
-        { key: 'code', label: 'Siglas', type: 'text', required: true, maxlength: 36 },
-        { key: 'state', label: 'Estado', type: 'select', required: true, optionsKey: 'states', disabled: true },
-      ],
+  setup() {
+    const states = ref([]);
+    const fields = ref([
+      { key: 'franchise', label: 'Nombre', type: 'text', required: true, maxlength: 50 },
+      { key: 'code', label: 'Siglas', type: 'text', required: true, maxlength: 36 },
+      { key: 'state', label: 'Estado', type: 'select', required: true, optionsKey: 'states' },
+    ]);
+
+    const fetchStates = async () => {
+      try {
+        const response = await api.get('/franchise-states/');
+        // Extraer el array results de la respuesta
+        states.value = response.data.results || response.data;
+      } catch (error) {
+        console.error('Error al cargar estados:', error);
+        states.value = [];
+      }
     };
-  },
-  methods: {
-    onSave(data) {
+
+    const onSave = (data) => {
       alert('Datos enviados: ' + JSON.stringify(data));
-    },
+    };
+
+    onMounted(() => {
+      fetchStates();
+    });
+
+    return {
+      states,
+      fields,
+      onSave,
+    };
   },
 };
 </script> 
