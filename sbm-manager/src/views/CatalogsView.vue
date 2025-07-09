@@ -33,13 +33,20 @@
             </div>
         </div>
         <!-- ConfigFormComponent -->
-        <ConfigFormComponent v-if="selectedFranchise" :franchise-id="selectedFranchise" />
+        <ConfigFormComponent
+          :catalog="selectedCatalogRow"
+          v-show="selectedCatalogRow"
+          @close="selectedCatalogRow = null"
+          :configurationName="'Catálogo'"
+          :publicPivotField="'sku'"
+        />
         <!-- CRUD Grid Component -->
         <CRUDGridComponent
             v-if="selectedFranchise"
             resourceName="Catálogos"
             endpoint="/catalogs/"
             iconClass="fas fa-book me-2 text-secondary"
+            @configure="onConfigureCatalog"
         />
     </div>
 </template>
@@ -52,6 +59,7 @@ import ConfigFormComponent from '../components/ConfigFormComponent.vue';
 
 const franchises = ref([]);
 const selectedFranchise = ref('');
+const selectedCatalogRow = ref(null);
 
 // Computed properties para obtener datos de la franquicia seleccionada
 const selectedFranchiseName = computed(() => {
@@ -65,6 +73,10 @@ const selectedFranchiseSigla = computed(() => {
   const franchise = franchises.value.find(f => f.id === selectedFranchise.value);
   return franchise ? franchise.description : '';
 });
+
+function onConfigureCatalog(row) {
+  selectedCatalogRow.value = row;
+}
 
 onMounted(async () => {
   try {

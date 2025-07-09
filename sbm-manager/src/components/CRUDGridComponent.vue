@@ -85,6 +85,9 @@
                   <i v-if="row[col]" class="fas fa-check text-success" style="font-size: x-large;"></i>
                   <i v-else class="fas fa-times text-danger" style="font-size: x-large;"></i>
                 </span>
+                <span v-else-if="typeof row[col] === 'string' && row[col].startsWith('https://res.cloudinary.com')">
+                  <img :src="row[col]" alt="Imagen Cloudinary" style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px #0001;" />
+                </span>
                 <span v-else>{{ formatValue(row[col]) }}</span>
               </td>
             </tr>
@@ -335,6 +338,8 @@ export default {
         if (this.searchTerm.trim()) {
           params.append('search', this.searchTerm);
         }
+        // Agregar is_visible=true siempre
+        params.append('is_visible', 'true');
         
         // Agregar parámetros a la URL
         if (params.toString()) {
@@ -357,7 +362,7 @@ export default {
         }
         
         this.columns = this.rows.length > 0
-          ? Object.keys(this.rows[0]).filter(col => col !== 'field_verbose_names')
+          ? Object.keys(this.rows[0]).filter(col => col !== 'field_verbose_names' && col !== 'code')
           : [];
 
         // extrae verbose names desde primer item
