@@ -1,8 +1,8 @@
 <template>
   <div class="container-fluid py-4">
-    <h2 class="mb-4" style="font-family: 'DINAlternate', Arial, sans-serif; color: #e53935;">
+    <h1 class="mb-4" style="font-family: 'DINAlternate', sans-serif; color: #e53935;">
       Administrador de Franquicias
-    </h2>
+    </h1>
     <SimpleFormComponent
       :show="true"
       :is-edit="isEdit"

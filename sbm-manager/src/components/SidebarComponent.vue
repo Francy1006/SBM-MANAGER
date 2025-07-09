@@ -16,7 +16,9 @@
         </router-link>
       </li>
       <li>
-        <a href="#" class="nav-link"><i class="fa-cube fa-chart-bar"></i>Catálogos</a>
+        <router-link to="/catalogos" class="nav-link" active-class="active">
+          <i class="fa-solid fa-book"></i>Catálogos
+        </router-link>
       </li>
       <li>
         <a href="#" class="nav-link"><i class="fa-solid fa-cog"></i>Configuración</a>
