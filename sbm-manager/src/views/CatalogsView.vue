@@ -37,6 +37,7 @@
           :catalog="selectedCatalogRow"
           v-show="selectedCatalogRow"
           @close="selectedCatalogRow = null"
+          @updated="onCatalogUpdated"
           :configurationName="'Catálogo'"
           :publicPivotField="'sku'"
         />
@@ -76,6 +77,13 @@ const selectedFranchiseSigla = computed(() => {
 
 function onConfigureCatalog(row) {
   selectedCatalogRow.value = row;
+}
+
+function onCatalogUpdated(updatedData) {
+  // Actualizar el catálogo seleccionado con los nuevos datos
+  if (selectedCatalogRow.value) {
+    Object.assign(selectedCatalogRow.value, updatedData);
+  }
 }
 
 onMounted(async () => {
