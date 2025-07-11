@@ -2,9 +2,11 @@
   <div class="p-4 mb-4 bg-light border rounded-3">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h3 class="h5 fw-bold text-primary mb-0">
-        Configuración {{ configurationName }} - <span class="fw-bold text-uppercase">{{ publicPivotField }}</span> : {{ catalog?.[publicPivotField] || '-' }}
+        Configuración {{ configurationName }} - <span class="fw-bold text-uppercase">{{ publicPivotField }}</span> : {{
+          catalog?.[publicPivotField] || '-' }}
       </h3>
-      <button type="button" class="btn btn-link p-0 ms-2" aria-label="Cerrar" @click="$emit('close')" style="font-size:1.5rem; line-height:1; color:#e53935; text-decoration:none;">
+      <button type="button" class="btn btn-link p-0 ms-2" aria-label="Cerrar" @click="$emit('close')"
+        style="font-size:1.5rem; line-height:1; color:#e53935; text-decoration:none;">
         &times;
       </button>
     </div>
@@ -12,42 +14,21 @@
       <div class="row">
         <div class="mb-3 col-12 col-md-6">
           <label for="name" class="form-label fw-semibold">Nombre</label>
-          <input 
-            type="text" 
-            id="name" 
-            v-model="form.name" 
-            class="form-control"
-            placeholder="Nombre del producto"
-          >
+          <input type="text" id="name" v-model="form.name" class="form-control" placeholder="Nombre del producto">
         </div>
         <div class="mb-3 col-12 col-md-6">
           <label for="description" class="form-label fw-semibold">Descripción</label>
-          <textarea 
-            id="description" 
-            v-model="form.description" 
-            class="form-control"
-            rows="3"
-            placeholder="Descripción del producto"
-          ></textarea>
+          <textarea id="description" v-model="form.description" class="form-control" rows="3"
+            placeholder="Descripción del producto"></textarea>
         </div>
         <div class="mb-3 col-12 col-md-6">
           <label for="cover_image" class="form-label fw-semibold">URL de imagen de portada</label>
-          <input 
-            type="url" 
-            id="cover_image" 
-            v-model="form.cover_image" 
-            class="form-control"
-            placeholder="https://ejemplo.com/imagen.jpg"
-          >
+          <input type="url" id="cover_image" v-model="form.cover_image" class="form-control"
+            placeholder="https://ejemplo.com/imagen.jpg">
         </div>
         <div class="mb-3 col-12 col-md-6">
           <div class="form-check">
-            <input 
-              type="checkbox" 
-              id="chef_recommendation" 
-              v-model="form.chef_recommendation" 
-              class="form-check-input"
-            >
+            <input type="checkbox" id="chef_recommendation" v-model="form.chef_recommendation" class="form-check-input">
             <label class="form-check-label fw-semibold" for="chef_recommendation">
               Recomendación del chef
             </label>
@@ -55,56 +36,29 @@
         </div>
         <div class="mb-3 col-12 col-md-4">
           <label for="min_quantity_purchase" class="form-label fw-semibold">Cantidad mínima de compra</label>
-          <input 
-            type="number" 
-            id="min_quantity_purchase" 
-            v-model.number="form.min_quantity_purchase" 
-            class="form-control"
-            min="1"
-            placeholder="1"
-          >
+          <input type="number" id="min_quantity_purchase" v-model.number="form.min_quantity_purchase"
+            class="form-control" min="1" placeholder="1">
         </div>
         <div class="mb-3 col-12 col-md-4">
           <label for="rations_quantity" class="form-label fw-semibold">Cantidad de raciones</label>
-          <input 
-            type="number" 
-            id="rations_quantity" 
-            v-model.number="form.rations_quantity" 
-            class="form-control"
-            min="1"
-            placeholder="1"
-          >
+          <input type="number" id="rations_quantity" v-model.number="form.rations_quantity" class="form-control" min="1"
+            placeholder="1">
         </div>
         <div class="mb-3 col-12 col-md-4">
           <div class="form-check mt-4">
-            <input 
-              type="checkbox" 
-              id="is_visible" 
-              v-model="form.is_visible" 
-              class="form-check-input"
-            >
+            <input type="checkbox" id="is_visible" v-model="form.is_visible" class="form-check-input">
             <label class="form-check-label fw-semibold" for="is_visible">
               Visible
             </label>
           </div>
           <div class="form-check">
-            <input 
-              type="checkbox" 
-              id="is_confirmed" 
-              v-model="form.is_confirmed" 
-              class="form-check-input"
-            >
+            <input type="checkbox" id="is_confirmed" v-model="form.is_confirmed" class="form-check-input">
             <label class="form-check-label fw-semibold" for="is_confirmed">
               Confirmado
             </label>
           </div>
           <div class="form-check">
-            <input 
-              type="checkbox" 
-              id="is_deleted" 
-              v-model="form.is_deleted" 
-              class="form-check-input"
-            >
+            <input type="checkbox" id="is_deleted" v-model="form.is_deleted" class="form-check-input">
             <label class="form-check-label fw-semibold" for="is_deleted">
               Eliminado
             </label>
@@ -157,7 +111,7 @@ const form = reactive({
 function assignValues() {
   console.log('=== ASSIGN VALUES DEBUG ===');
   console.log('Catalog data:', props.catalog);
-  
+
   form.name = props.catalog.name || '';
   form.description = props.catalog.description || '';
   form.cover_image = props.catalog.cover_image || '';
@@ -167,7 +121,7 @@ function assignValues() {
   form.is_visible = props.catalog.is_visible || false;
   form.is_deleted = props.catalog.is_deleted || false;
   form.is_confirmed = props.catalog.is_confirmed || false;
-  
+
   console.log('Form values after assignment:', {
     name: form.name,
     description: form.description,
@@ -179,7 +133,7 @@ function assignValues() {
     is_deleted: form.is_deleted,
     is_confirmed: form.is_confirmed
   });
-  
+
   // Guardar los valores originales para comparación
   originalValues.value = {
     name: form.name,
@@ -192,7 +146,7 @@ function assignValues() {
     is_deleted: form.is_deleted,
     is_confirmed: form.is_confirmed
   };
-  
+
   console.log('Original values saved:', originalValues.value);
 }
 
@@ -208,7 +162,7 @@ async function onSubmit() {
     alert('No se encontró el código del catálogo.');
     return;
   }
-  
+
   console.log('=== SUBMIT DEBUG ===');
   console.log('Form current values:', {
     name: form.name,
@@ -221,12 +175,12 @@ async function onSubmit() {
     is_deleted: form.is_deleted,
     is_confirmed: form.is_confirmed
   });
-  
+
   console.log('Original values:', originalValues.value);
-  
+
   // Crear objeto con solo los cambios
   const changes = {};
-  
+
   // Comparar cada campo con los valores originales
   if (form.name !== originalValues.value.name) {
     changes.name = form.name;
@@ -264,42 +218,42 @@ async function onSubmit() {
     changes.is_confirmed = form.is_confirmed;
     console.log('Is confirmed changed:', form.is_confirmed, 'vs', originalValues.value.is_confirmed);
   }
-  
+
   console.log('Changes detected:', changes);
-  
+
   // Si no hay cambios, no hacer nada
   if (Object.keys(changes).length === 0) {
     alert('No hay cambios para guardar.');
     return;
   }
-  
+
   console.log('=== SENDING CHANGES TO API ===');
   console.log('Changes object:', changes);
   console.log('Changes JSON:', JSON.stringify(changes));
   console.log('Changes keys:', Object.keys(changes));
   console.log('Changes values:', Object.values(changes));
-  
+
   try {
     const response = await axios.patch(`/catalogs/${props.catalog.code}/`, changes, {
       headers: {
         'Content-Type': 'application/json'
       }
     });
-    
+
     // Actualizar los valores originales con los nuevos valores
     Object.keys(changes).forEach(key => {
       if (originalValues.value.hasOwnProperty(key)) {
         originalValues.value[key] = form[key];
       }
     });
-    
+
     // Actualizar el objeto catalog con los nuevos valores
     Object.keys(changes).forEach(key => {
       if (props.catalog.hasOwnProperty(key)) {
         props.catalog[key] = form[key];
       }
     });
-    
+
     alert('Configuración actualizada correctamente');
     emits('updated', response.data);
     emits('close');
@@ -308,4 +262,4 @@ async function onSubmit() {
     alert('Error al actualizar el catálogo.');
   }
 }
-</script> 
+</script>

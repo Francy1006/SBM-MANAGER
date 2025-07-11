@@ -88,6 +88,9 @@
                 <span v-else-if="typeof row[col] === 'string' && row[col].startsWith('https://res.cloudinary.com')">
                   <img :src="row[col]" alt="Imagen Cloudinary" style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px #0001;" />
                 </span>
+                <span v-else-if="col.toLowerCase().includes('url') && row[col]">
+                  <a :href="row[col]" target="_blank" rel="noopener noreferrer">{{ row[col] }}</a>
+                </span>
                 <span v-else>{{ formatValue(row[col]) }}</span>
               </td>
             </tr>
@@ -361,14 +364,21 @@ export default {
           this.totalPages = Math.ceil(this.totalItems / this.pageSize);
         }
         
-        this.columns = this.rows.length > 0
-          ? Object.keys(this.rows[0]).filter(col => col !== 'field_verbose_names' && col !== 'code')
-          : [];
-
         // extrae verbose names desde primer item
         this.verboseNames = this.rows.length > 0 && this.rows[0].field_verbose_names
           ? this.rows[0].field_verbose_names
           : {};
+        
+        // Filtrar columnas específicas que no deben mostrarse
+        this.columns = this.rows.length > 0
+          ? Object.keys(this.rows[0]).filter(col => {
+              // Excluir columnas específicas
+              if (col === 'field_verbose_names' || col === 'code' || col === 'type_id') {
+                return false;
+              }
+              return true;
+            })
+          : [];
         
         // Actualizar datos filtrados
         this.filteredRows = [...this.rows];

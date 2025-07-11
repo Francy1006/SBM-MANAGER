@@ -24,10 +24,19 @@
         </router-link>
       </li>
       <li>
-        <a href="#" class="nav-link">
+        <a href="#" class="nav-link d-flex align-items-center" @click.prevent="showConfig = !showConfig">
           <i class="fa-solid fa-cog"></i>
           <span class="nav-text">Configuración</span>
+          <i :class="['fa-solid', showConfig ? 'fa-chevron-up' : 'fa-chevron-down', 'ms-auto']"></i>
         </a>
+        <ul v-show="showConfig" class="nav flex-column ms-4">
+          <li>
+            <router-link to="/configuracion/directiva-fiscal" class="nav-link sidebar-sublink" active-class="active">
+              <i class="fa-solid fa-file-invoice"></i>
+              <span class="nav-text">Directiva Fiscal</span>
+            </router-link>
+          </li>
+        </ul>
       </li>
     </ul>
     <div class="user">
@@ -46,6 +55,11 @@
 <script>
 export default {
   name: 'Sidebar',
+  data() {
+    return {
+      showConfig: false
+    };
+  }
 };
 </script>
 
@@ -188,6 +202,17 @@ export default {
   .user-text, .nav-text {
     font-size: 0.85rem;
   }
+}
+
+/* Forzar ocultamiento de submenús anidados en el sidebar */
+.nav.flex-column[style*="display: none"] {
+  display: none !important;
+}
+
+.sidebar-sublink {
+  margin-left: 18px;
+  font-size: 0.97em;
+  opacity: 0.95;
 }
 </style>
 

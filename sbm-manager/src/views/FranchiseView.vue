@@ -3,8 +3,16 @@
     <h1 class="mb-4" style="font-family: 'DINAlternate', sans-serif; color: #e53935;">
       Administrador de Franquicias
     </h1>
+    
+    <!-- Botón Crear + -->
+    <div class="mb-4" v-if="!showForm">
+      <button @click="showCreateForm" class="btn btn-danger rounded-pill px-4">
+        <i class="fa-solid fa-plus me-2"></i> Crear Franquicia
+      </button>
+    </div>
+    
     <SimpleFormComponent
-      :show="true"
+      :show="showForm"
       :is-edit="isEdit"
       :fields="fields"
       :values="editingData"
@@ -38,6 +46,7 @@ export default {
     const isEdit = ref(false);
     const editingData = ref({});
     const crudGridRef = ref(null);
+    const showForm = ref(false);
     const fields = ref([
       { key: 'franchise', label: 'Nombre de Franquicia', type: 'text', required: true, maxlength: 50 },
       { key: 'description', label: 'Siglas', type: 'text', required: true, maxlength: 36 },
@@ -53,6 +62,12 @@ export default {
         console.error('Error al cargar estados:', error);
         states.value = [];
       }
+    };
+
+    const showCreateForm = () => {
+      isEdit.value = false;
+      editingData.value = {};
+      showForm.value = true;
     };
 
     const onSave = async (data) => {
@@ -83,6 +98,7 @@ export default {
         // Resetear modo de edición
         isEdit.value = false;
         editingData.value = {};
+        showForm.value = false;
         
         // Resetear el estado de edición en la tabla
         if (crudGridRef.value) {
@@ -108,6 +124,7 @@ export default {
       // Resetear modo de edición
       isEdit.value = false;
       editingData.value = {};
+      showForm.value = false;
       
       // Resetear el estado de edición en la tabla
       if (crudGridRef.value) {
@@ -128,6 +145,7 @@ export default {
       
       // Cambiar a modo edición
       isEdit.value = true;
+      showForm.value = true;
       
       console.log('Datos de edición:', editingData.value);
     };
@@ -142,6 +160,8 @@ export default {
       isEdit,
       editingData,
       crudGridRef,
+      showForm,
+      showCreateForm,
       onSave,
       onClose,
       onConfigure,
