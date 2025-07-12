@@ -16,6 +16,11 @@
             </button>
         </div>
         
+        <StatsGeneralComponent
+            endpoint="/fiscal-directives-stats/"
+            title="Estadísticas de Directivas Fiscales"
+        />
+        
         <SimpleFormComponent
             :show="showForm"
             :is-edit="isEdit"
@@ -39,6 +44,7 @@
 import { ref, onMounted } from 'vue';
 import CRUDGridComponent from '../../components/CRUDGridComponent.vue';
 import SimpleFormComponent from '../../components/SimpleFormComponent.vue';
+import StatsGeneralComponent from '../../components/StatsGeneralComponent.vue';
 import axios from '../../api/axios';
 
 function capitalizeFirst(str) {
@@ -104,14 +110,28 @@ const showCreateForm = () => {
   updateFieldsState();
 };
 
+const cleanData = (data) => {
+  const cleaned = {};
+  Object.keys(data).forEach(key => {
+    if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+      cleaned[key] = data[key];
+    }
+  });
+  return cleaned;
+};
+
 const onSave = async (data) => {
   loading.value = true;
   try {
+    const cleanedData = cleanData(data);
+    console.log('Datos a enviar:', cleanedData);
+    
     if (isEdit.value && editingData.value.id) {
-      await axios.put(`/fiscal-directives/${editingData.value.id}/`, data);
+      await axios.put(`/fiscal-directives/${editingData.value.id}/`, cleanedData);
       alert('Directiva Fiscal actualizada exitosamente!');
     } else {
-      await axios.post('/fiscal-directives/', data);
+      const response = await axios.post('/fiscal-directives/', cleanedData);
+      console.log('Respuesta del servidor:', response.data);
       alert('Directiva Fiscal creada exitosamente!');
     }
     isEdit.value = false;
@@ -121,6 +141,8 @@ const onSave = async (data) => {
     if (crudGridRef.value) crudGridRef.value.resetEditingState();
     window.location.reload();
   } catch (error) {
+    console.error('Error completo:', error);
+    console.error('Datos del error:', error.response?.data);
     alert('Error al guardar la Directiva Fiscal: ' + (error.response?.data?.detail || error.message));
   } finally {
     loading.value = false;
