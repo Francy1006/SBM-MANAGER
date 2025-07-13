@@ -28,7 +28,7 @@
         <!-- CRUDManagerComponent para catálogos -->
         <CRUDManagerComponent
             v-if="selectedFranchise"
-            title="Catálogos"
+            title=""
             resourceName="Catálogo"
             endpoint="/catalogs/"
             iconClass="fas fa-book me-2 text-secondary"
@@ -37,10 +37,55 @@
             :showConfigForm="true"
             configFormName="Catálogo"
             configFormPivotField="sku"
+            :showPropertiesButton="true"
+            :showConfigList="true"
+            :configListFranchiseId="selectedFranchise"
+            configListEndpointType="id"
+            configListTitle="Configuración de Precios"
             @refresh="handleRefresh"
             @created="handleCreated"
             @updated="handleUpdated"
-        />
+            @row-selected="handleCatalogSelected"
+        >
+            <template #properties>
+                <div class="properties-content">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4 class="mb-3">Información General</h4>
+                            <ul class="list-unstyled">
+                                <li><strong>Franquicia Seleccionada:</strong> {{ selectedFranchiseName }}</li>
+                                <li><strong>Siglas:</strong> {{ selectedFranchiseSigla }}</li>
+                                <li><strong>ID de Franquicia:</strong> {{ selectedFranchise }}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="mb-3">Estadísticas</h4>
+                            <ul class="list-unstyled">
+                                <li><strong>Última Actualización:</strong> {{ lastUpdate }}</li>
+                                <li><strong>Estado del Sistema:</strong> <span class="badge bg-success">Activo</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h4 class="mb-3">Configuración del Sistema</h4>
+                        </div>
+                    </div>
+                    
+                    <!-- Configuración de Precios -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <ConfigListComponent 
+                                :franchiseId="selectedFranchise"
+                                endpointType="id"
+                                title="Configuración de Precios"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </CRUDManagerComponent>
     </div>
 </template>
 
@@ -48,9 +93,13 @@
 import { ref, onMounted, computed } from 'vue';
 import axios from '../api/axios';
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue';
+import ConfigListComponent from '../components/ConfigListComponent.vue';
 
 const franchises = ref([]);
 const selectedFranchise = ref('');
+const selectedCatalogId = ref(null);
+const selectedCatalogName = ref('');
+const selectedCatalogSku = ref('');
 
 // Computed properties para obtener datos de la franquicia seleccionada
 const selectedFranchiseName = computed(() => {
@@ -71,6 +120,23 @@ const componentTitle = computed(() => {
   return `Franquicia: ${selectedFranchiseName.value} - ${selectedFranchiseSigla.value}`;
 });
 
+// Computed para el título de propiedades
+const propertiesTitle = computed(() => {
+  if (selectedCatalogId.value && selectedCatalogName.value && selectedCatalogSku.value) {
+    return `${selectedCatalogName.value} - SKU: ${selectedCatalogSku.value}`;
+  }
+  if (selectedFranchise.value) {
+    const franchise = franchises.value.find(f => f.id === selectedFranchise.value);
+    return franchise ? `Catálogos: ${franchise.franchise || franchise.name} - ID: ${franchise.id}` : "Catálogos: Sistema de Gestión";
+  }
+  return "Catálogos: Sistema de Gestión";
+});
+
+// Computed para última actualización
+const lastUpdate = computed(() => {
+  return new Date().toLocaleString('es-ES');
+});
+
 // Campos del formulario (si se necesita en el futuro)
 const fields = ref([]);
 
@@ -85,6 +151,12 @@ const handleCreated = (data) => {
 
 const handleUpdated = (id) => {
   console.log('Catálogo actualizado:', id);
+};
+
+const handleCatalogSelected = (catalog) => {
+  selectedCatalogId.value = catalog.id;
+  selectedCatalogName.value = catalog.name;
+  selectedCatalogSku.value = catalog.sku;
 };
 
 onMounted(async () => {
@@ -116,6 +188,26 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.properties-content {
+  color: #6c757d;
+}
+
+.properties-content h4 {
+  color: #495057;
+  font-family: 'DINAlternate', sans-serif;
+  font-weight: bold;
+}
+
+.properties-content ul li {
+  margin-bottom: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.properties-content ul li:last-child {
+  border-bottom: none;
+}
+
 /* Responsive para móviles */
 @media (max-width: 768px) {
     h1 {

@@ -7,6 +7,7 @@
     statsEndpoint="/fiscal-directives-stats/"
     statsTitle="Estadísticas"
     :fields="fields"
+    :showDateAlert="true"
     @refresh="handleRefresh"
     @created="handleCreated"
     @updated="handleUpdated"

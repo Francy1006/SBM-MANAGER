@@ -40,6 +40,11 @@
           <div class="col-auto mb-2 mb-md-0">
             <span class="badge bg-light">{{ selectedCount }} seleccionados</span>
           </div>
+          <div class="col-auto mb-2 mb-md-0" v-if="showPropertiesButton">
+            <button class="btn btn-warning btn-sm rounded-pill px-3" :disabled="selectedCount !== 1" @click="showProperties">
+              <i class="fas fa-cog me-1"></i> Propiedades
+            </button>
+          </div>
           <div class="col-auto mb-2 mb-md-0">
             <button class="btn btn-outline-primary btn-sm rounded-pill px-3" :disabled="selectedCount !== 1" @click="configureSelected">
               <i class="fas fa-cog me-1"></i> Configurar
@@ -146,6 +151,7 @@ export default {
     endpoint: { type: String, required: true },
     states: { type: [Array, Object], default: null },
     iconClass: { type: String, default: 'fas fa-list-alt me-2 text-secondary' },
+    showPropertiesButton: { type: Boolean, default: true },
   },
   data() {
     return {
@@ -263,6 +269,15 @@ export default {
           
           // Limpiar selección después de configurar
           this.selected = [];
+        }
+      }
+    },
+    showProperties() {
+      if (this.selected.length === 1) {
+        const selectedRow = this.rows.find(row => row.id === this.selected[0]);
+        if (selectedRow) {
+          this.$emit('show-properties', selectedRow);
+          this.selected = []; // Limpiar selección después de mostrar propiedades
         }
       }
     },

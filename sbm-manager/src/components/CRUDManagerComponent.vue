@@ -5,7 +5,7 @@
     </h1>
     
     <!-- Título del componente (opcional) -->
-    <div v-if="componentTitle" class="row mt-4 mb-4">
+    <div v-if="componentTitle" class="row mt-4 mb-5">
       <div class="col-12">
         <h2 class="h4 fw-bold text-black">
           {{ componentTitle }}
@@ -13,14 +13,14 @@
       </div>
     </div>
     
-    <div class="alert alert-info">
+    <div class="alert alert-info" v-if="showDateAlert">
       <div class="mb-2">
         <strong>Fecha actual:</strong> {{ currentDate }}
       </div>
     </div>
     
-    <!-- Botón Crear + -->
-    <div class="mb-4" v-if="!showForm">
+    <!-- Botones de acción -->
+    <div class="mb-4" v-if="!showForm && !showProperties">
       <button @click="showCreateForm" class="btn btn-danger rounded-pill px-4">
         <i class="fa-solid fa-plus me-2"></i> Crear {{ resourceName }}
       </button>
@@ -33,9 +33,17 @@
       :title="statsTitle"
     />
     
+    <!-- Componente de Configuración (opcional) -->
+    <ConfigListComponent
+      v-if="showConfigList && configListFranchiseId"
+      :franchiseId="configListFranchiseId"
+      :endpointType="configListEndpointType"
+      :title="configListTitle"
+    />
+    
     <!-- Componente de Formulario (solo para crear si showConfigForm está habilitado) -->
     <SimpleFormComponent
-      v-if="!showConfigForm || !showConfigFormComponent"
+      v-if="(!showConfigForm || !showConfigFormComponent) && !showProperties"
       :show="showForm"
       :is-edit="isEdit"
       :fields="fields"
@@ -58,14 +66,26 @@
     
     <!-- Componente de Tabla CRUD -->
     <CRUDGridComponent
+      v-if="!showProperties"
       ref="crudGridRef"
       :resourceName="resourceName"
       :endpoint="endpoint"
       :iconClass="iconClass"
+      :showPropertiesButton="showPropertiesButton"
       v-bind="states ? { states } : {}"
       @configure="onConfigure"
       @row-selected="onRowSelected"
+      @show-properties="onShowProperties"
     />
+    
+    <!-- Componente de Propiedades (oculto por defecto) -->
+    <PropertiesComponent
+      v-if="showProperties"
+      :title="dynamicPropertiesTitle"
+      @close="onPropertiesClose"
+    >
+      <slot name="properties"></slot>
+    </PropertiesComponent>
   </div>
 </template>
 
@@ -75,6 +95,8 @@ import CRUDGridComponent from './CRUDGridComponent.vue';
 import SimpleFormComponent from './SimpleFormComponent.vue';
 import StatsGeneralComponent from './StatsGeneralComponent.vue';
 import ConfigFormComponent from './ConfigFormComponent.vue';
+import PropertiesComponent from './PropertiesComponent.vue';
+import ConfigListComponent from './ConfigListComponent.vue';
 import axios from '../api/axios';
 
 // Props
@@ -140,11 +162,42 @@ const props = defineProps({
     configFormPivotField: {
       type: String,
       default: 'id'
+    },
+    // Configuración del ConfigListComponent
+    showConfigList: {
+      type: Boolean,
+      default: false
+    },
+    configListFranchiseId: {
+      type: [String, Number],
+      default: null
+    },
+    configListEndpointType: {
+      type: String,
+      default: 'id'
+    },
+    configListTitle: {
+      type: String,
+      default: 'Configuración de Precios'
+    },
+    // Configuración de Propiedades
+    showPropertiesButton: {
+      type: Boolean,
+      default: false
+    },
+    propertiesTitle: {
+      type: String,
+      default: 'Propiedades'
+    },
+    // Configuración de alerta de fecha
+    showDateAlert: {
+      type: Boolean,
+      default: false
     }
 });
 
 // Emits
-const emit = defineEmits(['refresh', 'created', 'updated', 'mounted']);
+const emit = defineEmits(['refresh', 'created', 'updated', 'mounted', 'row-selected']);
 
 // Reactive data
 const currentDate = ref(getCurrentDate());
@@ -155,6 +208,7 @@ const showForm = ref(false);
 const crudGridRef = ref(null);
 const selectedRow = ref(null);
 const showConfigFormComponent = ref(false);
+const showProperties = ref(false); // Nuevo estado para mostrar/ocultar propiedades
 
 // Computed
 const finalCreateEndpoint = computed(() => {
@@ -163,6 +217,47 @@ const finalCreateEndpoint = computed(() => {
 
 const finalUpdateEndpoint = computed(() => {
   return props.updateEndpoint || props.endpoint;
+});
+
+// Computed para el título dinámico de propiedades
+const dynamicPropertiesTitle = computed(() => {
+  console.log('Dynamic title computed - selectedRow:', selectedRow.value);
+  console.log('Dynamic title computed - propertiesTitle prop:', props.propertiesTitle);
+  
+  // Si se pasa un título personalizado desde el padre, usarlo
+  if (props.propertiesTitle && props.propertiesTitle !== 'Propiedades') {
+    console.log('Using custom propertiesTitle:', props.propertiesTitle);
+    return props.propertiesTitle;
+  }
+  
+  // Si hay una fila seleccionada, usar información de esa fila
+  if (selectedRow.value) {
+    console.log('Selected row data:', selectedRow.value);
+    
+    // Detectar si es un catálogo (tiene campo 'name' y 'sku')
+    if (selectedRow.value.name && selectedRow.value.sku) {
+      const title = `${selectedRow.value.name} - SKU: ${selectedRow.value.sku}`;
+      console.log('Generated catalog title:', title);
+      return title;
+    }
+    
+    // Detectar si es una franquicia (tiene campo 'franchise')
+    if (selectedRow.value.franchise) {
+      const title = `${selectedRow.value.franchise} - ID: ${selectedRow.value.id}`;
+      console.log('Generated franchise title:', title);
+      return title;
+    }
+    
+    // Detectar si es una franquicia por el campo 'name' (fallback)
+    if (selectedRow.value.name && selectedRow.value.id) {
+      const title = `${selectedRow.value.name} - ID: ${selectedRow.value.id}`;
+      console.log('Generated franchise title (fallback):', title);
+      return title;
+    }
+  }
+  
+  console.log('Using default title: Propiedades');
+  return 'Propiedades';
 });
 
 // Methods
@@ -293,6 +388,9 @@ function onRowSelected(row) {
     editingData.value = {};
     showConfigFormComponent.value = false;
   }
+  
+  // Emitir evento de fila seleccionada
+  emit('row-selected', row);
 }
 
 function onConfigFormClose() {
@@ -310,6 +408,18 @@ function onConfigFormUpdated() {
   if (crudGridRef.value) {
     crudGridRef.value.loadData();
   }
+}
+
+function onShowProperties(row) {
+  console.log('onShowProperties called with row:', row);
+  showProperties.value = true;
+  selectedRow.value = row;
+  console.log('selectedRow updated to:', selectedRow.value);
+}
+
+function onPropertiesClose() {
+  showProperties.value = false;
+  selectedRow.value = null;
 }
 
 onMounted(() => {
