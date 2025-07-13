@@ -219,8 +219,18 @@ export default {
     toggleAllSelection() {
       if (this.allSelected) {
         this.selected = [];
+        this.$emit('row-selected', null);
       } else {
         this.selected = this.filteredRows.map(row => row.id);
+        // Si solo hay una fila seleccionada, emitir evento
+        if (this.selected.length === 1) {
+          const selectedRow = this.rows.find(row => row.id === this.selected[0]);
+          if (selectedRow) {
+            this.$emit('row-selected', selectedRow);
+          }
+        } else {
+          this.$emit('row-selected', null);
+        }
       }
     },
     toggleRowSelection(id) {
@@ -228,6 +238,17 @@ export default {
         this.selected = this.selected.filter(sid => sid !== id);
       } else {
         this.selected.push(id);
+      }
+      
+      // Emitir evento cuando se selecciona una fila
+      if (this.selected.length === 1) {
+        const selectedRow = this.rows.find(row => row.id === this.selected[0]);
+        if (selectedRow) {
+          this.$emit('row-selected', selectedRow);
+        }
+      } else {
+        // Si no hay selección o hay múltiples selecciones, emitir null
+        this.$emit('row-selected', null);
       }
     },
     configureSelected() {

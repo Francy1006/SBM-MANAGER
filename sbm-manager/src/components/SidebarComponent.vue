@@ -40,26 +40,44 @@
       </li>
     </ul>
     <div class="user">
-      <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">
-        <img src="https://ui-avatars.com/api/?name=SBM+User&background=23272b&color=fff" alt="user" />
-        <span class="user-text">Usuario</span>
-      </a>
-      <ul class="dropdown-menu dropdown-menu-dark">
-        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-user me-2"></i>Perfil</a></li>
-        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-right-from-bracket me-2"></i>Salir</a></li>
-      </ul>
+      <div class="user-info">
+        <img :src="userAvatar" alt="user" />
+        <div class="user-details">
+          <span class="user-name">{{ userInfo.name || 'Usuario' }}</span>
+          <span class="user-email">{{ userInfo.email || 'usuario@ejemplo.com' }}</span>
+        </div>
+      </div>
+      <div class="user-actions">
+        <button @click="handleLogout" class="btn btn-outline-danger btn-sm">
+          <i class="fa-solid fa-right-from-bracket me-1"></i>
+          Salir
+        </button>
+      </div>
     </div>
   </aside>
 </template>
 
-<script>
-export default {
-  name: 'Sidebar',
-  data() {
-    return {
-      showConfig: false
-    };
-  }
+<script setup>
+import { computed, ref } from 'vue';
+import { useAuth } from '../composables/useAuth';
+import { useRouter } from 'vue-router';
+
+const { userInfo, logout } = useAuth();
+const router = useRouter();
+
+// Estado reactivo para el menú de configuración
+const showConfig = ref(false);
+
+// Avatar del usuario basado en el email
+const userAvatar = computed(() => {
+  const email = userInfo.value.email || 'usuario@ejemplo.com';
+  const name = userInfo.value.name || 'Usuario';
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=23272b&color=fff&size=32`;
+});
+
+const handleLogout = () => {
+  logout();
+  router.push('/login');
 };
 </script>
 
@@ -131,19 +149,42 @@ export default {
   border-top: 1px solid #dee2e6;
   padding-top: 1rem;
 }
-.user a {
+.user-info {
   display: flex;
   align-items: center;
-  text-decoration: none;
-  color: #212529;
-  font-family: 'DINAlternate', Arial, sans-serif;
+  margin-bottom: 0.75rem;
 }
-.user img {
+.user-info img {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  margin-right: 0.5rem;
+  margin-right: 0.75rem;
   border: 1px solid #dee2e6;
+}
+.user-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.user-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #212529;
+  line-height: 1.2;
+}
+.user-email {
+  font-size: 0.75rem;
+  color: #6c757d;
+  line-height: 1.2;
+  word-break: break-word;
+}
+.user-actions {
+  display: flex;
+  justify-content: center;
+}
+.user-actions .btn {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
 }
 
 /* Responsive para móviles */
@@ -174,9 +215,17 @@ export default {
     padding-top: 0.5rem;
   }
   
-  .user img {
+  .user-info img {
     width: 28px;
     height: 28px;
+  }
+  
+  .user-name {
+    font-size: 0.85rem;
+  }
+  
+  .user-email {
+    font-size: 0.7rem;
   }
 }
 
@@ -201,6 +250,14 @@ export default {
   
   .user-text, .nav-text {
     font-size: 0.85rem;
+  }
+  
+  .user-name {
+    font-size: 0.8rem;
+  }
+  
+  .user-email {
+    font-size: 0.65rem;
   }
 }
 

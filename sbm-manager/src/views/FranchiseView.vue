@@ -1,173 +1,57 @@
 <template>
-  <div class="container-fluid py-4">
-    <h1 class="mb-4" style="font-family: 'DINAlternate', sans-serif; color: #e53935;">
-      Administrador de Franquicias
-    </h1>
-    
-    <!-- Botón Crear + -->
-    <div class="mb-4" v-if="!showForm">
-      <button @click="showCreateForm" class="btn btn-danger rounded-pill px-4">
-        <i class="fa-solid fa-plus me-2"></i> Crear Franquicia
-      </button>
-    </div>
-    
-    <SimpleFormComponent
-      :show="showForm"
-      :is-edit="isEdit"
-      :fields="fields"
-      :values="editingData"
-      :states="states"
-      :loading="false"
-      @close="onClose"
-      @save="onSave"
-    />
-    <CRUDGridComponent
-      ref="crudGridRef"
-      resourceName="franquicias"
-      endpoint="franchises/"
-      :states="states"
-      iconClass="fas fa-cubes me-2 text-secondary"
-      @configure="onConfigure"
-    />
-  </div>
+  <CRUDManagerComponent
+    title="Administrador de Franquicias"
+    resourceName="Franquicia"
+    endpoint="/franchises/"
+    iconClass="fas fa-cubes me-2 text-secondary"
+    :fields="fields"
+    :states="states"
+    @refresh="handleRefresh"
+    @created="handleCreated"
+    @updated="handleUpdated"
+  />
 </template>
 
-<script>
-import SimpleFormComponent from '../components/SimpleFormComponent.vue';
-import CRUDGridComponent from '../components/CRUDGridComponent.vue';
-import api from '../api/axios';
+<script setup>
 import { ref, onMounted } from 'vue';
+import CRUDManagerComponent from '../components/CRUDManagerComponent.vue';
+import api from '../api/axios';
 
-export default {
-  name: 'FranchiseView',
-  components: { SimpleFormComponent, CRUDGridComponent },
-  setup() {
-    const states = ref([]);
-    const isEdit = ref(false);
-    const editingData = ref({});
-    const crudGridRef = ref(null);
-    const showForm = ref(false);
-    const fields = ref([
-      { key: 'franchise', label: 'Nombre de Franquicia', type: 'text', required: true, maxlength: 50 },
-      { key: 'description', label: 'Siglas', type: 'text', required: true, maxlength: 36 },
-      { key: 'state', label: 'Estado', type: 'select', required: true, optionsKey: 'states' },
-    ]);
+const states = ref([]);
 
-    const fetchStates = async () => {
-      try {
-        const response = await api.get('/franchise-states/');
-        // Extraer el array results de la respuesta
-        states.value = response.data.results || response.data;
-      } catch (error) {
-        console.error('Error al cargar estados:', error);
-        states.value = [];
-      }
-    };
+const fields = ref([
+  { key: 'franchise', label: 'Nombre de Franquicia', type: 'text', required: true, maxlength: 50 },
+  { key: 'description', label: 'Siglas', type: 'text', required: true, maxlength: 36 },
+  { key: 'state', label: 'Estado', type: 'select', required: true, optionsKey: 'states' },
+]);
 
-    const showCreateForm = () => {
-      isEdit.value = false;
-      editingData.value = {};
-      showForm.value = true;
-    };
-
-    const onSave = async (data) => {
-      try {
-        console.log('Datos a enviar:', data);
-        
-        // Preparar los datos en el formato requerido por el backend
-        const franchiseData = {
-          franchise: data.franchise,
-          description: data.description,
-          state: parseInt(data.state)
-        };
-        
-        console.log('Datos formateados:', franchiseData);
-        
-        if (isEdit.value) {
-          // Modo edición - hacer PUT
-          const response = await api.put(`/franchises/${editingData.value.id}/`, franchiseData);
-          console.log('Respuesta del servidor (edición):', response.data);
-          alert('Franquicia actualizada exitosamente!');
-        } else {
-          // Modo creación - hacer POST
-          const response = await api.post('/franchises/', franchiseData);
-          console.log('Respuesta del servidor (creación):', response.data);
-          alert('Franquicia creada exitosamente!');
-        }
-        
-        // Resetear modo de edición
-        isEdit.value = false;
-        editingData.value = {};
-        showForm.value = false;
-        
-        // Resetear el estado de edición en la tabla
-        if (crudGridRef.value) {
-          crudGridRef.value.resetEditingState();
-        }
-        
-        // Recargar la página para ver los cambios
-        window.location.reload();
-        
-      } catch (error) {
-        console.error('Error al guardar franquicia:', error);
-        console.error('Status:', error.response?.status);
-        console.error('Data:', error.response?.data);
-        
-        // Mostrar mensaje de error
-        const action = isEdit.value ? 'actualizar' : 'crear';
-        alert(`Error al ${action} la franquicia: ` + (error.response?.data?.detail || error.message));
-      }
-    };
-
-    const onClose = () => {
-      console.log('Formulario cancelado');
-      // Resetear modo de edición
-      isEdit.value = false;
-      editingData.value = {};
-      showForm.value = false;
-      
-      // Resetear el estado de edición en la tabla
-      if (crudGridRef.value) {
-        crudGridRef.value.resetEditingState();
-      }
-    };
-
-    const onConfigure = (data) => {
-      console.log('Configurando item:', data);
-      
-      // Preparar los datos para el formulario
-      editingData.value = {
-        id: data.id,
-        franchise: data.franchise,
-        description: data.description,
-        state: data.state
-      };
-      
-      // Cambiar a modo edición
-      isEdit.value = true;
-      showForm.value = true;
-      
-      console.log('Datos de edición:', editingData.value);
-    };
-
-    onMounted(() => {
-      fetchStates();
-    });
-
-    return {
-      states,
-      fields,
-      isEdit,
-      editingData,
-      crudGridRef,
-      showForm,
-      showCreateForm,
-      onSave,
-      onClose,
-      onConfigure,
-    };
-  },
+const fetchStates = async () => {
+  try {
+    const response = await api.get('/franchise-states/');
+    // Extraer el array results de la respuesta
+    states.value = response.data.results || response.data;
+  } catch (error) {
+    console.error('Error al cargar estados:', error);
+    states.value = [];
+  }
 };
+
+const handleRefresh = () => {
+  // Recargar la página o actualizar datos
+  window.location.reload();
+};
+
+const handleCreated = (data) => {
+  console.log('Franquicia creada:', data);
+};
+
+const handleUpdated = (id) => {
+  console.log('Franquicia actualizada:', id);
+};
+
+onMounted(() => {
+  fetchStates();
+});
 </script>
 
 <style scoped>

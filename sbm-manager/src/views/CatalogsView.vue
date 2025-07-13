@@ -24,30 +24,22 @@
             </div>
         </div>
         <br>
-        <!-- Título de la franquicia seleccionada -->
-        <div v-if="selectedFranchise" class="row mt-4 mb-4">
-            <div class="col-12">
-                <h2 class="h4 fw-bold text-black">
-                    Franquicia: <strong>{{ selectedFranchiseName }}</strong> - {{ selectedFranchiseSigla }}
-                </h2>
-            </div>
-        </div>
-        <!-- ConfigFormComponent -->
-        <ConfigFormComponent
-          :catalog="selectedCatalogRow"
-          v-show="selectedCatalogRow"
-          @close="selectedCatalogRow = null"
-          @updated="onCatalogUpdated"
-          :configurationName="'Catálogo'"
-          :publicPivotField="'sku'"
-        />
-        <!-- CRUD Grid Component -->
-        <CRUDGridComponent
+        
+        <!-- CRUDManagerComponent para catálogos -->
+        <CRUDManagerComponent
             v-if="selectedFranchise"
-            resourceName="Catálogos"
+            title="Catálogos"
+            resourceName="Catálogo"
             endpoint="/catalogs/"
             iconClass="fas fa-book me-2 text-secondary"
-            @configure="onConfigureCatalog"
+            :componentTitle="componentTitle"
+            :fields="fields"
+            :showConfigForm="true"
+            configFormName="Catálogo"
+            configFormPivotField="sku"
+            @refresh="handleRefresh"
+            @created="handleCreated"
+            @updated="handleUpdated"
         />
     </div>
 </template>
@@ -55,12 +47,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import axios from '../api/axios';
-import CRUDGridComponent from '../components/CRUDGridComponent.vue';
-import ConfigFormComponent from '../components/ConfigFormComponent.vue';
+import CRUDManagerComponent from '../components/CRUDManagerComponent.vue';
 
 const franchises = ref([]);
 const selectedFranchise = ref('');
-const selectedCatalogRow = ref(null);
 
 // Computed properties para obtener datos de la franquicia seleccionada
 const selectedFranchiseName = computed(() => {
@@ -75,25 +65,51 @@ const selectedFranchiseSigla = computed(() => {
   return franchise ? franchise.description : '';
 });
 
-function onConfigureCatalog(row) {
-  selectedCatalogRow.value = row;
-}
+// Computed para el título del componente
+const componentTitle = computed(() => {
+  if (!selectedFranchise.value) return null;
+  return `Franquicia: ${selectedFranchiseName.value} - ${selectedFranchiseSigla.value}`;
+});
 
-function onCatalogUpdated(updatedData) {
-  // Actualizar el catálogo seleccionado con los nuevos datos
-  if (selectedCatalogRow.value) {
-    Object.assign(selectedCatalogRow.value, updatedData);
-  }
-}
+// Campos del formulario (si se necesita en el futuro)
+const fields = ref([]);
+
+const handleRefresh = () => {
+  // Recargar la página o actualizar datos
+  window.location.reload();
+};
+
+const handleCreated = (data) => {
+  console.log('Catálogo creado:', data);
+};
+
+const handleUpdated = (id) => {
+  console.log('Catálogo actualizado:', id);
+};
 
 onMounted(async () => {
+  // Verificar si el usuario está autenticado
+  const token = localStorage.getItem('token');
+  const userInfo = {
+    uuid: localStorage.getItem('uuid'),
+    email: localStorage.getItem('email'),
+    name: localStorage.getItem('name')
+  };
+  
+  if (!token || !userInfo.uuid) {
+    window.location.href = '/login';
+    return;
+  }
+  
   try {
     const res = await axios.get('/franchises/');
+    
     // Soporta respuesta paginada o lista directa
     franchises.value = Array.isArray(res.data)
       ? res.data
       : (res.data.results || []);
   } catch (e) {
+    // El interceptor de axios se encargará de manejar errores 401
     franchises.value = [];
   }
 });

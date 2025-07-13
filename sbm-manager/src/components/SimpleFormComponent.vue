@@ -124,6 +124,13 @@ export default {
     values: {
       handler(newVal) {
         this.form = { ...newVal } || {};
+        
+        // Inicializar checkboxes si no tienen valor
+        this.fields.forEach(field => {
+          if (field.type === 'checkbox' && this.form[field.key] === undefined) {
+            this.form[field.key] = false;
+          }
+        });
       },
       immediate: true,
       deep: true,
@@ -168,7 +175,11 @@ export default {
       
       // Limpiar también los valores de los campos específicos
       this.fields.forEach(field => {
-        this.form[field.key] = '';
+        if (field.type === 'checkbox') {
+          this.form[field.key] = false;
+        } else {
+          this.form[field.key] = '';
+        }
       });
     },
     onSave() {
