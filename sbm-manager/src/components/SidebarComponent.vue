@@ -24,6 +24,30 @@
         </router-link>
       </li>
       <li>
+        <router-link to="/productos" class="nav-link" active-class="active">
+          <i class="fa-solid fa-box"></i>
+          <span class="nav-text">Productos</span>
+        </router-link>
+      </li>
+      <li>
+        <router-link to="/materiales" class="nav-link" active-class="active">
+          <i class="fa-solid fa-tools"></i>
+          <span class="nav-text">Materiales</span>
+        </router-link>
+      </li>
+      <li>
+        <router-link to="/servicios" class="nav-link" active-class="active">
+          <i class="fa-solid fa-cogs"></i>
+          <span class="nav-text">Servicios</span>
+        </router-link>
+      </li>
+      <li>
+        <router-link to="/proveedores" class="nav-link" active-class="active">
+          <i class="fa-solid fa-truck"></i>
+          <span class="nav-text">Proveedores</span>
+        </router-link>
+      </li>
+      <li>
         <a href="#" class="nav-link d-flex align-items-center" @click.prevent="showConfig = !showConfig">
           <i class="fa-solid fa-cog"></i>
           <span class="nav-text">Configuración</span>

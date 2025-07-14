@@ -96,6 +96,20 @@
                 <span v-else-if="col.toLowerCase().includes('url') && row[col]">
                   <a :href="row[col]" target="_blank" rel="noopener noreferrer">{{ row[col] }}</a>
                 </span>
+                <span v-else-if="col === 'rating'">
+                  <span class="crudgrid-rating">
+                    <span v-for="star in 5" :key="star">
+                      <i
+                        class="fa-star fa-solid"
+                        :style="{
+                          color: row[col] >= star ? '#ffd700' : '#ccc',
+                          fontSize: '1.3em',
+                          marginRight: '2px',
+                        }"
+                      ></i>
+                    </span>
+                  </span>
+                </span>
                 <span v-else>{{ formatValue(row[col]) }}</span>
               </td>
             </tr>
@@ -152,6 +166,7 @@ export default {
     states: { type: [Array, Object], default: null },
     iconClass: { type: String, default: 'fas fa-list-alt me-2 text-secondary' },
     showPropertiesButton: { type: Boolean, default: true },
+    fields: { type: Array, default: () => [] }, // NUEVO
   },
   data() {
     return {
@@ -178,7 +193,9 @@ export default {
       return this.resourceName.charAt(0).toUpperCase() + this.resourceName.slice(1);
     },
     visibleColumns() {
-      return this.columns.filter(col => col !== 'field_verbose_names' && col !== 'state_name');
+      // Filtrar columnas ocultas por hideInGrid en fields
+      const hidden = this.fields.filter(f => f.hideInGrid).map(f => f.key);
+      return this.columns.filter(col => col !== 'field_verbose_names' && col !== 'state_name' && !hidden.includes(col));
     },
     allSelected() {
       return this.filteredRows.length > 0 && this.selected.length === this.filteredRows.length;
@@ -657,5 +674,10 @@ export default {
   .badge {
     font-size: 0.7rem;
   }
+}
+
+.crudgrid-rating {
+  display: inline-block;
+  vertical-align: middle;
 }
 </style>

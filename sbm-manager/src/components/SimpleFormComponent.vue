@@ -9,7 +9,28 @@
           v-if="field.type === 'text'"
           type="text"
           class="form-control form-control-lg rounded-3"
-          v-model="form[field.key]"
+          :value="form[field.key]"
+          @input="handleInputUppercase(field, $event)"
+          :required="field.required"
+          :maxlength="field.maxlength"
+          :disabled="field.disabled"
+        />
+        <input
+          v-else-if="field.type === 'email'"
+          type="email"
+          class="form-control form-control-lg rounded-3"
+          :value="form[field.key]"
+          @input="handleInputUppercase(field, $event)"
+          :required="field.required"
+          :maxlength="field.maxlength"
+          :disabled="field.disabled"
+        />
+        <input
+          v-else-if="field.type === 'url'"
+          type="url"
+          class="form-control form-control-lg rounded-3"
+          :value="form[field.key]"
+          @input="handleInputUppercase(field, $event)"
           :required="field.required"
           :maxlength="field.maxlength"
           :disabled="field.disabled"
@@ -79,6 +100,22 @@
           :disabled="field.disabled"
           style="transform: scale(1.3); margin-top: 0.4em;"
         />
+        <div v-else-if="field.type === 'rating'" class="rating-input">
+          <span
+            v-for="star in 5"
+            :key="star"
+            class="star"
+            :class="{ filled: (form[`__hover_${field.key}`] || form[field.key]) >= star }"
+            @click="form[field.key] = star"
+            @mouseover="form[`__hover_${field.key}`] = star"
+            @mouseleave="form[`__hover_${field.key}`] = null"
+            style="cursor:pointer; font-size:2rem;"
+          >
+            <i class="fa-star fa-solid"></i>
+          </span>
+          <span v-if="form[field.key] > 0" class="ms-2 text-secondary">{{ form[field.key] }} / 5</span>
+          <span v-else class="ms-2 text-secondary">Sin calificación</span>
+        </div>
       </div>
       <div class="row mt-4">
         <div class="col-12">
@@ -114,6 +151,7 @@ export default {
     values: Object,
     states: { type: [Array, Object], default: null },
     loading: Boolean,
+    uppercase: { type: Boolean, default: false }, // NUEVO PROP
   },
   data() {
     return {
@@ -211,6 +249,15 @@ export default {
       // Filtra elementos null o sin id
       return options.filter(option => option && option.id !== undefined && option.id !== null);
     },
+    handleInputUppercase(field, $event) {
+      // Si el prop global uppercase está activo o el campo tiene uppercase: true
+      const shouldUppercase = this.uppercase || field.uppercase;
+      if (shouldUppercase && ['text', 'email', 'url'].includes(field.type)) {
+        this.form[field.key] = $event.target.value.toUpperCase();
+      } else {
+        this.form[field.key] = $event.target.value;
+      }
+    },
   },
 };
 </script>
@@ -251,5 +298,13 @@ export default {
 
 .checkbox-label {
   padding-right: 30px;
+}
+
+.rating-input .star {
+  transition: color 0.2s;
+  color: #ccc;
+}
+.rating-input .star.filled {
+  color: #ffd700;
 }
 </style> 

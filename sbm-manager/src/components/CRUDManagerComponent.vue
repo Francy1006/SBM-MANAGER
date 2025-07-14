@@ -73,6 +73,7 @@
       :iconClass="iconClass"
       :showPropertiesButton="showPropertiesButton"
       v-bind="states ? { states } : {}"
+      :fields="fields"
       @configure="onConfigure"
       @row-selected="onRowSelected"
       @show-properties="onShowProperties"
@@ -342,11 +343,18 @@ async function onSave(data) {
 
 function cleanData(data) {
   const cleaned = {};
-  Object.keys(data).forEach(key => {
-    // Incluir checkboxes aunque sean false, excluir otros campos vacíos
-    if (data[key] !== null && data[key] !== undefined && 
-        (data[key] !== '' || typeof data[key] === 'boolean')) {
+  // Recorre todos los fields definidos en el formulario
+  props.fields.forEach(field => {
+    const key = field.key;
+    // Si el campo existe en data, inclúyelo (aunque sea '', null o false)
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
       cleaned[key] = data[key];
+    } else if (field.type === 'checkbox') {
+      // Si es un checkbox y no está en data, mándalo como false
+      cleaned[key] = false;
+    } else {
+      // Si no está, mándalo como null
+      cleaned[key] = null;
     }
   });
   return cleaned;

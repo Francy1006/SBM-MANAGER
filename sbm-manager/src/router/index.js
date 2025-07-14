@@ -2,6 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 import FranchiseView from '../views/FranchiseView.vue';
 import CatalogsView from '../views/CatalogsView.vue';
+import ProductView from '../views/ProductView.vue';
+import MaterialView from '../views/MaterialView.vue';
+import ServiceView from '../views/ServiceView.vue';
+import ProviderView from '../views/ProviderView.vue';
 import FiscalDirective from '../views/Configuration/FiscalDirective.vue';
 import LoginView from '../views/LoginView.vue';
 import { useAuth } from '../composables/useAuth';
@@ -29,6 +33,30 @@ const routes = [
     path: '/catalogos', 
     name: 'Catalogos', 
     component: CatalogsView,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/productos', 
+    name: 'Productos', 
+    component: ProductView,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/materiales', 
+    name: 'Materiales', 
+    component: MaterialView,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/servicios', 
+    name: 'Servicios', 
+    component: ServiceView,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/proveedores', 
+    name: 'Proveedores', 
+    component: ProviderView,
     meta: { requiresAuth: true }
   },
   { 
