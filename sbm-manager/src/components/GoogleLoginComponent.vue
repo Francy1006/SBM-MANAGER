@@ -63,6 +63,9 @@
 import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue';
 import axios from '../api/axios';
 
+// Desactivar Google Auth en desarrollo automáticamente
+const isDev = process.env.NODE_ENV === 'development';
+
 // Definir emits
 const emit = defineEmits(['login-success']);
 
@@ -309,9 +312,9 @@ const handleManualLogin = async () => {
     
     // Simular datos de usuario para testing
     const mockUserData = {
-      uuid: 'test-uuid-123',
-      email: 'test@example.com',
-      name: 'Usuario de Prueba',
+      uuid: '5fbf2886-4ad0-11f0-8ce6-0242ac120002',
+      email: 'fra.sotmen@gmail.com',
+      name: 'FRANCISCO',
       token: 'mock-token-123'
     };
     
@@ -395,7 +398,12 @@ watch(isLoggedIn, async (newValue, oldValue) => {
 
 // Lifecycle hooks
 onMounted(() => {
-  checkLoginStatus();
+  if (isDev) {
+    // En desarrollo, simular login automático
+    handleManualLogin();
+  } else {
+    checkLoginStatus();
+  }
 });
 
 onUnmounted(() => {

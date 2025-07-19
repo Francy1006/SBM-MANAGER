@@ -1,7 +1,7 @@
 <template>
   <div v-if="show" class="p-4 bg-white rounded-4 shadow-sm border mb-4">
     <form @submit.prevent="onSave">
-      <div v-for="field in fields" :key="field.key" class="mb-4">
+      <div v-for="field in fields.filter(f => !f.omitInForm)" :key="field.key" class="mb-4">
         <label class="form-label fw-semibold" :class="{'checkbox-label': field.type === 'checkbox'}">
           {{ field.label }} <span v-if="field.required" class="text-danger">*</span>
         </label>
@@ -62,7 +62,8 @@
         <textarea
           v-else-if="field.type === 'textarea'"
           class="form-control form-control-lg rounded-3"
-          v-model="form[field.key]"
+          :value="form[field.key]"
+          @input="handleInputUppercase(field, $event)"
           :required="field.required"
           :rows="field.rows || 3"
           :disabled="field.disabled"
@@ -116,6 +117,18 @@
           <span v-if="form[field.key] > 0" class="ms-2 text-secondary">{{ form[field.key] }} / 5</span>
           <span v-else class="ms-2 text-secondary">Sin calificación</span>
         </div>
+        <div v-else-if="field.type === 'price'">
+          <input
+            type="text"
+            class="form-control form-control-lg rounded-3"
+            v-model="form[field.key]"
+            @input="onPriceInput(field)"
+            :required="field.required"
+            :maxlength="field.maxlength"
+            :disabled="field.disabled"
+            placeholder="$0"
+          />
+        </div>
       </div>
       <div class="row mt-4">
         <div class="col-12">
@@ -161,10 +174,15 @@ export default {
   watch: {
     values: {
       handler(newVal) {
-        this.form = { ...newVal } || {};
-        
-        // Inicializar checkboxes si no tienen valor
+        // Inicializa el form vacío
+        this.form = {};
+        // Primero, descompón los campos agrupados
         this.fields.forEach(field => {
+          if (field.formGroup) {
+            this.form[field.key] = (newVal && newVal[field.formGroup]) ? newVal[field.formGroup][field.key] ?? '' : '';
+          } else {
+            this.form[field.key] = newVal && newVal[field.key] !== undefined ? newVal[field.key] : '';
+          }
           if (field.type === 'checkbox' && this.form[field.key] === undefined) {
             this.form[field.key] = false;
           }
@@ -174,15 +192,20 @@ export default {
       deep: true,
     },
     show(val) {
-      if (!val) this.resetForm();
+      if (val) {
+        this.loadDynamicSelects(this.fields);
+      } else {
+        this.resetForm();
+      }
     },
-    fields: {
-      handler(newFields) {
-        this.loadDynamicSelects(newFields);
-      },
-      immediate: true,
-      deep: true,
-    },
+    // Eliminar watcher profundo sobre fields
+    // fields: {
+    //   handler(newFields) {
+    //     this.loadDynamicSelects(newFields);
+    //   },
+    //   immediate: true,
+    //   deep: true,
+    // },
     'fields.*.disabled': {
       handler() {
         this.loadDynamicSelects(this.fields);
@@ -193,7 +216,7 @@ export default {
   methods: {
     async loadDynamicSelects(fields) {
       for (const field of fields) {
-        if (field.type === 'dynamic-select' && field.endpoint && !field.options && !field.disabled) {
+        if (field.type === 'dynamic-select' && field.endpoint && !field.disabled) {
           field.loading = true;
           try {
             const response = await axios.get(field.endpoint);
@@ -210,10 +233,10 @@ export default {
     resetForm() {
       // Limpiar todos los campos del formulario
       this.form = {};
-      
-      // Limpiar también los valores de los campos específicos
       this.fields.forEach(field => {
-        if (field.type === 'checkbox') {
+        if (field.formGroup) {
+          this.form[field.key] = '';
+        } else if (field.type === 'checkbox') {
           this.form[field.key] = false;
         } else {
           this.form[field.key] = '';
@@ -221,7 +244,22 @@ export default {
       });
     },
     onSave() {
-      this.$emit('save', { ...this.form });
+      // Agrupar campos por formGroup
+      const payload = {};
+      this.fields.forEach(field => {
+        let value = this.form[field.key];
+        // Si es price, limpiar el formato y guardar como int plain text
+        if (field.type === 'price') {
+          value = value ? parseInt(value.toString().replace(/\D/g, ''), 10) : null;
+        }
+        if (field.formGroup) {
+          if (!payload[field.formGroup]) payload[field.formGroup] = {};
+          payload[field.formGroup][field.key] = value;
+        } else {
+          payload[field.key] = value;
+        }
+      });
+      this.$emit('save', payload);
     },
     close() {
       // Limpiar el formulario completamente
@@ -252,10 +290,21 @@ export default {
     handleInputUppercase(field, $event) {
       // Si el prop global uppercase está activo o el campo tiene uppercase: true
       const shouldUppercase = this.uppercase || field.uppercase;
-      if (shouldUppercase && ['text', 'email', 'url'].includes(field.type)) {
+      if (shouldUppercase && ['text', 'email', 'url', 'textarea'].includes(field.type)) {
         this.form[field.key] = $event.target.value.toUpperCase();
       } else {
         this.form[field.key] = $event.target.value;
+      }
+    },
+    onPriceInput(field) {
+      // Obtener solo los dígitos
+      let raw = this.form[field.key] ? this.form[field.key].toString().replace(/\D/g, '') : '';
+      if (raw) {
+        // Formatear con separador de miles y anteponer $
+        const formatted = '$' + Number(raw).toLocaleString('es-CL');
+        this.form[field.key] = formatted;
+      } else {
+        this.form[field.key] = '';
       }
     },
   },

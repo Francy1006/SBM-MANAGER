@@ -42,6 +42,7 @@
             :configListFranchiseId="selectedFranchise"
             configListEndpointType="id"
             configListTitle="Configuración de Precios"
+            :endpointBase="`/franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
             @refresh="handleRefresh"
             @created="handleCreated"
             @updated="handleUpdated"
@@ -74,15 +75,7 @@
                     </div>
                     
                     <!-- Configuración de Precios -->
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <ConfigListComponent 
-                                :franchiseId="selectedFranchise"
-                                endpointType="id"
-                                title="Configuración de Precios"
-                            />
-                        </div>
-                    </div>
+                    <!-- Eliminado: ConfigListComponent directo, solo debe estar el de CRUDManagerComponent -->
                 </div>
             </template>
         </CRUDManagerComponent>
@@ -112,6 +105,12 @@ const selectedFranchiseSigla = computed(() => {
   if (!selectedFranchise.value) return '';
   const franchise = franchises.value.find(f => f.id === selectedFranchise.value);
   return franchise ? franchise.description : '';
+});
+
+const selectedFranchiseCode = computed(() => {
+  if (!selectedFranchise.value) return '';
+  const franchise = franchises.value.find(f => f.id === selectedFranchise.value);
+  return franchise ? franchise.code : '';
 });
 
 // Computed para el título del componente

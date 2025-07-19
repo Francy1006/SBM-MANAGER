@@ -39,6 +39,7 @@
       :franchiseId="configListFranchiseId"
       :endpointType="configListEndpointType"
       :title="configListTitle"
+      :endpointBase="endpointBase"
     />
     
     <!-- Componente de Formulario (solo para crear si showConfigForm está habilitado) -->
@@ -69,7 +70,7 @@
       v-if="!showProperties"
       ref="crudGridRef"
       :resourceName="resourceName"
-      :endpoint="endpoint"
+      :endpoint="finalGetEndpoint"
       :iconClass="iconClass"
       :showPropertiesButton="showPropertiesButton"
       v-bind="states ? { states } : {}"
@@ -118,6 +119,14 @@ const props = defineProps({
   endpoint: {
     type: String,
     required: true
+  },
+  getEndpoint: {
+    type: String,
+    default: null
+  },
+  postEndpoint: {
+    type: String,
+    default: null
   },
   iconClass: {
     type: String,
@@ -194,6 +203,10 @@ const props = defineProps({
     showDateAlert: {
       type: Boolean,
       default: false
+    },
+    endpointBase: {
+      type: String,
+      default: ''
     }
 });
 
@@ -212,8 +225,11 @@ const showConfigFormComponent = ref(false);
 const showProperties = ref(false); // Nuevo estado para mostrar/ocultar propiedades
 
 // Computed
+const finalGetEndpoint = computed(() => {
+  return props.getEndpoint || props.endpoint;
+});
 const finalCreateEndpoint = computed(() => {
-  return props.createEndpoint || props.endpoint;
+  return props.postEndpoint || props.createEndpoint || props.endpoint;
 });
 
 const finalUpdateEndpoint = computed(() => {
@@ -342,19 +358,68 @@ async function onSave(data) {
 }
 
 function cleanData(data) {
+  // Lista de campos a omitir
+  const omitKeys = [
+    'log', 'version', 'created_at', 'updated_at', 'deleted_at', 'confirmed_at',
+    'created_by', 'updated_by', 'deleted_by', 'confirmed_by',
+    'url', // si tampoco lo quieres enviar
+  ];
+    // console.log("data");
+    // console.log(data);
+
+
   const cleaned = {};
-  // Recorre todos los fields definidos en el formulario
+  const grouped = {};
   props.fields.forEach(field => {
     const key = field.key;
-    // Si el campo existe en data, inclúyelo (aunque sea '', null o false)
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
-      cleaned[key] = data[key];
-    } else if (field.type === 'checkbox') {
-      // Si es un checkbox y no está en data, mándalo como false
-      cleaned[key] = false;
+    // console.log("field");
+    // console.log(field);
+    if (omitKeys.includes(key)) return;
+    if (field.formGroup) {
+      if (!grouped[field.formGroup]) grouped[field.formGroup] = {};
+      // Si es checkbox, asegúrate de que sea booleano
+      if (field.type === 'checkbox') {
+        grouped[field.formGroup][key] = data[field.formGroup][key] === true;
+      } else {
+        grouped[field.formGroup][key] = data[field.formGroup][key];
+      }
     } else {
-      // Si no está, mándalo como null
-      cleaned[key] = null;
+      // Si es checkbox, asegúrate de que sea booleano
+      if (field.type === 'checkbox') {
+        cleaned[key] = data[key] === true;
+      } else {
+        cleaned[key] = data[key];
+      }
+    }
+  });
+
+  console.log("cleaned");
+  console.log(cleaned);
+
+  // Solo agrega los grupos si tienen al menos un valor no vacío
+  Object.keys(grouped).forEach(group => {
+    if (group === 'price_data') {
+      // Solo incluye los keys base_net_amount y price_configuration
+      const pd = {};
+      if ('base_net_amount' in grouped[group]) pd.base_net_amount = grouped[group].base_net_amount ?? null;
+      if ('price_configuration' in grouped[group]) pd.price_configuration = grouped[group].price_configuration ?? null;
+      // Solo agrega si existen los keys
+      if (Object.keys(pd).length > 0) {
+        cleaned[group] = pd;
+      }
+    } else {
+      // Para otros grupos, solo si tienen algún valor no vacío
+      const groupValues = Object.values(grouped[group]);
+      const hasValue = groupValues.some(v => v !== null && v !== undefined && v !== '');
+      if (hasValue) {
+        cleaned[group] = grouped[group];
+      }
+    }
+  });
+  // Elimina del nivel raíz los campos que pertenecen a un formGroup
+  props.fields.forEach(field => {
+    if (field.formGroup && cleaned.hasOwnProperty(field.key)) {
+      delete cleaned[field.key];
     }
   });
   return cleaned;

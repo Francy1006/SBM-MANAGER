@@ -44,7 +44,8 @@
             <ConfigListComponent 
               :franchiseId="selectedFranchise"
               :franchiseCode="selectedFranchiseCode"
-              endpointType="code"
+              endpointType="id"
+              :endpointBase="`/franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
               title="Configuración de Precios"
             />
           </div>

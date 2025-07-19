@@ -116,6 +116,10 @@ const props = defineProps({
   title: {
     type: String,
     default: 'Configuración de Precios'
+  },
+  endpointBase: {
+    type: String,
+    default: ''
   }
 });
 
@@ -132,14 +136,13 @@ const fetchConfigDetails = async () => {
   
   loading.value = true;
   try {
-    let url;
-    if (props.endpointType === 'code' && props.franchiseCode) {
-      // Para vista Franchise: usar franchise_code
-      url = `/franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${props.franchiseCode}`;
-    } else {
-      // Para vista Catalogs: usar franchise_id
-      url = `/franchise-configuration-details/franchise_price_configurations_id/?franchise_id=${props.franchiseId}`;
+    if (!props.endpointBase) {
+      console.warn('ConfigListComponent: endpointBase no proporcionado');
+      configDetails.value = [];
+      return;
     }
+    
+    const url = props.endpointBase;
     
     const response = await api.get(url);
     configDetails.value = response.data;

@@ -2,7 +2,9 @@
   <CRUDManagerComponent
     title="Administrador de Productos"
     resourceName="Producto"
-    endpoint="/api/catalog/products/"
+    endpoint="/products/product-list/"
+    get-endpoint="/products/product-list/"
+    post-endpoint="/products/"
     iconClass="fas fa-box me-2 text-secondary"
     :fields="fields"
     :states="states"
@@ -11,6 +13,7 @@
     @created="handleCreated"
     @updated="handleUpdated"
     @row-selected="handleProductSelected"
+    @show-properties="handleShowProperties"
   >
     <template #properties>
       <div class="properties-content">
@@ -52,6 +55,28 @@
       </div>
     </template>
   </CRUDManagerComponent>
+  <template v-if="showConfigList">
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" tabindex="-1">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Configuración de Producto</h5>
+            <button type="button" class="btn-close" @click="closeConfigList"></button>
+          </div>
+          <div class="modal-body">
+            <ConfigListComponent
+              :franchiseId="configListProduct?.id"
+              :catalog="configListProduct"
+              endpointType="id"
+              :endpointBase="`/api/franchise-configuration-details/franchise_price_configurations_id/?franchise_id=${configListProduct?.id}`"
+              title="Configuración de Producto"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
 </template>
 
 <script setup>
@@ -63,6 +88,8 @@ import api from '../api/axios';
 const states = ref([]);
 const products = ref([]);
 const selectedProduct = ref('');
+const showConfigList = ref(false);
+const configListProduct = ref(null);
 
 // Computed para el título de propiedades
 const propertiesTitle = computed(() => {
@@ -98,19 +125,30 @@ const selectedProductCode = computed(() => {
 
 const fields = ref([
   { key: 'sku', label: 'SKU', type: 'text', required: true, maxlength: 50 },
-  { key: 'description', label: 'Descripción', type: 'textarea', required: true },
+  { key: 'description', label: 'Descripción', type: 'textarea', required: true, uppercase: true },
   { key: 'obs', label: 'Observaciones', type: 'textarea', required: true },
   { key: 'package_unit', label: 'Unidad de Empaque', type: 'number', required: true, min: 1 },
   { key: 'min_package_purchase', label: 'Mínimo de Compra', type: 'number', required: true, min: 1 },
-  { key: 'price', label: 'Precio', type: 'text', required: true, maxlength: 36 },
-  { key: 'provider', label: 'Proveedor', type: 'select', required: true, optionsKey: 'providers' },
-  { key: 'type', label: 'Tipo', type: 'select', required: true, optionsKey: 'types' },
-  { key: 'group', label: 'Grupo', type: 'select', required: true, optionsKey: 'groups' },
-  { key: 'category', label: 'Categoría', type: 'select', required: true, optionsKey: 'categories' },
-  { key: 'url', label: 'URL', type: 'url', required: false, maxlength: 255 },
-  { key: 'package', label: 'Empaque', type: 'select', required: true, optionsKey: 'packages' },
-  { key: 'is_active', label: 'Activo', type: 'checkbox', required: false },
-  { key: 'is_confirmed', label: 'Confirmado', type: 'checkbox', required: false },
+  { key: 'base_net_amount', label: 'Valor Base NETO', type: 'price', required: true, formGroup: 'price_data' },
+  { key: 'price_configuration', label: 'Configuración de Precio', type: 'dynamic-select', required: true, endpoint: '/price-configurations/', labelKey: 'price_configuration', valueKey: 'code', formGroup: 'price_data' },
+  { key: 'provider', label: 'Proveedor', type: 'dynamic-select', required: true, endpoint: '/providers', labelKey: 'provider', hideInGrid: true },
+  { key: 'type', label: 'Tipo', type: 'dynamic-select', required: true, endpoint: '/item-types', labelKey: 'type', hideInGrid: true},
+  { key: 'item_group', label: 'Grupo', type: 'dynamic-select', required: true, endpoint: '/item-groups', labelKey: 'group_name', hideInGrid: true },
+  { key: 'category', label: 'Categoría', type: 'dynamic-select', required: true, endpoint: '/item-categories', labelKey: 'category', hideInGrid: true},
+  { key: 'url', label: 'URL', type: 'url', required: false, maxlength: 255, omitInForm: true },
+  { key: 'package', label: 'Empaque', type: 'dynamic-select', required: true, endpoint: '/packages', labelKey: 'description', valueKey: 'id', hideInGrid: true},
+  { key: 'is_active', label: 'Activo', type: 'checkbox', required: false},
+  { key: 'is_confirmed', label: 'Confirmado', type: 'checkbox', required: false},
+  { key: 'updated_by', label: 'Actualizado por', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'created_by', label: 'Creado por', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'confirmed_by', label: 'Confirmado por', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'deleted_by', label: 'Eliminado por', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'confirmed_at', label: 'Confirmado en', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'updated_at', label: 'Actualizado en', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'deleted_at', label: 'Eliminado en', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'log', label: 'Log', type: 'textarea', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'version', label: 'Versión', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'price', label: 'Precio CODE', type: 'text', required: false, hideInGrid: true, omitInForm: true },
 ]);
 
 const fetchStates = async () => {
@@ -126,7 +164,7 @@ const fetchStates = async () => {
 
 const fetchProducts = async () => {
   try {
-    const response = await api.get('/api/catalog/products/');
+    const response = await api.get('api/catalog/products/');
     products.value = response.data.results || response.data;
   } catch (error) {
     console.error('Error al cargar productos:', error);
@@ -158,6 +196,15 @@ const handleProductSelected = (product) => {
 const handleConfigChanges = (hasChanges) => {
   console.log('Configuración detectada con cambios:', hasChanges);
 };
+
+function handleShowProperties(product) {
+  configListProduct.value = product;
+  showConfigList.value = true;
+}
+function closeConfigList() {
+  showConfigList.value = false;
+  configListProduct.value = null;
+}
 
 onMounted(() => {
   fetchStates();

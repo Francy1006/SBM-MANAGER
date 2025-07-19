@@ -41,7 +41,7 @@
             <span class="badge bg-light">{{ selectedCount }} seleccionados</span>
           </div>
           <div class="col-auto mb-2 mb-md-0" v-if="showPropertiesButton">
-            <button class="btn btn-warning btn-sm rounded-pill px-3" :disabled="selectedCount !== 1" @click="showProperties">
+            <button class="btn btn-warning btn-sm rounded-pill px-3" @click="showProperties">
               <i class="fas fa-cog me-1"></i> Propiedades
             </button>
           </div>
@@ -59,11 +59,11 @@
       </div>
 
       <div class="table-responsive" style="overflow-x: auto; width: 98em;">
-        <table class="table table-hover align-middle table-bordered">
+        <table class="table table-hover align-middle table-bordered" :key="tableKey">
           <thead class="table-dark text-center">
             <tr>
               <th v-if="filteredRows.length > 0" style="width:60px!important;" class="align-middle">
-                <input type="checkbox" :checked="allSelected" @change="toggleAllSelection" />
+                <input type="checkbox" :checked="allSelected" @change.stop="toggleAllSelection" />
               </th>
               <th v-for="col in visibleColumns" :key="col" style="min-width:200px!important;" class="align-middle">{{ verboseNames[col] }}</th>
             </tr>
@@ -75,12 +75,12 @@
                 {{ searchTerm ? 'No se encontraron resultados para "' + searchTerm + '"' : 'No hay elementos disponibles' }}
               </td>
             </tr>
-            <tr v-for="row in filteredRows" :key="row.id" :class="{ 
-              'table-primary fw-bold': selected.includes(row.id) || row.id === editingRowId,
-              'text-white': row.id === editingRowId
+            <tr v-for="row in filteredRows" :key="'row-' + row.code" :class="{ 
+              'table-primary fw-bold': selected.includes(String(row.code)) || row.code === editingRowId,
+              'text-white': row.code === editingRowId
             }">
               <td v-if="rows.length > 0" class="text-center">
-                <input type="checkbox" :checked="selected.includes(row.id)" @change="toggleRowSelection(row.id)" />
+                <input type="checkbox" :key="'checkbox-' + row.code" :value="String(row.code)" v-model="selected" @change.stop="toggleRowSelection(row.code)" />
               </td>
               <td v-for="col in visibleColumns" :key="col">
                 <span v-if="col === 'state' && (states && (Array.isArray(states) || states.value))">
@@ -110,7 +110,7 @@
                     </span>
                   </span>
                 </span>
-                <span v-else>{{ formatValue(row[col]) }}</span>
+                <span v-else>{{ formatValue(row[col], col) }}</span>
               </td>
             </tr>
           </tbody>
@@ -184,6 +184,7 @@ export default {
       pageSize: 20, // Elementos por página
       totalItems: 0, // Total de elementos
       totalPages: 0, // Total de páginas
+      tableKey: '', // Key dinámica para forzar re-render
     };
   },
   computed: {
@@ -244,10 +245,10 @@ export default {
         this.selected = [];
         this.$emit('row-selected', null);
       } else {
-        this.selected = this.filteredRows.map(row => row.id);
+        this.selected = this.filteredRows.map(row => String(row.code));
         // Si solo hay una fila seleccionada, emitir evento
         if (this.selected.length === 1) {
-          const selectedRow = this.rows.find(row => row.id === this.selected[0]);
+          const selectedRow = this.rows.find(row => String(row.code) === this.selected[0]);
           if (selectedRow) {
             this.$emit('row-selected', selectedRow);
           }
@@ -256,30 +257,23 @@ export default {
         }
       }
     },
-    toggleRowSelection(id) {
-      if (this.selected.includes(id)) {
-        this.selected = this.selected.filter(sid => sid !== id);
-      } else {
-        this.selected.push(id);
-      }
-      
-      // Emitir evento cuando se selecciona una fila
+    toggleRowSelection(code) {
+      // Solo emitir el evento, v-model ya actualizó selected
       if (this.selected.length === 1) {
-        const selectedRow = this.rows.find(row => row.id === this.selected[0]);
+        const selectedRow = this.rows.find(row => String(row.code) === this.selected[0]);
         if (selectedRow) {
           this.$emit('row-selected', selectedRow);
         }
       } else {
-        // Si no hay selección o hay múltiples selecciones, emitir null
         this.$emit('row-selected', null);
       }
     },
     configureSelected() {
       if (this.selected.length === 1) {
-        const selectedRow = this.rows.find(row => row.id === this.selected[0]);
+        const selectedRow = this.rows.find(row => String(row.code) === this.selected[0]);
         if (selectedRow) {
           // Marcar esta fila como en edición
-          this.editingRowId = selectedRow.id;
+          this.editingRowId = selectedRow.code;
           
           // Emitir evento con los datos del item seleccionado
           this.$emit('configure', selectedRow);
@@ -291,11 +285,13 @@ export default {
     },
     showProperties() {
       if (this.selected.length === 1) {
-        const selectedRow = this.rows.find(row => row.id === this.selected[0]);
+        const selectedRow = this.rows.find(row => String(row.code) === this.selected[0]);
         if (selectedRow) {
           this.$emit('show-properties', selectedRow);
-          this.selected = []; // Limpiar selección después de mostrar propiedades
+          this.selected = [];
         }
+      } else {
+        this.$emit('show-properties', null);
       }
     },
     
@@ -403,24 +399,35 @@ export default {
         }
         
         const res = await api.get(url);
-        
-        // Manejar respuesta paginada de Django
-        if (res.data.results !== undefined) {
-          // Respuesta paginada
+
+        // --- NUEVO: Soporte para verbose_names global ---
+        if (
+          res.data.results &&
+          typeof res.data.results === 'object' &&
+          res.data.results.results &&
+          res.data.results.verbose_names
+        ) {
+          // Caso /products/product-list
+          this.rows = res.data.results.results;
+          this.totalItems = this.rows.length;
+          this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+          this.verboseNames = res.data.results.verbose_names;
+        } else if (res.data.results !== undefined) {
+          // Respuesta paginada estándar
           this.rows = res.data.results || [];
           this.totalItems = res.data.count || 0;
           this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+          // extrae verbose names desde primer item
+          this.verboseNames = this.rows.length > 0 && this.rows[0].field_verbose_names
+            ? this.rows[0].field_verbose_names
+            : {};
         } else {
           // Respuesta no paginada (fallback)
           this.rows = Array.isArray(res.data) ? res.data : [];
           this.totalItems = this.rows.length;
           this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+          this.verboseNames = {};
         }
-        
-        // extrae verbose names desde primer item
-        this.verboseNames = this.rows.length > 0 && this.rows[0].field_verbose_names
-          ? this.rows[0].field_verbose_names
-          : {};
         
         // Filtrar columnas específicas que no deben mostrarse
         this.columns = this.rows.length > 0
@@ -435,6 +442,12 @@ export default {
         
         // Actualizar datos filtrados
         this.filteredRows = [...this.rows];
+        // Limpiar selected para que solo contenga IDs presentes y como string
+        this.selected = this.selected
+          .map(code => String(code))
+          .filter(code => this.filteredRows.some(row => String(row.code) === code));
+        // Forzar re-render de la tabla
+        this.tableKey = this.getTableKey();
         
         // Si no hay término de búsqueda, limpiar la búsqueda
         if (!this.searchTerm.trim()) {
@@ -460,7 +473,12 @@ export default {
       const state = statesArray.find(s => s.id === stateId);
       return state ? state.state : stateId;
     },
-    formatValue(val) {
+    formatValue(val, col) {
+      const field = this.fields.find(f => f.key === col);
+      if (field && field.type === 'price') {
+        if (val === null || val === undefined || isNaN(val)) return '-';
+        return '$' + Number(val).toLocaleString('es-CL');
+      }
       if (val === null || val === undefined) return '-';
       if (typeof val === 'string' && val.length > 100) return val.slice(0, 100) + '...';
       return val;
@@ -468,6 +486,9 @@ export default {
     capitalize(val) {
       if (!val) return '';
       return val.charAt(0).toUpperCase() + val.slice(1);
+    },
+    getTableKey() {
+      return this.filteredRows.map(r => String(r.code)).join('-');
     },
   },
   watch: {
