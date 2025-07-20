@@ -2,7 +2,7 @@
   <CRUDManagerComponent
     title="Administrador de Proveedores"
     resourceName="Proveedor"
-    endpoint="/providers/"
+    endpoint="/providers/list"
     iconClass="fas fa-truck me-2 text-secondary"
     :fields="fields"
     :states="states"

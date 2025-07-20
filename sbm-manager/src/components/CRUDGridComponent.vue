@@ -7,10 +7,10 @@
       </h4>
     </div>
 
+    <OptionsComponent @toggle-secret-fields="showSecretFields = $event" />
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-primary" role="status"></div>
     </div>
-
     <div v-else>
       <div class="mb-4">
         <div class="row">
@@ -58,7 +58,7 @@
         </div>
       </div>
 
-      <div class="table-responsive" style="overflow-x: auto; width: 98em;">
+      <div class="table-responsive" style="overflow-x: auto; width: calc(100vw - 250px - 1rem); margin-right: 1rem;">
         <table class="table table-hover align-middle table-bordered" :key="tableKey">
           <thead class="table-dark text-center">
             <tr>
@@ -110,7 +110,15 @@
                     </span>
                   </span>
                 </span>
-                <span v-else>{{ formatValue(row[col], col) }}</span>
+                <span v-else :class="{'price-bold': fields.find(f => f.key === col && f.type === 'price')}">
+                  {{
+                    fields.find(f => f.key === col && f.secretField) && !showSecretFields
+                      ? (typeof row[col] === 'string' || typeof row[col] === 'number'
+                          ? '●'.repeat(String(row[col]).length)
+                          : '●●●●●')
+                      : formatValue(row[col], col)
+                  }}
+                </span>
               </td>
             </tr>
           </tbody>
@@ -118,36 +126,32 @@
       </div>
       
       <div v-if="totalItems > 0" class="mt-4">
-        <div class="row align-items-center">
-          <div class="col-md-6">
-            <small class="text-muted">
-              Mostrando {{ startItem }} - {{ endItem }} de {{ totalItems }} elementos
-            </small>
-          </div>
-          <div class="col-md-6">
-            <nav aria-label="Navegación de páginas">
-              <ul class="pagination pagination-sm justify-content-end mb-0">
-                <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                  <button class="page-link" @click="goToPage(currentPage - 1)" :disabled="currentPage === 1">
-                    <i class="fas fa-chevron-left"></i>
-                  </button>
-                </li>
-                <li 
-                  v-for="page in visiblePages" 
-                  :key="page"
-                  class="page-item"
-                  :class="{ active: page === currentPage }"
-                >
-                  <button class="page-link" @click="goToPage(page)">{{ page }}</button>
-                </li>
-                <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                  <button class="page-link" @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages">
-                    <i class="fas fa-chevron-right"></i>
-                  </button>
-                </li>
-              </ul>
-            </nav>
-          </div>
+        <div class="d-flex justify-content-start align-items-center">
+          <small class="text-muted me-3">
+            Mostrando {{ startItem }} - {{ endItem }} de {{ totalItems }} elementos
+          </small>
+          <nav aria-label="Navegación de páginas" style="padding-left: 30px;">
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                <button class="page-link" @click="goToPage(currentPage - 1)" :disabled="currentPage === 1">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+              </li>
+              <li 
+                v-for="page in visiblePages" 
+                :key="page"
+                class="page-item"
+                :class="{ active: page === currentPage }"
+              >
+                <button class="page-link" @click="goToPage(page)">{{ page }}</button>
+              </li>
+              <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                <button class="page-link" @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </li>
+            </ul>
+          </nav>
         </div>
       </div>
     </div>
@@ -157,9 +161,11 @@
 <script>
 import api from '../api/axios';
 import { mapGetters, mapActions } from 'vuex';
+import OptionsComponent from './OptionsComponent.vue';
 
 export default {
   name: 'CRUDGridComponent',
+  components: { OptionsComponent },
   props: {
     resourceName: { type: String, required: true },
     endpoint: { type: String, required: true },
@@ -185,6 +191,7 @@ export default {
       totalItems: 0, // Total de elementos
       totalPages: 0, // Total de páginas
       tableKey: '', // Key dinámica para forzar re-render
+      showSecretFields: false, // Nuevo: controla visibilidad de campos secretos
     };
   },
   computed: {
@@ -700,5 +707,9 @@ export default {
 .crudgrid-rating {
   display: inline-block;
   vertical-align: middle;
+}
+
+.price-bold {
+  font-weight: bold !important;
 }
 </style>

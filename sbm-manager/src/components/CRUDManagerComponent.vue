@@ -318,9 +318,14 @@ async function onSave(data) {
   loading.value = true;
   try {
     const cleanedData = cleanData(data);
-    
-    if (isEdit.value && editingData.value.id) {
-      await axios.put(`${finalUpdateEndpoint.value}${editingData.value.id}/`, cleanedData);
+    if (isEdit.value && editingData.value.sku) {
+      // Usar PATCH y el SKU como identificador
+      await axios.patch(`/products/${editingData.value.sku}/`, cleanedData);
+      emit('updated', editingData.value.sku);
+      alert(`${props.resourceName} actualizado exitosamente!`);
+    } else if (isEdit.value && editingData.value.id) {
+      // Fallback por si hay id, pero preferir SKU
+      await axios.patch(`${finalUpdateEndpoint.value}${editingData.value.id}/`, cleanedData);
       emit('updated', editingData.value.id);
       alert(`${props.resourceName} actualizado exitosamente!`);
     } else {
@@ -328,19 +333,15 @@ async function onSave(data) {
       emit('created', response.data);
       alert(`${props.resourceName} creado exitosamente!`);
     }
-    
     isEdit.value = false;
     editingData.value = {};
     showForm.value = false;
     updateFieldsState();
-    
     if (crudGridRef.value) {
       crudGridRef.value.resetEditingState();
     }
-    
     // Recargar datos
     emit('refresh');
-    
   } catch (error) {
     let errorMessage = `Error al guardar ${props.resourceName}: `;
     if (error.response?.data?.detail) {
@@ -350,7 +351,6 @@ async function onSave(data) {
     } else {
       errorMessage += error.message;
     }
-    
     alert(errorMessage);
   } finally {
     loading.value = false;
@@ -377,18 +377,24 @@ function cleanData(data) {
     if (omitKeys.includes(key)) return;
     if (field.formGroup) {
       if (!grouped[field.formGroup]) grouped[field.formGroup] = {};
+      let value = data[field.formGroup]?.[key];
       // Si es checkbox, asegúrate de que sea booleano
       if (field.type === 'checkbox') {
-        grouped[field.formGroup][key] = data[field.formGroup][key] === true;
-      } else {
-        grouped[field.formGroup][key] = data[field.formGroup][key];
+        value = value === true;
+      }
+      // Omitir si el valor es vacío
+      if (value !== null && value !== undefined && value !== '') {
+        grouped[field.formGroup][key] = value;
       }
     } else {
+      let value = data[key];
       // Si es checkbox, asegúrate de que sea booleano
       if (field.type === 'checkbox') {
-        cleaned[key] = data[key] === true;
-      } else {
-        cleaned[key] = data[key];
+        value = value === true;
+      }
+      // Omitir si el valor es vacío
+      if (value !== null && value !== undefined && value !== '') {
+        cleaned[key] = value;
       }
     }
   });
@@ -443,9 +449,24 @@ function onConfigure(row) {
     showConfigFormComponent.value = true;
     return;
   }
-  
-  // Comportamiento normal para otras vistas
-  editingData.value = { ...row };
+
+  // Agrupar campos con formGroup 'price_data' desde el nivel raíz
+  const mappedRow = { ...row };
+  const priceDataFields = props.fields.filter(f => f.formGroup === 'price_data');
+  mappedRow.price_data = {};
+  priceDataFields.forEach(f => {
+    let val = row[f.key] !== undefined ? row[f.key] : null;
+    if (f.key !== 'price_configuration' && val !== null && val !== '' && !isNaN(val)) {
+      val = parseInt(val, 10);
+    }
+    // Para price_configuration, forzar string o null
+    if (f.key === 'price_configuration') {
+      val = val ? String(val) : null;
+    }
+    mappedRow.price_data[f.key] = val;
+  });
+
+  editingData.value = mappedRow;
   isEdit.value = true;
   showForm.value = true;
   updateFieldsState();

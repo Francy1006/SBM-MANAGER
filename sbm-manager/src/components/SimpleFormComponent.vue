@@ -186,6 +186,18 @@ export default {
           if (field.type === 'checkbox' && this.form[field.key] === undefined) {
             this.form[field.key] = false;
           }
+          // Formatear visualmente los campos de tipo price
+          if (field.type === 'price' && this.form[field.key] !== '') {
+            this.form[field.key] = '$' + Number(this.form[field.key]).toLocaleString('es-CL');
+          }
+          // Asegurar que los dynamic-select tengan valor string o null
+          if (field.type === 'dynamic-select') {
+            if (this.form[field.key] === '' || this.form[field.key] === undefined) {
+              this.form[field.key] = null;
+            } else if (this.form[field.key] !== null) {
+              this.form[field.key] = String(this.form[field.key]);
+            }
+          }
         });
       },
       immediate: true,
@@ -221,6 +233,10 @@ export default {
           try {
             const response = await axios.get(field.endpoint);
             field.options = response.data.results || response.data;
+            // Forzar la actualización del valor si ya existe en el form
+            if (this.form[field.key]) {
+              this.form[field.key] = String(this.form[field.key]);
+            }
           } catch (error) {
             console.error(`Error loading options for ${field.key}:`, error);
             field.options = [];
