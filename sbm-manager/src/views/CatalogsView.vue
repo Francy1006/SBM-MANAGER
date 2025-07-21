@@ -49,34 +49,14 @@
             @row-selected="handleCatalogSelected"
         >
             <template #properties>
-                <div class="properties-content">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h4 class="mb-3">Información General</h4>
-                            <ul class="list-unstyled">
-                                <li><strong>Franquicia Seleccionada:</strong> {{ selectedFranchiseName }}</li>
-                                <li><strong>Siglas:</strong> {{ selectedFranchiseSigla }}</li>
-                                <li><strong>ID de Franquicia:</strong> {{ selectedFranchise }}</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h4 class="mb-3">Estadísticas</h4>
-                            <ul class="list-unstyled">
-                                <li><strong>Última Actualización:</strong> {{ lastUpdate }}</li>
-                                <li><strong>Estado del Sistema:</strong> <span class="badge bg-success">Activo</span></li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <h4 class="mb-3">Configuración del Sistema</h4>
-                        </div>
-                    </div>
-                    
-                    <!-- Configuración de Precios -->
-                    <!-- Eliminado: ConfigListComponent directo, solo debe estar el de CRUDManagerComponent -->
-                </div>
+                <PropertiesComponent
+                    title="Propiedades del Catálogo"
+                    :total="franchises.length"
+                    :activos="null"
+                    :inactivos="null"
+                    :lastUpdate="lastUpdate"
+                    status="Activo"
+                />
             </template>
         </CRUDManagerComponent>
     </div>
@@ -87,6 +67,7 @@ import { ref, onMounted, computed } from 'vue';
 import axios from '../api/axios';
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue';
 import ConfigListComponent from '../components/ConfigListComponent.vue';
+import PropertiesComponent from '../components/PropertiesComponent.vue';
 
 const franchises = ref([]);
 const selectedFranchise = ref('');

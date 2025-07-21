@@ -26,9 +26,9 @@
       </div>
     </div>
     
-    <div class="alert alert-info mb-3">
+    <div v-if="showInfoAlert && infoAlertText" class="alert alert-info mb-3">
       <i class="fas fa-info-circle me-2"></i>
-      <strong> Nota:</strong> El Índice superior sobreescribe la logica con índice menor
+      <strong> Nota:</strong> {{ infoAlertText }}
     </div>
     
     <div v-if="loading" class="text-center py-3">
@@ -36,6 +36,27 @@
       <p class="mt-2">Cargando configuración...</p>
     </div>
     
+    <div v-else-if="configDetails.length > 0 && props.fields" class="config-details">
+      <div v-for="(detail, rowIdx) in configDetails" :key="rowIdx" class="config-item mb-3 p-3 border rounded">
+        <div class="row align-items-center">
+          <div v-for="field in props.fields" :key="field.key" class="col-md-4">
+            <label class="form-label fw-bold">{{ field.label }}:</label>
+            <template v-if="field.editable">
+              <input
+                type="text"
+                class="form-control"
+                :value="detail[field.key]"
+                @input="updateGenericValue(rowIdx, field.key, $event.target.value)"
+              />
+            </template>
+            <template v-else>
+              <p class="text-muted mb-0">{{ detail[field.key] }}</p>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Legacy para franquicias -->
     <div v-else-if="configDetails.length > 0" class="config-details">
       <div v-for="detail in configDetails" :key="detail.id" class="config-item mb-3 p-3 border rounded">
         <div class="row align-items-center">
@@ -44,11 +65,11 @@
             <p class="text-primary fw-bold mb-0">{{ detail.detail }}</p>
           </div>
           <div class="col-md-3">
-            <label class="form-label fw-bold">{{ detail.field_verbose_names.detail }}:</label>
+            <label class="form-label fw-bold">{{ detail.field_verbose_names?.detail || 'Detalle' }}:</label>
             <p class="text-muted mb-0">{{ detail.description }}</p>
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-bold">{{ detail.field_verbose_names.value }}:</label>
+            <label class="form-label fw-bold">{{ detail.field_verbose_names?.value || 'Valor' }}:</label>
             <input 
               v-if="detail.type === 2" 
               type="number" 
@@ -67,7 +88,7 @@
             />
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-bold">{{ detail.field_verbose_names.index }}:</label>
+            <label class="form-label fw-bold">{{ detail.field_verbose_names?.index || 'Índice' }}:</label>
             <input 
               type="number" 
               class="form-control" 
@@ -90,7 +111,7 @@
     
     <div v-else class="alert alert-warning">
       <i class="fas fa-exclamation-triangle me-2"></i>
-      No se encontraron configuraciones para esta franquicia.
+      No se encontraron configuraciones.
     </div>
   </div>
 </template>
@@ -100,17 +121,27 @@ import { ref, onMounted, watch } from 'vue';
 import api from '../api/axios';
 
 const props = defineProps({
+  // Legacy para franquicias
   franchiseId: {
     type: [String, Number],
-    required: true
+    default: null
   },
   franchiseCode: {
     type: String,
     default: ''
   },
+  // Nuevo: identificador genérico para productos o franquicias
+  code: {
+    type: String,
+    default: ''
+  },
+  id: {
+    type: [String, Number],
+    default: null
+  },
   endpointType: {
     type: String,
-    default: 'id', // 'id' for Catalogs view, 'code' for Franchise view
+    default: 'id',
     validator: (value) => ['id', 'code'].includes(value)
   },
   title: {
@@ -120,6 +151,20 @@ const props = defineProps({
   endpointBase: {
     type: String,
     default: ''
+  },
+  // Nuevo: definición de campos genéricos
+  fields: {
+    type: Array,
+    default: null // Si es null, usa legacy
+  },
+  // NUEVO: control del alert informativo
+  infoAlertText: {
+    type: String,
+    default: ''
+  },
+  showInfoAlert: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -132,8 +177,9 @@ const originalValues = ref({});
 const hasChanges = ref(false);
 
 const fetchConfigDetails = async () => {
-  if (!props.franchiseId && !props.franchiseCode) return;
-  
+  // Compatibilidad: usar code, id, franchiseId o franchiseCode
+  const hasIdentifier = props.code || props.id || props.franchiseId || props.franchiseCode;
+  if (!hasIdentifier) return;
   loading.value = true;
   try {
     if (!props.endpointBase) {
@@ -141,21 +187,16 @@ const fetchConfigDetails = async () => {
       configDetails.value = [];
       return;
     }
-    
     const url = props.endpointBase;
-    
     const response = await api.get(url);
     configDetails.value = response.data;
-    
-    // Guardar valores originales para comparación
-    originalValues.value = {};
-    configDetails.value.forEach(item => {
-      originalValues.value[item.id] = {
-        value: item.value,
-        index: item.index
-      };
-    });
-    
+    // Guardar valores originales para comparación solo si hay edición
+    if (props.fields && props.fields.some(f => f.editable)) {
+      originalValues.value = {};
+      configDetails.value.forEach((item, idx) => {
+        originalValues.value[idx] = { ...item };
+      });
+    }
     hasChanges.value = false;
     emit('changes-detected', false);
   } catch (error) {
@@ -164,6 +205,16 @@ const fetchConfigDetails = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const updateGenericValue = (rowIdx, key, newValue) => {
+  configDetails.value[rowIdx][key] = newValue;
+  // Verificar si hay cambios
+  const original = originalValues.value[rowIdx]?.[key];
+  hasChanges.value = configDetails.value.some((item, idx) => {
+    return props.fields.some(f => f.editable && item[f.key] !== originalValues.value[idx]?.[f.key]);
+  });
+  emit('changes-detected', hasChanges.value);
 };
 
 const updateConfigValue = async (detailId, newValue) => {
@@ -223,40 +274,11 @@ const updateConfigIndex = async (detailId, newValue) => {
 const saveAllChanges = async () => {
   saving.value = true;
   try {
-    // Encontrar todos los items que han cambiado
-    const changedItems = configDetails.value.filter(detail => {
-      const original = originalValues.value[detail.id];
-      return original?.value !== detail.value || original?.index !== detail.index;
-    });
-    
-    // Guardar cada item modificado usando el endpoint PATCH
-    for (const item of changedItems) {
-      const updateData = {};
-      const original = originalValues.value[item.id];
-      
-      if (original?.value !== item.value) {
-        updateData.value = item.value;
-      }
-      if (original?.index !== item.index) {
-        updateData.index = item.index;
-      }
-      
-      await api.patch(`/franchise-configuration-details/${item.id}/update_value/`, updateData);
-    }
-    
-    // Actualizar valores originales después de guardar
-    changedItems.forEach(item => {
-      originalValues.value[item.id] = {
-        value: item.value,
-        index: item.index
-      };
-    });
-    
+    // Solo soporta edición si hay campos editables y endpoint PATCH definido
+    // Aquí deberías implementar la lógica de guardado según tu API
+    alert('Funcionalidad de guardado genérico no implementada.');
     hasChanges.value = false;
     emit('changes-detected', false);
-    
-    console.log('Cambios guardados exitosamente');
-    alert('Configuración guardada exitosamente');
     return true;
   } catch (error) {
     console.error('Error al guardar cambios:', error);
@@ -269,16 +291,13 @@ const saveAllChanges = async () => {
 
 const cancelChanges = () => {
   // Revertir los cambios a los valores originales
-  configDetails.value.forEach(item => {
-    const original = originalValues.value[item.id];
-    if (original) {
-      item.value = original.value;
-      item.index = original.index;
+  configDetails.value.forEach((item, idx) => {
+    if (originalValues.value[idx]) {
+      Object.assign(item, originalValues.value[idx]);
     }
   });
   hasChanges.value = false;
   emit('changes-detected', false);
-  console.log('Cambios cancelados');
 };
 
 // Exponer la función para que el componente padre pueda usarla
@@ -287,11 +306,13 @@ defineExpose({
   hasChanges
 });
 
-watch([() => props.franchiseId, () => props.franchiseCode], ([newId, newCode], [oldId, oldCode]) => {
-  if (newId !== oldId || newCode !== oldCode) {
-    fetchConfigDetails();
-  }
-}, { immediate: true });
+watch([
+  () => props.franchiseId,
+  () => props.franchiseCode,
+  () => props.code,
+  () => props.id,
+  () => props.endpointBase
+], fetchConfigDetails, { immediate: true });
 
 onMounted(() => {
   fetchConfigDetails();

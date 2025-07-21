@@ -9,52 +9,30 @@
     :fields="fields"
     :states="states"
     :showPropertiesButton="true"
+    :propertiesProduct="propertiesProduct"
+    :propertiesFields="propertiesFields"
+    :propertiesVerboseNames="propertiesVerboseNames"
+    :systemFields="systemFields"
+    :systemVerboseNames="systemVerboseNames"
+    :configComponent="ConfigListComponent"
+    :configProps="{
+      code: selectedPriceConfiguration,
+      endpointBase: `/price-configuration-formula/?code=${selectedPriceConfiguration}`,
+      endpointType: 'code',
+      title: 'Configuración de Precios',
+      fields: [
+        { key: 'price_configuration', label: 'Configuración', editable: false },
+        { key: 'formula_template', label: 'Plantilla', editable: false },
+        { key: 'formula_translate', label: 'Fórmula', editable: false }
+      ],
+      infoAlertText: 'Formula para calculo de producto',
+      showInfoAlert: true
+    }"
+    :showCalculationComponent="true"
     @refresh="handleRefresh"
-    @created="handleCreated"
-    @updated="handleUpdated"
     @row-selected="handleProductSelected"
     @show-properties="handleShowProperties"
-  >
-    <template #properties>
-      <div class="properties-content">
-        <div class="row">
-          <div class="col-md-6">
-            <h4 class="mb-3">Información General</h4>
-            <ul class="list-unstyled">
-              <li><strong>Total de Productos:</strong> {{ totalProducts }}</li>
-              <li><strong>Productos Activos:</strong> {{ activeProducts }}</li>
-              <li><strong>Productos Inactivos:</strong> {{ inactiveProducts }}</li>
-            </ul>
-          </div>
-          <div class="col-md-6">
-            <h4 class="mb-3">Estadísticas</h4>
-            <ul class="list-unstyled">
-              <li><strong>Última Actualización:</strong> {{ lastUpdate }}</li>
-              <li><strong>Estado del Sistema:</strong> <span class="badge bg-success">Activo</span></li>
-            </ul>
-          </div>
-        </div>
-        
-        <div class="row mt-4">
-          <div class="col-12">
-            <h4 class="mb-3">Configuración del Sistema</h4>
-          </div>
-        </div>
-        
-        <!-- Configuración de Producto -->
-        <div class="row mt-4" v-if="selectedProduct">
-          <div class="col-12">
-            <ConfigListComponent 
-              :franchiseId="selectedProduct"
-              :franchiseCode="selectedProductCode"
-              endpointType="code"
-              title="Configuración de Precios"
-            />
-          </div>
-        </div>
-      </div>
-    </template>
-  </CRUDManagerComponent>
+  />
   <template v-if="showConfigList">
     <div class="modal-backdrop fade show"></div>
     <div class="modal d-block" tabindex="-1">
@@ -63,15 +41,6 @@
           <div class="modal-header">
             <h5 class="modal-title">Configuración de Producto</h5>
             <button type="button" class="btn-close" @click="closeConfigList"></button>
-          </div>
-          <div class="modal-body">
-            <ConfigListComponent
-              :franchiseId="configListProduct?.id"
-              :catalog="configListProduct"
-              endpointType="id"
-              :endpointBase="`/api/franchise-configuration-details/franchise_price_configurations_id/?franchise_id=${configListProduct?.id}`"
-              title="Configuración de Producto"
-            />
           </div>
         </div>
       </div>
@@ -87,17 +56,13 @@ import api from '../api/axios';
 
 const states = ref([]);
 const products = ref([]);
-const selectedProduct = ref('');
+const selectedProductId = ref(null);
 const showConfigList = ref(false);
 const configListProduct = ref(null);
-
-// Computed para el título de propiedades
-const propertiesTitle = computed(() => {
-  if (selectedProduct.value) {
-    const product = products.value.find(p => p.id === selectedProduct.value);
-    return product ? `${product.sku} - ID: ${product.id}` : "Producto: Sistema de Gestión";
-  }
-  return "Producto: Sistema de Gestión";
+const selectedPriceConfiguration = ref(null);
+// Computed: producto cuyas propiedades se muestran
+const propertiesProduct = computed(() => {
+  return products.value.find(p => String(p.id) === String(selectedProductId.value)) || null;
 });
 
 // Computed para estadísticas
@@ -118,8 +83,8 @@ const lastUpdate = computed(() => {
 });
 
 const selectedProductCode = computed(() => {
-  if (!selectedProduct.value) return '';
-  const product = products.value.find(p => p.id === selectedProduct.value);
+  if (!selectedProductId.value) return '';
+  const product = products.value.find(p => p.id === selectedProductId.value);
   return product ? product.code : '';
 });
 
@@ -157,6 +122,22 @@ const fields = ref([
   { key: 'price', label: 'Precio CODE', type: 'text', required: false, hideInGrid: true, omitInForm: true },
 ]);
 
+const propertiesFields = ['obs', 'package_unit', 'min_package_purchase'];
+const propertiesVerboseNames = {
+  obs: 'Observaciones',
+  package_unit: 'Unidad de Empaque',
+  min_package_purchase: 'Mínimo de Compra'
+};
+
+const systemFields = ['is_confirmed', 'is_active', 'is_deleted', 'version'];
+const systemVerboseNames = {
+  is_confirmed: 'Confirmado',
+  is_active: 'Activo',
+  is_deleted: 'Eliminado',
+  version: 'Versión'
+};
+
+
 const fetchStates = async () => {
   try {
     const response = await api.get('/product-states/');
@@ -183,29 +164,24 @@ const handleRefresh = () => {
   window.location.reload();
 };
 
-const handleCreated = (data) => {
-  console.log('Producto creado:', data);
-};
-
-const handleUpdated = (id) => {
-  console.log('Producto actualizado:', id);
-};
-
 // Escuchar cuando se selecciona un producto
 const handleProductSelected = (product) => {
-  if (product && product.code) {
-    selectedProduct.value = product.id;
+  if (product) {
+    //selectedProductId.value = product.id;
+    selectedPriceConfiguration.value = product.price_configuration
+  } else {
+    selectedProductId.value = null;
+    selectedProductId.value = null;
   }
 };
 
-// Manejar cambios en la configuración
-const handleConfigChanges = (hasChanges) => {
-  console.log('Configuración detectada con cambios:', hasChanges);
-};
-
+// Manejar apertura de propiedades
 function handleShowProperties(product) {
-  configListProduct.value = product;
-  showConfigList.value = true;
+  if (product && product.id) {
+    selectedProductId.value = product.id;
+  } else {
+    selectedProductId.value = null;
+  }
 }
 function closeConfigList() {
   showConfigList.value = false;

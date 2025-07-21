@@ -83,7 +83,15 @@
     <!-- Componente de Propiedades (oculto por defecto) -->
     <PropertiesComponent
       v-if="showProperties"
-      :title="dynamicPropertiesTitle"
+      :product="selectedRow"
+      :propertiesTitle="propertiesTitle"
+      :fields="props.propertiesFields"
+      :verboseNames="props.propertiesVerboseNames"
+      :systemFields="props.systemFields"
+      :systemVerboseNames="props.systemVerboseNames"
+      :configComponent="props.configComponent"
+      :configProps="props.configProps"
+      :showCalculationComponent="props.showCalculationComponent"
       @close="onPropertiesClose"
     >
       <slot name="properties"></slot>
@@ -92,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import CRUDGridComponent from './CRUDGridComponent.vue';
 import SimpleFormComponent from './SimpleFormComponent.vue';
 import StatsGeneralComponent from './StatsGeneralComponent.vue';
@@ -195,9 +203,29 @@ const props = defineProps({
       type: Boolean,
       default: false
     },
-    propertiesTitle: {
+    propertiesProduct: {
+      type: Object,
+      default: null
+    },
+    propertiesProductTitle: {
       type: String,
-      default: 'Propiedades'
+      default: ''
+    },
+    propertiesFields: {
+      type: Array,
+      default: () => []
+    },
+    propertiesVerboseNames: {
+      type: Object,
+      default: () => ({})
+    },
+    systemFields: {
+      type: Array,
+      default: () => []
+    },
+    systemVerboseNames: {
+      type: Object,
+      default: () => ({})
     },
     // Configuración de alerta de fecha
     showDateAlert: {
@@ -207,6 +235,19 @@ const props = defineProps({
     endpointBase: {
       type: String,
       default: ''
+    },
+    // Configuración para el componente PropertiesComponent
+    configComponent: {
+      type: String,
+      default: null
+    },
+    configProps: {
+      type: Object,
+      default: () => ({})
+    },
+    showCalculationComponent: {
+      type: Boolean,
+      default: false
     }
 });
 
@@ -224,6 +265,10 @@ const selectedRow = ref(null);
 const showConfigFormComponent = ref(false);
 const showProperties = ref(false); // Nuevo estado para mostrar/ocultar propiedades
 
+// Depuración: watcher para ver si cambia el título
+watch(() => props.propertiesProduct, (newVal) => {
+});
+
 // Computed
 const finalGetEndpoint = computed(() => {
   return props.getEndpoint || props.endpoint;
@@ -236,45 +281,13 @@ const finalUpdateEndpoint = computed(() => {
   return props.updateEndpoint || props.endpoint;
 });
 
-// Computed para el título dinámico de propiedades
-const dynamicPropertiesTitle = computed(() => {
-  console.log('Dynamic title computed - selectedRow:', selectedRow.value);
-  console.log('Dynamic title computed - propertiesTitle prop:', props.propertiesTitle);
-  
-  // Si se pasa un título personalizado desde el padre, usarlo
-  if (props.propertiesTitle && props.propertiesTitle !== 'Propiedades') {
-    console.log('Using custom propertiesTitle:', props.propertiesTitle);
-    return props.propertiesTitle;
+const propertiesTitle = computed(() => {
+  if (selectedRow.value && selectedRow.value.sku) {
+    return selectedRow.value.description
+      ? `${selectedRow.value.sku} - ${selectedRow.value.description}`
+      : selectedRow.value.sku;
   }
-  
-  // Si hay una fila seleccionada, usar información de esa fila
-  if (selectedRow.value) {
-    console.log('Selected row data:', selectedRow.value);
-    
-    // Detectar si es un catálogo (tiene campo 'name' y 'sku')
-    if (selectedRow.value.name && selectedRow.value.sku) {
-      const title = `${selectedRow.value.name} - SKU: ${selectedRow.value.sku}`;
-      console.log('Generated catalog title:', title);
-      return title;
-    }
-    
-    // Detectar si es una franquicia (tiene campo 'franchise')
-    if (selectedRow.value.franchise) {
-      const title = `${selectedRow.value.franchise} - ID: ${selectedRow.value.id}`;
-      console.log('Generated franchise title:', title);
-      return title;
-    }
-    
-    // Detectar si es una franquicia por el campo 'name' (fallback)
-    if (selectedRow.value.name && selectedRow.value.id) {
-      const title = `${selectedRow.value.name} - ID: ${selectedRow.value.id}`;
-      console.log('Generated franchise title (fallback):', title);
-      return title;
-    }
-  }
-  
-  console.log('Using default title: Propiedades');
-  return 'Propiedades';
+  return "Producto: Sistema de Gestión";
 });
 
 // Methods
@@ -364,16 +377,11 @@ function cleanData(data) {
     'created_by', 'updated_by', 'deleted_by', 'confirmed_by',
     'url', // si tampoco lo quieres enviar
   ];
-    // console.log("data");
-    // console.log(data);
-
 
   const cleaned = {};
   const grouped = {};
   props.fields.forEach(field => {
     const key = field.key;
-    // console.log("field");
-    // console.log(field);
     if (omitKeys.includes(key)) return;
     if (field.formGroup) {
       if (!grouped[field.formGroup]) grouped[field.formGroup] = {};
@@ -398,9 +406,6 @@ function cleanData(data) {
       }
     }
   });
-
-  console.log("cleaned");
-  console.log(cleaned);
 
   // Solo agrega los grupos si tienen al menos un valor no vacío
   Object.keys(grouped).forEach(group => {
@@ -505,10 +510,8 @@ function onConfigFormUpdated() {
 }
 
 function onShowProperties(row) {
-  console.log('onShowProperties called with row:', row);
   showProperties.value = true;
   selectedRow.value = row;
-  console.log('selectedRow updated to:', selectedRow.value);
 }
 
 function onPropertiesClose() {

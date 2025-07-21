@@ -41,7 +41,7 @@
             <span class="badge bg-light">{{ selectedCount }} seleccionados</span>
           </div>
           <div class="col-auto mb-2 mb-md-0" v-if="showPropertiesButton">
-            <button class="btn btn-warning btn-sm rounded-pill px-3" @click="showProperties">
+            <button class="btn btn-warning btn-sm rounded-pill px-3" @click="showProperties" :disabled="selectedCount !== 1">
               <i class="fas fa-cog me-1"></i> Propiedades
             </button>
           </div>
@@ -361,8 +361,6 @@ export default {
         const response = await api.post('/franchises/soft_delete/', {
           ids: [this.selected[0]]
         });
-        
-        console.log('Respuesta de eliminación:', response.data);
         
         // Mostrar mensaje de éxito
         alert('Item eliminado exitosamente');

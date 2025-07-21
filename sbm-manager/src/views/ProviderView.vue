@@ -13,43 +13,16 @@
     @row-selected="handleProviderSelected"
   >
     <template #properties>
-      <div class="properties-content">
-        <div class="row">
-          <div class="col-md-6">
-            <h4 class="mb-3">Información General</h4>
-            <ul class="list-unstyled">
-              <li><strong>Total de Proveedores:</strong> {{ totalProviders }}</li>
-              <li><strong>Proveedores Activos:</strong> {{ activeProviders }}</li>
-              <li><strong>Proveedores Inactivos:</strong> {{ inactiveProviders }}</li>
-            </ul>
-          </div>
-          <div class="col-md-6">
-            <h4 class="mb-3">Estadísticas</h4>
-            <ul class="list-unstyled">
-              <li><strong>Última Actualización:</strong> {{ lastUpdate }}</li>
-              <li><strong>Estado del Sistema:</strong> <span class="badge bg-success">Activo</span></li>
-            </ul>
-          </div>
-        </div>
-        
-        <div class="row mt-4">
-          <div class="col-12">
-            <h4 class="mb-3">Configuración del Sistema</h4>
-          </div>
-        </div>
-        
-        <!-- Configuración de Proveedor -->
-        <div class="row mt-4" v-if="selectedProvider">
-          <div class="col-12">
-            <ConfigListComponent 
-              :franchiseId="selectedProvider"
-              :franchiseCode="selectedProviderCode"
-              endpointType="code"
-              title="Configuración de Precios"
-            />
-          </div>
-        </div>
-      </div>
+      <PropertiesComponent
+        title="Propiedades del Proveedor"
+        :total="totalProviders"
+        :activos="activeProviders"
+        :inactivos="inactiveProviders"
+        :lastUpdate="lastUpdate"
+        status="Activo"
+        :configComponent="ConfigListComponent"
+        :configProps="{ franchiseId: selectedProvider, franchiseCode: selectedProviderCode, endpointType: 'code', title: 'Configuración de Precios' }"
+      />
     </template>
   </CRUDManagerComponent>
 </template>
@@ -58,6 +31,7 @@
 import { ref, computed, onMounted } from 'vue';
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue';
 import ConfigListComponent from '../components/ConfigListComponent.vue';
+import PropertiesComponent from '../components/PropertiesComponent.vue';
 import api from '../api/axios';
 
 const states = ref([]);

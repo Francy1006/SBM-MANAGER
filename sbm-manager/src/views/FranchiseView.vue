@@ -7,58 +7,28 @@
     :fields="fields"
     :states="states"
     :showPropertiesButton="true"
+    :configComponent="ConfigListComponent"
+    :configProps="{
+      code: selectedFranchiseCode,
+      endpointBase: `/franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`,
+      endpointType: 'code',
+      title: 'Configuración de Precios',
+      fields: null,
+      infoAlertText: 'El Índice superior sobreescribe la logica con índice menor',
+      showInfoAlert: true
+    }"
     @refresh="handleRefresh"
     @created="handleCreated"
     @updated="handleUpdated"
     @row-selected="handleFranchiseSelected"
-  >
-    <template #properties>
-      <div class="properties-content">
-        <div class="row">
-          <div class="col-md-6">
-            <h4 class="mb-3">Información General</h4>
-            <ul class="list-unstyled">
-              <li><strong>Total de Franquicias:</strong> {{ totalFranchises }}</li>
-              <li><strong>Franquicias Activas:</strong> {{ activeFranchises }}</li>
-              <li><strong>Franquicias Inactivas:</strong> {{ inactiveFranchises }}</li>
-            </ul>
-          </div>
-          <div class="col-md-6">
-            <h4 class="mb-3">Estadísticas</h4>
-            <ul class="list-unstyled">
-              <li><strong>Última Actualización:</strong> {{ lastUpdate }}</li>
-              <li><strong>Estado del Sistema:</strong> <span class="badge bg-success">Activo</span></li>
-            </ul>
-          </div>
-        </div>
-        
-        <div class="row mt-4">
-          <div class="col-12">
-            <h4 class="mb-3">Configuración del Sistema</h4>
-          </div>
-        </div>
-        
-        <!-- Configuración de Franquicia -->
-        <div class="row mt-4" v-if="selectedFranchise">
-          <div class="col-12">
-            <ConfigListComponent 
-              :franchiseId="selectedFranchise"
-              :franchiseCode="selectedFranchiseCode"
-              endpointType="id"
-              :endpointBase="`/franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
-              title="Configuración de Precios"
-            />
-          </div>
-        </div>
-      </div>
-    </template>
-  </CRUDManagerComponent>
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue';
 import ConfigListComponent from '../components/ConfigListComponent.vue';
+import PropertiesComponent from '../components/PropertiesComponent.vue';
 import api from '../api/axios';
 
 const states = ref([]);
