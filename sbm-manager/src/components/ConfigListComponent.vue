@@ -1,14 +1,18 @@
 <template>
   <div class="config-list-container">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h4 class="mb-0">{{ props.title }}</h4>
-      <div class="d-flex gap-2">
+    <div class="mb-3">
+      <h4 class="mb-2">{{ props.title }}</h4>
+      <br>
+      <button class="btn btn-outline-secondary btn-sm" @click="toggleVisibility">
+        <i :class="isVisible ? 'fas fa-eye-slash' : 'fas fa-eye'" class="me-2"></i>
+        {{ isVisible ? 'Ocultar' : 'Mostrar' }}
+      </button>
+      <div class="d-flex gap-2 mt-2">
         <button 
           v-if="hasChanges" 
           @click="saveAllChanges" 
           class="btn btn-success btn-sm rounded-pill px-3"
           :disabled="saving"
-          style="margin-right: 10px;"
         >
           <i v-if="saving" class="fas fa-spinner fa-spin me-1"></i>
           <i v-else class="fas fa-save me-1"></i>
@@ -25,6 +29,13 @@
         </button>
       </div>
     </div>
+    
+    <div v-if="!isVisible" class="alert alert-secondary" role="alert">
+      <i class="fas fa-eye-slash me-2"></i>
+      Contenido oculto
+    </div>
+    
+    <div v-else>
     
     <div v-if="showInfoAlert && infoAlertText" class="alert alert-info mb-3">
       <i class="fas fa-info-circle me-2"></i>
@@ -114,6 +125,7 @@
       No se encontraron configuraciones.
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
@@ -146,7 +158,7 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: 'Configuración de Precios'
+    default: 'Configuración'
   },
   endpointBase: {
     type: String,
@@ -175,6 +187,11 @@ const loading = ref(false);
 const saving = ref(false);
 const originalValues = ref({});
 const hasChanges = ref(false);
+const isVisible = ref(false); // Por defecto oculto
+
+const toggleVisibility = () => {
+  isVisible.value = !isVisible.value;
+};
 
 const fetchConfigDetails = async () => {
   // Compatibilidad: usar code, id, franchiseId o franchiseCode

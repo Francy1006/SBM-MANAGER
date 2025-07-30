@@ -3,105 +3,63 @@
     <h1 class="mb-4" style="font-family: 'DINAlternate', sans-serif; color: #e53935;">
       {{ title }}
     </h1>
-    
+
     <!-- Título del componente (opcional) -->
     <div v-if="componentTitle" class="row mt-4 mb-5">
       <div class="col-12">
-        <h2 class="h4 fw-bold text-black">
-          {{ componentTitle }}
+        <h2 class="fw-bold text-black">
+          <strong>{{ componentTitle }}</strong>
         </h2>
       </div>
     </div>
-    
+
     <div class="alert alert-info" v-if="showDateAlert">
       <div class="mb-2">
         <strong>Fecha actual:</strong> {{ currentDate }}
       </div>
     </div>
-    
+
+
+    <!-- Componente de Estadísticas (opcional) -->
+    <StatsGeneralComponent v-if="statsEndpoint && statsEndpoint.trim() !== ''" :endpoint="statsEndpoint"
+      :title="statsTitle" />
+
+    <!-- Componente de Configuración (opcional) -->
+    <ConfigListComponent v-if="showConfigList && configListFranchiseId" :franchiseId="configListFranchiseId"
+      :endpointType="configListEndpointType" :title="configListTitle" :endpointBase="endpointBase" />
+
+    <br>
     <!-- Botones de acción -->
-    <div class="mb-4" v-if="!showForm && !showProperties">
+    <div class="mt-4 mb-4" v-if="!showForm && !showProperties">
       <button @click="showCreateForm" class="btn btn-danger rounded-pill px-4">
         <i class="fa-solid fa-plus me-2"></i> Crear {{ resourceName }}
       </button>
     </div>
-    
-    <!-- Componente de Estadísticas (opcional) -->
-    <StatsGeneralComponent
-      v-if="statsEndpoint && statsEndpoint.trim() !== ''"
-      :endpoint="statsEndpoint"
-      :title="statsTitle"
-    />
-    
-    <!-- Componente de Configuración (opcional) -->
-    <ConfigListComponent
-      v-if="showConfigList && configListFranchiseId"
-      :franchiseId="configListFranchiseId"
-      :endpointType="configListEndpointType"
-      :title="configListTitle"
-      :endpointBase="endpointBase"
-    />
-    
     <!-- Componente de Formulario (solo para crear si showConfigForm está habilitado) -->
-    <SimpleFormComponent
-      v-if="(!showConfigForm || !showConfigFormComponent) && !showProperties"
-      :show="showForm"
-      :is-edit="isEdit"
-      :fields="fields"
-      :values="editingData"
-      :loading="loading"
-      v-bind="states ? { states } : {}"
-      @close="onClose"
-      @save="onSave"
-    />
-    
+    <SimpleFormComponent v-if="(!showConfigForm || !showConfigFormComponent) && !showProperties" :show="showForm"
+      :is-edit="isEdit" :fields="fields" :values="editingData" :loading="loading" v-bind="states ? { states } : {}"
+      @close="onClose" @save="onSave" />
+
     <!-- Componente de Configuración (opcional) -->
-    <ConfigFormComponent
-      v-if="showConfigForm && showConfigFormComponent && selectedRow"
-      :catalog="selectedRow"
-      :configurationName="configFormName"
-      :publicPivotField="configFormPivotField"
-      @close="onConfigFormClose"
-      @updated="onConfigFormUpdated"
-    />
-    
+    <ConfigFormComponent v-if="showConfigForm && showConfigFormComponent && selectedRow" :catalog="selectedRow"
+      :configurationName="configFormName" :publicPivotField="configFormPivotField" @close="onConfigFormClose"
+      @updated="onConfigFormUpdated" />
+
     <!-- Componente de Tabla CRUD -->
-    <CRUDGridComponent
-      v-if="!showProperties"
-      ref="crudGridRef"
-      :resourceName="resourceName"
-      :endpoint="finalGetEndpoint"
-      :iconClass="iconClass"
-      :showPropertiesButton="showPropertiesButton"
-      v-bind="states ? { states } : {}"
-      :fields="fields"
-      @configure="onConfigure"
-      @row-selected="onRowSelected"
-      @show-properties="onShowProperties"
-    />
-    
+    <CRUDGridComponent v-if="!showProperties" ref="crudGridRef" :resourceName="resourceName"
+      :endpoint="finalGetEndpoint" :iconClass="iconClass" :showPropertiesButton="showPropertiesButton"
+      v-bind="states ? { states } : {}" :fields="fields" @configure="onConfigure" @row-selected="onRowSelected"
+      @show-properties="onShowProperties" />
+
     <!-- Componente de Propiedades (oculto por defecto) -->
-    <PropertiesComponent
-      v-if="showProperties"
-      :product="selectedRow"
-      :propertiesTitle="propertiesTitle"
-      :fields="props.propertiesFields"
-      :verboseNames="props.propertiesVerboseNames"
-      :systemFields="props.systemFields"
-      :systemVerboseNames="props.systemVerboseNames"
-      :configComponent="props.configComponent"
-      :configProps="props.configProps"
-      :showCalculationComponent="props.showCalculationComponent"
-      :calculationCode="props.calculationCode"
-      :baseNetAmount="props.baseNetAmount"
-      :netAmount="props.netAmount"
-      :grossAmount="props.grossAmount"
-      :ivaAmount="props.ivaAmount"
-      :additionalTaxAmount="props.additionalTaxAmount"
-      :retentionAmount="props.retentionAmount"
-      :selectedProductSku="props.selectedProductSku"
-      @close="onPropertiesClose"
-    >
+    <PropertiesComponent v-if="showProperties" :product="selectedRow" :propertiesTitle="propertiesTitle"
+      :fields="props.propertiesFields" :verboseNames="props.propertiesVerboseNames" :systemFields="props.systemFields"
+      :systemVerboseNames="props.systemVerboseNames" :configComponent="props.configComponent"
+      :configProps="props.configProps" :showCalculationComponent="props.showCalculationComponent"
+      :calculationCode="props.calculationCode" :baseNetAmount="props.baseNetAmount" :netAmount="props.netAmount"
+      :grossAmount="props.grossAmount" :ivaAmount="props.ivaAmount" :additionalTaxAmount="props.additionalTaxAmount"
+      :retentionAmount="props.retentionAmount" :selectedProductSku="props.selectedProductSku"
+      @close="onPropertiesClose">
       <slot name="properties"></slot>
     </PropertiesComponent>
   </div>
@@ -119,19 +77,19 @@ import axios from '../api/axios';
 
 // Props
 const props = defineProps({
-      // Configuración general
-    title: {
-      type: String,
-      required: true
-    },
-    componentTitle: {
-      type: String,
-      default: null
-    },
-    resourceName: {
-      type: String,
-      required: true
-    },
+  // Configuración general
+  title: {
+    type: String,
+    required: true
+  },
+  componentTitle: {
+    type: String,
+    default: null
+  },
+  resourceName: {
+    type: String,
+    required: true
+  },
   endpoint: {
     type: String,
     required: true
@@ -161,138 +119,138 @@ const props = defineProps({
     type: String,
     default: 'Estadísticas'
   },
-      // Configuración de formulario
-    fields: {
-      type: Array,
-      required: true
-    },
-    // Configuración adicional para CRUDGrid
-    states: {
-      type: [Array, Object],
-      default: null
-    },
-    // Configuración de API
-    createEndpoint: {
-      type: String,
-      default: null
-    },
-    updateEndpoint: {
-      type: String,
-      default: null
-    },
-    // Configuración del ConfigFormComponent
-    showConfigForm: {
-      type: Boolean,
-      default: false
-    },
-    configFormName: {
-      type: String,
-      default: 'Configuración'
-    },
-    configFormPivotField: {
-      type: String,
-      default: 'id'
-    },
-    // Configuración del ConfigListComponent
-    showConfigList: {
-      type: Boolean,
-      default: false
-    },
-    configListFranchiseId: {
-      type: [String, Number],
-      default: null
-    },
-    configListEndpointType: {
-      type: String,
-      default: 'id'
-    },
-    configListTitle: {
-      type: String,
-      default: 'Configuración de Precios'
-    },
-    // Configuración de Propiedades
-    showPropertiesButton: {
-      type: Boolean,
-      default: false
-    },
-    propertiesProduct: {
-      type: Object,
-      default: null
-    },
-    propertiesProductTitle: {
-      type: String,
-      default: ''
-    },
-    propertiesFields: {
-      type: Array,
-      default: () => []
-    },
-    propertiesVerboseNames: {
-      type: Object,
-      default: () => ({})
-    },
-    systemFields: {
-      type: Array,
-      default: () => []
-    },
-    systemVerboseNames: {
-      type: Object,
-      default: () => ({})
-    },
-    // Configuración de alerta de fecha
-    showDateAlert: {
-      type: Boolean,
-      default: false
-    },
-    endpointBase: {
-      type: String,
-      default: ''
-    },
-    // Configuración para el componente PropertiesComponent
-    configComponent: {
-      type: String,
-      default: null
-    },
-    configProps: {
-      type: Object,
-      default: () => ({})
-    },
-    showCalculationComponent: {
-      type: Boolean,
-      default: false
-    },
-    calculationCode: {
-      type: String,
-      default: ''
-    },
-    baseNetAmount: {
-      type: [Number, String],
-      default: null
-    },
-    netAmount: {
-      type: [Number, String],
-      default: null
-    },
-    grossAmount: {
-      type: [Number, String],
-      default: null
-    },
-    ivaAmount: {
-      type: [Number, String],
-      default: null
-    },
-    additionalTaxAmount: {
-      type: [Number, String],
-      default: null
-    },
-    retentionAmount: {
-      type: [Number, String],
-      default: null
-    },
-    selectedProductSku: {
-      type: String,
-      default: null
-    }
+  // Configuración de formulario
+  fields: {
+    type: Array,
+    required: true
+  },
+  // Configuración adicional para CRUDGrid
+  states: {
+    type: [Array, Object],
+    default: null
+  },
+  // Configuración de API
+  createEndpoint: {
+    type: String,
+    default: null
+  },
+  updateEndpoint: {
+    type: String,
+    default: null
+  },
+  // Configuración del ConfigFormComponent
+  showConfigForm: {
+    type: Boolean,
+    default: false
+  },
+  configFormName: {
+    type: String,
+    default: 'Configuración'
+  },
+  configFormPivotField: {
+    type: String,
+    default: 'id'
+  },
+  // Configuración del ConfigListComponent
+  showConfigList: {
+    type: Boolean,
+    default: false
+  },
+  configListFranchiseId: {
+    type: [String, Number],
+    default: null
+  },
+  configListEndpointType: {
+    type: String,
+    default: 'id'
+  },
+  configListTitle: {
+    type: String,
+    default: 'Configuración'
+  },
+  // Configuración de Propiedades
+  showPropertiesButton: {
+    type: Boolean,
+    default: false
+  },
+  propertiesProduct: {
+    type: Object,
+    default: null
+  },
+  propertiesProductTitle: {
+    type: String,
+    default: ''
+  },
+  propertiesFields: {
+    type: Array,
+    default: () => []
+  },
+  propertiesVerboseNames: {
+    type: Object,
+    default: () => ({})
+  },
+  systemFields: {
+    type: Array,
+    default: () => []
+  },
+  systemVerboseNames: {
+    type: Object,
+    default: () => ({})
+  },
+  // Configuración de alerta de fecha
+  showDateAlert: {
+    type: Boolean,
+    default: false
+  },
+  endpointBase: {
+    type: String,
+    default: ''
+  },
+  // Configuración para el componente PropertiesComponent
+  configComponent: {
+    type: String,
+    default: null
+  },
+  configProps: {
+    type: Object,
+    default: () => ({})
+  },
+  showCalculationComponent: {
+    type: Boolean,
+    default: false
+  },
+  calculationCode: {
+    type: String,
+    default: ''
+  },
+  baseNetAmount: {
+    type: [Number, String],
+    default: null
+  },
+  netAmount: {
+    type: [Number, String],
+    default: null
+  },
+  grossAmount: {
+    type: [Number, String],
+    default: null
+  },
+  ivaAmount: {
+    type: [Number, String],
+    default: null
+  },
+  additionalTaxAmount: {
+    type: [Number, String],
+    default: null
+  },
+  retentionAmount: {
+    type: [Number, String],
+    default: null
+  },
+  selectedProductSku: {
+    type: String,
+    default: null
+  }
 });
 
 // Emits
@@ -481,7 +439,7 @@ function onClose() {
   editingData.value = {};
   showForm.value = false;
   updateFieldsState();
-  
+
   if (crudGridRef.value) {
     crudGridRef.value.resetEditingState();
   }
@@ -519,7 +477,7 @@ function onConfigure(row) {
 
 function onRowSelected(row) {
   selectedRow.value = row;
-  
+
   // Si se deselecciona y showConfigForm está habilitado, cerrar el formulario
   if (!row && props.showConfigForm) {
     showForm.value = false;
@@ -527,7 +485,7 @@ function onRowSelected(row) {
     editingData.value = {};
     showConfigFormComponent.value = false;
   }
-  
+
   // Emitir evento de fila seleccionada
   emit('row-selected', row);
 }
@@ -577,7 +535,7 @@ onMounted(() => {
     font-size: 0.9rem;
     padding: 0.5rem 1rem;
   }
-  
+
   h1 {
     font-size: 1.5rem;
   }
@@ -588,9 +546,9 @@ onMounted(() => {
     font-size: 0.85rem;
     padding: 0.4rem 0.8rem;
   }
-  
+
   h1 {
     font-size: 1.25rem;
   }
 }
-</style> 
+</style>
