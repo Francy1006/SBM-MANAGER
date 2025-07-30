@@ -6,7 +6,7 @@
     :disabled="loading"
   >
     <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="me-2"></i> 
-    {{ loading ? 'Calculando...' : 'Calcular' }}
+    {{ loading ? 'Calculando...' : 'Recalcular' }}
   </button>
   <div class="row mt-4">
     <div class="col-md-3 mb-3" v-for="field in fields" :key="field.key">
@@ -201,7 +201,7 @@ async function calculateFormula() {
   try {
     // Enviar el SKU del producto seleccionado
     const payload = { sku: props.selectedProductSku };
-    response = await api.post('/calculation-formula/', payload);
+    response = await api.post('/product-price-calculation/', payload);
 
 
     // Actualizar los campos de resultado con los datos recibidos
