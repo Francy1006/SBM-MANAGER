@@ -1,23 +1,22 @@
 FROM node:20-alpine3.19
 
-# Instala dependencias necesarias
+# Instala utilitarios básicos (opcional)
 RUN apk update && apk add --no-cache nano
 
-# Crea carpeta de trabajo
+# Establece el directorio de trabajo
 WORKDIR /app
 
-# Copia package.json y lock primero para aprovechar el cache
-COPY package.json yarn.lock* package-lock.json* ./
+# Copia solo archivos necesarios para instalar dependencias
+COPY package.json yarn.lock* ./
 
-# Instala dependencias
-RUN yarn install --frozen-lockfile || npm install
+# Instala dependencias con Yarn
+RUN yarn install --frozen-lockfile
 
-# Copia el resto del código
-COPY . .
+# NO copies el código fuente aquí - el volumen lo monta
+# COPY . .
 
-# Expone el puerto 8080
+# Expone el puerto usado por vue-cli-service
 EXPOSE 8080
 
-# Comando para iniciar la app
+# Comando por defecto al iniciar el contenedor
 CMD ["yarn", "serve"]
-

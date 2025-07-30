@@ -2,9 +2,8 @@
   <CRUDManagerComponent
     title="Administrador de Productos"
     resourceName="Producto"
-    endpoint="/products/product-list/"
-    get-endpoint="/products/product-list/"
-    post-endpoint="/products/"
+    get-endpoint="/products/list/"
+    create-endpoint="/products/"
     iconClass="fas fa-box me-2 text-secondary"
     :fields="fields"
     :states="states"
@@ -29,6 +28,14 @@
       showInfoAlert: true
     }"
     :showCalculationComponent="true"
+    :calculationCode="selectedPriceConfiguration"
+    :baseNetAmount="selectedBaseNetAmount"
+    :netAmount="selectedNetAmount"
+    :grossAmount="selectedGrossAmount"
+    :ivaAmount="selectedIVAAmount"
+    :additionalTaxAmount="selectedAditionalTaxAmount"
+    :retentionAmount="selectedRetentionAmount"
+    :selectedProductSku="selectedProductSku"
     @refresh="handleRefresh"
     @row-selected="handleProductSelected"
     @show-properties="handleShowProperties"
@@ -52,14 +59,20 @@
 import { ref, computed, onMounted } from 'vue';
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue';
 import ConfigListComponent from '../components/ConfigListComponent.vue';
-import api from '../api/axios';
 
 const states = ref([]);
 const products = ref([]);
 const selectedProductId = ref(null);
+const selectedProductSku = ref(null);
 const showConfigList = ref(false);
 const configListProduct = ref(null);
 const selectedPriceConfiguration = ref(null);
+const selectedBaseNetAmount = ref(null);
+const selectedNetAmount = ref(null);
+const selectedGrossAmount = ref(null);
+const selectedIVAAmount = ref(null);
+const selectedAditionalTaxAmount = ref(null);
+const selectedRetentionAmount = ref(null);
 // Computed: producto cuyas propiedades se muestran
 const propertiesProduct = computed(() => {
   return products.value.find(p => String(p.id) === String(selectedProductId.value)) || null;
@@ -87,6 +100,8 @@ const selectedProductCode = computed(() => {
   const product = products.value.find(p => p.id === selectedProductId.value);
   return product ? product.code : '';
 });
+
+
 
 const fields = ref([
   { key: 'sku', label: 'SKU', type: 'text', required: true, maxlength: 50 },
@@ -122,8 +137,9 @@ const fields = ref([
   { key: 'price', label: 'Precio CODE', type: 'text', required: false, hideInGrid: true, omitInForm: true },
 ]);
 
-const propertiesFields = ['obs', 'package_unit', 'min_package_purchase'];
+const propertiesFields = ['sku','obs', 'package_unit', 'min_package_purchase'];
 const propertiesVerboseNames = {
+  sku: 'SKU',
   obs: 'Observaciones',
   package_unit: 'Unidad de Empaque',
   min_package_purchase: 'Mínimo de Compra'
@@ -138,26 +154,26 @@ const systemVerboseNames = {
 };
 
 
-const fetchStates = async () => {
-  try {
-    const response = await api.get('/product-states/');
-    // Extraer el array results de la respuesta
-    states.value = response.data.results || response.data;
-  } catch (error) {
-    console.error('Error al cargar estados:', error);
-    states.value = [];
-  }
-};
+// const fetchStates = async () => {
+//   try {
+//     const response = await api.get('/product-states/');
+//     // Extraer el array results de la respuesta
+//     states.value = response.data.results || response.data;
+//   } catch (error) {
+//     console.error('Error al cargar estados:', error);
+//     states.value = [];
+//   }
+// };
 
-const fetchProducts = async () => {
-  try {
-    const response = await api.get('api/catalog/products/');
-    products.value = response.data.results || response.data;
-  } catch (error) {
-    console.error('Error al cargar productos:', error);
-    products.value = [];
-  }
-};
+// const fetchProducts = async () => {
+//   try {
+//     const response = await api.get('api/catalog/products/');
+//     products.value = response.data.results || response.data;
+//   } catch (error) {
+//     console.error('Error al cargar productos:', error);
+//     products.value = [];
+//   }
+// };
 
 const handleRefresh = () => {
   // Recargar la página o actualizar datos
@@ -167,11 +183,25 @@ const handleRefresh = () => {
 // Escuchar cuando se selecciona un producto
 const handleProductSelected = (product) => {
   if (product) {
-    //selectedProductId.value = product.id;
-    selectedPriceConfiguration.value = product.price_configuration
+    selectedProductId.value = product.id;
+    selectedProductSku.value = product.sku; // Asignar el SKU al prop
+    selectedPriceConfiguration.value = product.price_configuration;
+    selectedBaseNetAmount.value = product.base_net_amount;
+    selectedNetAmount.value = product.net_amount;
+    selectedGrossAmount.value = product.gross_amount;
+    selectedIVAAmount.value = product.iva_amount;
+    selectedAditionalTaxAmount.value = product.aditional_tax_amount;
+    selectedRetentionAmount.value = product.retention_amount;
   } else {
     selectedProductId.value = null;
-    selectedProductId.value = null;
+    selectedProductSku.value = null; // Resetear el SKU
+    selectedPriceConfiguration.value = null;
+    selectedBaseNetAmount.value = null;
+    selectedNetAmount.value = null;
+    selectedGrossAmount.value = null;
+    selectedIVAAmount.value = null;
+    selectedAditionalTaxAmount.value = null;
+    selectedRetentionAmount.value = null;
   }
 };
 
@@ -189,8 +219,8 @@ function closeConfigList() {
 }
 
 onMounted(() => {
-  fetchStates();
-  fetchProducts();
+    //fetchStates();
+  //fetchProducts();
 });
 </script>
 

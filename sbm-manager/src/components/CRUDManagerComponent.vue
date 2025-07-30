@@ -92,6 +92,14 @@
       :configComponent="props.configComponent"
       :configProps="props.configProps"
       :showCalculationComponent="props.showCalculationComponent"
+      :calculationCode="props.calculationCode"
+      :baseNetAmount="props.baseNetAmount"
+      :netAmount="props.netAmount"
+      :grossAmount="props.grossAmount"
+      :ivaAmount="props.ivaAmount"
+      :additionalTaxAmount="props.additionalTaxAmount"
+      :retentionAmount="props.retentionAmount"
+      :selectedProductSku="props.selectedProductSku"
       @close="onPropertiesClose"
     >
       <slot name="properties"></slot>
@@ -129,6 +137,10 @@ const props = defineProps({
     required: true
   },
   getEndpoint: {
+    type: String,
+    default: null
+  },
+  createEndpoint: {
     type: String,
     default: null
   },
@@ -248,6 +260,38 @@ const props = defineProps({
     showCalculationComponent: {
       type: Boolean,
       default: false
+    },
+    calculationCode: {
+      type: String,
+      default: ''
+    },
+    baseNetAmount: {
+      type: [Number, String],
+      default: null
+    },
+    netAmount: {
+      type: [Number, String],
+      default: null
+    },
+    grossAmount: {
+      type: [Number, String],
+      default: null
+    },
+    ivaAmount: {
+      type: [Number, String],
+      default: null
+    },
+    additionalTaxAmount: {
+      type: [Number, String],
+      default: null
+    },
+    retentionAmount: {
+      type: [Number, String],
+      default: null
+    },
+    selectedProductSku: {
+      type: String,
+      default: null
     }
 });
 
@@ -269,16 +313,12 @@ const showProperties = ref(false); // Nuevo estado para mostrar/ocultar propieda
 watch(() => props.propertiesProduct, (newVal) => {
 });
 
-// Computed
-const finalGetEndpoint = computed(() => {
-  return props.getEndpoint || props.endpoint;
-});
-const finalCreateEndpoint = computed(() => {
-  return props.postEndpoint || props.createEndpoint || props.endpoint;
-});
+// Computed properties
+const finalGetEndpoint = computed(() => props.getEndpoint || props.endpoint);
+const finalCreateEndpoint = computed(() => props.createEndpoint || props.endpoint);
 
 const finalUpdateEndpoint = computed(() => {
-  return props.updateEndpoint || props.endpoint;
+  return props.endpoint;
 });
 
 const propertiesTitle = computed(() => {

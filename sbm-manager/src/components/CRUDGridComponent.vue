@@ -412,7 +412,7 @@ export default {
           res.data.results.results &&
           res.data.results.verbose_names
         ) {
-          // Caso /products/product-list
+          // Caso /products/list
           this.rows = res.data.results.results;
           this.totalItems = this.rows.length;
           this.totalPages = Math.ceil(this.totalItems / this.pageSize);

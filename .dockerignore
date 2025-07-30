@@ -1,3 +1,5 @@
 sbm-manager/node_modules
 .git
 .gitignore
+node_modules
+dist

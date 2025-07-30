@@ -30,7 +30,17 @@
       <div class="row mt-4" v-if="configComponent">
         <div class="col-12">
           <component :is="configComponent" v-bind="configProps" />
-          <CalculationComponent v-if="showCalculationComponent" />
+          <CalculationComponent 
+            v-if="showCalculationComponent" 
+            :code="calculationCode" 
+            :baseNetAmount="baseNetAmount"
+            :netAmount="netAmount"
+            :grossAmount="grossAmount"
+            :ivaAmount="ivaAmount"
+            :additionalTaxAmount="additionalTaxAmount"
+            :retentionAmount="retentionAmount"
+            :selectedProductSku="selectedProductSku"
+          />
         </div>
       </div>
       <slot></slot>
@@ -39,8 +49,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import CalculationComponent from './CalculationComponent.vue';
+
 const props = defineProps({
   product: { type: Object, default: null },
   total: Number,
@@ -58,8 +69,41 @@ const props = defineProps({
   showCalculationComponent: {
     type: Boolean,
     default: false
+  },
+  calculationCode: {
+    type: String,
+    default: ''
+  },
+  baseNetAmount: {
+    type: [Number, String],
+    default: null
+  },
+  netAmount: {
+    type: [Number, String],
+    default: null
+  },
+  grossAmount: {
+    type: [Number, String],
+    default: null
+  },
+  ivaAmount: {
+    type: [Number, String],
+    default: null
+  },
+  additionalTaxAmount: {
+    type: [Number, String],
+    default: null
+  },
+  retentionAmount: {
+    type: [Number, String],
+    default: null
+  },
+  selectedProductSku: {
+    type: String,
+    default: null
   }
 });
+
 const propertiesTitle = computed(() => {
   if (props.propertiesTitle) return props.propertiesTitle;
   if (props.product && props.product.sku) {
@@ -69,6 +113,7 @@ const propertiesTitle = computed(() => {
   }
   return "Producto: Sistema de Gestión";
 });
+
 defineEmits(['close']);
 </script>
 
