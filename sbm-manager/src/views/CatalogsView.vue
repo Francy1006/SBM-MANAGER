@@ -30,7 +30,7 @@
             v-if="selectedFranchise"
             title=""
             resourceName="Catálogo"
-            endpoint="/catalogs/"
+            endpoint="/catalogs/list/"
             iconClass="fas fa-book me-2 text-secondary"
             :componentTitle="componentTitle"
             :fields="fields"
@@ -117,8 +117,38 @@ const lastUpdate = computed(() => {
   return new Date().toLocaleString('es-ES');
 });
 
-// Campos del formulario (si se necesita en el futuro)
-const fields = ref([]);
+// Campos del formulario
+const fields = ref([
+  { key: 'sku', label: 'SKU', type: 'text', required: true, maxlength: 50 },
+  { key: 'cover_image', label: 'Imagen de Portada', type: 'url', required: false, maxlength: 500, omitInForm: true },
+  { key: 'menu', label: 'Menú', type: 'dynamic-select', required: true, endpoint: '/menus', labelKey: 'menu', valueKey: 'id', hideInGrid: true },
+  { key: 'menu_name', label: 'Menú', type: 'text', required: false, omitInForm: true },
+  { key: 'category', label: 'Categoría', type: 'dynamic-select', required: true, endpoint: '/item-categories', labelKey: 'category', valueKey: 'id', hideInGrid: true },
+  { key: 'category_name', label: 'Categoría', type: 'text', required: false, omitInForm: true },
+  { key: 'item_type', label: 'Tipo de Item', type: 'dynamic-select', required: true, endpoint: '/item-types', labelKey: 'type', valueKey: 'id', hideInGrid: true },
+  { key: 'type_name', label: 'Tipo de Item', type: 'text', required: false, omitInForm: true },
+  { key: 'item_group', label: 'Grupo de Item', type: 'dynamic-select', required: true, endpoint: '/item-groups', labelKey: 'group_name', valueKey: 'id', hideInGrid: true },
+  { key: 'group_name', label: 'Grupo de Item', type: 'text', required: false, omitInForm: true },
+  { key: 'name', label: 'Nombre', type: 'text', required: true, maxlength: 255, uppercase: true },
+  { key: 'description', label: 'Descripción', type: 'textarea', required: true, uppercase: true },
+  { key: 'obs', label: 'Observaciones', type: 'textarea', required: false },
+  { key: 'chef_recommendation', label: 'Recomendación del Chef', type: 'checkbox', required: false },
+  { key: 'base_net_amount', label: 'Valor Base NETO', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true },
+  { key: 'net_amount', label: 'Costo NETO', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true },
+  { key: 'gross_amount', label: 'Costo BRUTO', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true },
+  { key: 'iva_amount', label: 'IVA', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, hideInGrid: true },
+  { key: 'aditional_tax_amount', label: 'Impuesto adicional', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, hideInGrid: true },
+  { key: 'retention_amount', label: 'Retención', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, hideInGrid: true },
+  { key: 'price_configuration', label: 'Configuración de Precio', type: 'dynamic-select', required: true, endpoint: '/price-configurations/', labelKey: 'price_configuration', valueKey: 'code', formGroup: 'price_data', hideInGrid: true },
+  { key: 'min_quantity_purchase', label: 'Cantidad Mínima de Compra', type: 'number', required: true, min: 1 },
+  { key: 'rations_quantity', label: 'Cantidad de Raciones', type: 'number', required: true, min: 1 },
+  { key: 'item_configuration', label: 'Configuración de Item', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', required: true, endpoint: '/instructions', labelKey: 'group_name', valueKey: 'id', hideInGrid: true },
+  { key: 'configuration', label: 'Configuración', type: 'text', required: false, hideInGrid: true, omitInForm: false },
+  { key: 'is_visible', label: 'Visible', type: 'checkbox', required: false },
+  { key: 'is_confirmed', label: 'Confirmado', type: 'checkbox', required: false },
+  { key: 'created_at', label: 'Creado en', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+]);
 
 const handleRefresh = () => {
   // Recargar la página o actualizar datos
