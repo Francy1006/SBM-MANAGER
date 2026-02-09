@@ -1,6 +1,6 @@
 <template>
-  <div class="container-fluid py-4">
-    <h1 class="mb-4" style="font-family: 'DINAlternate', sans-serif; color: #e53935;">
+  <div class="crud-manager container-fluid py-4">
+    <h1 class="crud-title mb-4">
       {{ title }}
     </h1>
 
@@ -19,46 +19,71 @@
       </div>
     </div>
 
-
     <!-- Componente de Estadísticas (opcional) -->
-    <StatsGeneralComponent v-if="statsEndpoint && statsEndpoint.trim() !== ''" :endpoint="statsEndpoint"
-      :title="statsTitle" />
+    <StatsGeneralComponent v-if="statsEndpoint && statsEndpoint.trim() !== ''" 
+      :endpoint="statsEndpoint" :title="statsTitle" />
 
     <!-- Componente de Configuración (opcional) -->
-    <ConfigListComponent v-if="showConfigList && configListFranchiseId" :franchiseId="configListFranchiseId"
-      :endpointType="configListEndpointType" :title="configListTitle" :endpointBase="endpointBase" />
+    <ConfigListComponent v-if="showConfigList && configListFranchiseId" 
+      :franchiseId="configListFranchiseId"
+      :endpointType="configListEndpointType" 
+      :title="configListTitle" 
+      :endpointBase="endpointBase" />
 
     <br>
     <!-- Botones de acción -->
     <div class="mt-4 mb-4" v-if="!showForm && !showProperties">
-      <button @click="showCreateForm" class="btn btn-danger rounded-pill px-4">
+      <button @click="showCreateForm" class="btn btn-danger rounded-pill px-4 crud-btn">
         <i class="fa-solid fa-plus me-2"></i> Crear {{ resourceName }}
       </button>
     </div>
-    <!-- Componente de Formulario (solo para crear si showConfigForm está habilitado) -->
-    <SimpleFormComponent v-if="(!showConfigForm || !showConfigFormComponent) && !showProperties" :show="showForm"
-      :is-edit="isEdit" :fields="fields" :values="editingData" :loading="loading" v-bind="states ? { states } : {}"
+
+    <!-- Componente de Formulario -->
+    <SimpleFormComponent v-if="(!showConfigForm || !showConfigFormComponent) && !showProperties" 
+      :show="showForm" :is-edit="isEdit" :fields="fields" 
+      :values="editingData" :loading="loading" 
+      v-bind="states ? { states } : {}"
       @close="onClose" @save="onSave" />
 
-    <!-- Componente de Configuración (opcional) -->
-    <ConfigFormComponent v-if="showConfigForm && showConfigFormComponent && selectedRow" :catalog="selectedRow"
-      :configurationName="configFormName" :publicPivotField="configFormPivotField" @close="onConfigFormClose"
+    <!-- Componente de Configuración -->
+    <ConfigFormComponent v-if="showConfigForm && showConfigFormComponent && selectedRow" 
+      :catalog="selectedRow"
+      :configurationName="configFormName" 
+      :publicPivotField="configFormPivotField" 
+      @close="onConfigFormClose"
       @updated="onConfigFormUpdated" />
 
     <!-- Componente de Tabla CRUD -->
-    <CRUDGridComponent v-if="!showProperties" ref="crudGridRef" :resourceName="resourceName"
-      :endpoint="finalGetEndpoint" :iconClass="iconClass" :showPropertiesButton="showPropertiesButton"
-      v-bind="states ? { states } : {}" :fields="fields" @configure="onConfigure" @row-selected="onRowSelected"
+    <CRUDGridComponent v-if="!showProperties" ref="crudGridRef" 
+      :resourceName="resourceName"
+      :endpoint="finalGetEndpoint" 
+      :iconClass="iconClass" 
+      :showPropertiesButton="showPropertiesButton"
+      v-bind="states ? { states } : {}" 
+      :fields="fields" 
+      @configure="onConfigure" 
+      @row-selected="onRowSelected"
       @show-properties="onShowProperties" />
 
-    <!-- Componente de Propiedades (oculto por defecto) -->
-    <PropertiesComponent v-if="showProperties" :product="selectedRow" :propertiesTitle="propertiesTitle"
-      :fields="props.propertiesFields" :verboseNames="props.propertiesVerboseNames" :systemFields="props.systemFields"
-      :systemVerboseNames="props.systemVerboseNames" :configComponent="props.configComponent"
-      :configProps="props.configProps" :showCalculationComponent="props.showCalculationComponent"
-      :calculationCode="props.calculationCode" :baseNetAmount="props.baseNetAmount" :netAmount="props.netAmount"
-      :grossAmount="props.grossAmount" :ivaAmount="props.ivaAmount" :additionalTaxAmount="props.additionalTaxAmount"
-      :retentionAmount="props.retentionAmount" :selectedProductSku="props.selectedProductSku"
+    <!-- Componente de Propiedades -->
+    <PropertiesComponent v-if="showProperties" 
+      :product="selectedRow" 
+      :propertiesTitle="propertiesTitle"
+      :fields="props.propertiesFields" 
+      :verboseNames="props.propertiesVerboseNames" 
+      :systemFields="props.systemFields"
+      :systemVerboseNames="props.systemVerboseNames" 
+      :configComponent="props.configComponent"
+      :configProps="props.configProps" 
+      :showCalculationComponent="props.showCalculationComponent"
+      :calculationCode="props.calculationCode" 
+      :baseNetAmount="props.baseNetAmount" 
+      :netAmount="props.netAmount"
+      :grossAmount="props.grossAmount" 
+      :ivaAmount="props.ivaAmount" 
+      :additionalTaxAmount="props.additionalTaxAmount"
+      :retentionAmount="props.retentionAmount" 
+      :selectedProductSku="props.selectedProductSku"
       @close="onPropertiesClose">
       <slot name="properties"></slot>
     </PropertiesComponent>
@@ -522,33 +547,3 @@ onMounted(() => {
   emit('mounted');
 });
 </script>
-
-<style scoped>
-/* Estilos específicos del componente manager */
-.container-fluid {
-  max-width: 100%;
-}
-
-/* Responsive para móviles */
-@media (max-width: 768px) {
-  .btn {
-    font-size: 0.9rem;
-    padding: 0.5rem 1rem;
-  }
-
-  h1 {
-    font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .btn {
-    font-size: 0.85rem;
-    padding: 0.4rem 0.8rem;
-  }
-
-  h1 {
-    font-size: 1.25rem;
-  }
-}
-</style>

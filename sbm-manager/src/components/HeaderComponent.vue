@@ -1,19 +1,15 @@
 <template>
-  <header style="background:#e53935; color:white; padding:1rem; display:flex; justify-content:space-between; align-items:center; font-family: 'DINAlternate', Arial, sans-serif;">
+  <header class="app-header">
     <div>
-      <h1 style="margin:0;">
-        <i class="fa-solid fa-cubes me-2"></i>
-        SBM Manager
-      </h1>
+      <!-- offset -->
     </div>
-    
-    <!-- Información del usuario y logout -->
-    <div v-if="userInfo.name" class="d-flex align-items-center">
-      <div class="me-3">
-        <small class="d-block">Bienvenido</small>
-        <span class="fw-bold">{{ userInfo.name }}</span>
+
+    <div v-if="userInfo.name" class="user-info">
+      <div class="user-name">
+        <small>Bienvenido </small>
+        <span>{{ userInfo.name }}</span>
       </div>
-      <button @click="handleLogout" class="btn btn-outline-light btn-sm">
+      <button @click="handleLogout" class="btn-logout">
         <i class="fas fa-sign-out-alt me-1"></i>
         Cerrar Sesión
       </button>
@@ -32,4 +28,4 @@ const handleLogout = () => {
   logout();
   router.push('/login');
 };
-</script> 
+</script>

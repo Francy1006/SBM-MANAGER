@@ -66,7 +66,6 @@
 import { ref, onMounted, computed } from 'vue';
 import axios from '../api/axios';
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue';
-import ConfigListComponent from '../components/ConfigListComponent.vue';
 import PropertiesComponent from '../components/PropertiesComponent.vue';
 
 const franchises = ref([]);
@@ -139,11 +138,11 @@ const fields = ref([
   { key: 'iva_amount', label: 'IVA', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, hideInGrid: true },
   { key: 'aditional_tax_amount', label: 'Impuesto adicional', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, hideInGrid: true },
   { key: 'retention_amount', label: 'Retención', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, hideInGrid: true },
-  { key: 'price_configuration', label: 'Configuración de Precio', type: 'dynamic-select', required: true, endpoint: '/price-configurations/', labelKey: 'price_configuration', valueKey: 'code', formGroup: 'price_data', hideInGrid: true },
+  { key: 'price_configuration', label: 'Configuración de Precio', type: 'dynamic-select', required: true, endpoint: '/price-configurations/catalog/', labelKey: 'price_configuration', valueKey: 'code', formGroup: 'price_data', hideInGrid: true },
   { key: 'min_quantity_purchase', label: 'Cantidad Mínima de Compra', type: 'number', required: true, min: 1 },
   { key: 'rations_quantity', label: 'Cantidad de Raciones', type: 'number', required: true, min: 1 },
   { key: 'item_configuration', label: 'Configuración de Item', type: 'text', required: false, hideInGrid: true, omitInForm: true },
-  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', required: true, endpoint: '/instructions', labelKey: 'group_name', valueKey: 'id', hideInGrid: true },
+  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', required: true, endpoint: '/instructions', labelKey: 'group_name', valueKey: 'id', labelKey: 'instruction', hideInGrid: true },
   { key: 'configuration', label: 'Configuración', type: 'text', required: false, hideInGrid: true, omitInForm: false },
   { key: 'is_visible', label: 'Visible', type: 'checkbox', required: false },
   { key: 'is_confirmed', label: 'Confirmado', type: 'checkbox', required: false },
