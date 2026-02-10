@@ -6,7 +6,7 @@
     iconClass="fas fa-truck me-2 text-secondary"
     :fields="fields"
     :states="states"
-    :showPropertiesButton="false"
+    :showPropertiesButton="true"
     @refresh="handleRefresh"
     @created="handleCreated"
     @updated="handleUpdated"
@@ -21,11 +21,17 @@
         :lastUpdate="lastUpdate"
         status="Activo"
         :configComponent="ConfigListComponent"
-        :configProps="{ franchiseId: selectedProvider, franchiseCode: selectedProviderCode, endpointType: 'code', title: 'Configuración de Precios' }"
+        :configProps="{ 
+          franchiseId: selectedProvider, 
+          franchiseCode: selectedProviderCode, 
+          endpointType: 'code', 
+          title: 'Configuración de Precios' 
+        }"
       />
     </template>
   </CRUDManagerComponent>
 </template>
+
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
@@ -148,38 +154,3 @@ onMounted(() => {
   fetchProviders();
 });
 </script>
-
-<style scoped>
-.properties-content {
-  color: #6c757d;
-}
-
-.properties-content h4 {
-  color: #495057;
-  font-family: 'DINAlternate', sans-serif;
-  font-weight: bold;
-}
-
-.properties-content ul li {
-  margin-bottom: 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.properties-content ul li:last-child {
-  border-bottom: none;
-}
-
-@media (max-width: 768px) {
-  h1 {
-    font-size: 1.5rem !important;
-    text-align: center;
-  }
-}
-
-@media (max-width: 480px) {
-  h1 {
-    font-size: 1.25rem !important;
-  }
-}
-</style> 

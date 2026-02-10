@@ -1,66 +1,67 @@
 <template>
-    <div class="container-fluid py-4">
-        <h1 class="mb-4" style="font-family: 'DINAlternate', sans-serif; color: #e53935;">
-            Administrador de Catálogos
-        </h1>
-        <div class="row mb-4">
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center">
-                    <label for="franchiseSelect" class="form-label fw-bold text-black mb-2 mb-md-0 me-md-3" style="padding-right: 10px; min-width: 250px;">
-                        <i class="fas fa-cube text-secondary me-2"></i>
-                        Selecciona Franquicia
-                    </label>
-                    <select
-                        id="franchiseSelect"
-                        v-model="selectedFranchise"
-                        class="form-select form-select-lg rounded-3 shadow-sm border-black"
-                        style="max-width: 320px; width: 100%;"
-                    >
-                        <option v-for="franchise in franchises" :key="franchise.id" :value="franchise.id">
-                            {{ franchise.franchise || franchise.name }}
-                        </option>
-                    </select>
-                </div>
-            </div>
+  <div class="catalog-manager container-fluid py-4">
+    <h1 class="catalog-title mb-4">
+      Administrador de Catálogos
+    </h1>
+
+    <div class="row mb-4">
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center">
+          <label for="franchiseSelect" class="form-label fw-bold text-black mb-2 mb-md-0 me-md-3 label-franchise">
+            <i class="fas fa-cube text-secondary me-2"></i>
+            Selecciona Franquicia
+          </label>
+          <select
+            id="franchiseSelect"
+            v-model="selectedFranchise"
+            class="form-select form-select-lg rounded-3 shadow-sm select-franchise"
+          >
+            <option v-for="franchise in franchises" :key="franchise.id" :value="franchise.id">
+              {{ franchise.franchise || franchise.name }}
+            </option>
+          </select>
         </div>
-        <br>
-        
-        <!-- CRUDManagerComponent para catálogos -->
-        <CRUDManagerComponent
-            v-if="selectedFranchise"
-            title=""
-            resourceName="Catálogo"
-            endpoint="/catalogs/list/"
-            iconClass="fas fa-book me-2 text-secondary"
-            :componentTitle="componentTitle"
-            :fields="fields"
-            :showConfigForm="true"
-            configFormName="Catálogo"
-            configFormPivotField="sku"
-            :showPropertiesButton="true"
-            :showConfigList="true"
-            :configListFranchiseId="selectedFranchise"
-            configListEndpointType="id"
-            configListTitle="Configuración de Precios"
-            :endpointBase="`/franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
-            @refresh="handleRefresh"
-            @created="handleCreated"
-            @updated="handleUpdated"
-            @row-selected="handleCatalogSelected"
-        >
-            <template #properties>
-                <PropertiesComponent
-                    title="Propiedades del Catálogo"
-                    :total="franchises.length"
-                    :activos="null"
-                    :inactivos="null"
-                    :lastUpdate="lastUpdate"
-                    status="Activo"
-                />
-            </template>
-        </CRUDManagerComponent>
+      </div>
     </div>
+    <br>
+
+    <!-- CRUDManagerComponent para catálogos -->
+    <CRUDManagerComponent
+      v-if="selectedFranchise"
+      title=""
+      resourceName="Catálogo"
+      endpoint="/catalogs/list/"
+      iconClass="fas fa-book me-2 text-secondary"
+      :componentTitle="componentTitle"
+      :fields="fields"
+      :showConfigForm="true"
+      configFormName="Catálogo"
+      configFormPivotField="sku"
+      :showPropertiesButton="true"
+      :showConfigList="true"
+      :configListFranchiseId="selectedFranchise"
+      configListEndpointType="id"
+      configListTitle="Configuración de Precios"
+      :endpointBase="`/franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
+      @refresh="handleRefresh"
+      @created="handleCreated"
+      @updated="handleUpdated"
+      @row-selected="handleCatalogSelected"
+    >
+      <template #properties>
+        <PropertiesComponent
+          title="Propiedades del Catálogo"
+          :total="franchises.length"
+          :activos="null"
+          :inactivos="null"
+          :lastUpdate="lastUpdate"
+          status="Activo"
+        />
+      </template>
+    </CRUDManagerComponent>
+  </div>
 </template>
+
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
@@ -195,55 +196,3 @@ onMounted(async () => {
   }
 });
 </script>
-
-<style scoped>
-.properties-content {
-  color: #6c757d;
-}
-
-.properties-content h4 {
-  color: #495057;
-  font-family: 'DINAlternate', sans-serif;
-  font-weight: bold;
-}
-
-.properties-content ul li {
-  margin-bottom: 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.properties-content ul li:last-child {
-  border-bottom: none;
-}
-
-/* Responsive para móviles */
-@media (max-width: 768px) {
-    h1 {
-        font-size: 1.5rem !important;
-        text-align: center;
-    }
-    
-    .form-label {
-        font-size: 0.9rem;
-    }
-    
-    .form-select {
-        font-size: 0.9rem;
-    }
-}
-
-@media (max-width: 480px) {
-    h1 {
-        font-size: 1.25rem !important;
-    }
-    
-    .form-label {
-        font-size: 0.85rem;
-    }
-    
-    .form-select {
-        font-size: 0.85rem;
-    }
-}
-</style>

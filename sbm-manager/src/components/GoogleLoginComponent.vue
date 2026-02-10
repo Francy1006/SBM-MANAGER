@@ -2,30 +2,26 @@
   <div class="google-login-container">
     <!-- Estado de carga -->
     <div v-if="loading" class="text-center py-4">
-      <div class="spinner-border text-primary" role="status">
-      </div>
+      <div class="spinner-border text-primary" role="status"></div>
       <p class="mt-2 text-muted">Inicializando Google Sign-In...</p>
     </div>
 
-    <!-- Botón de Google Sign-In -->
+    <!-- Login -->
     <div v-else-if="!isLoggedIn" class="text-center">
       <div class="mb-4">
         <h3 class="text-primary mb-3">Iniciar Sesión</h3>
         <p class="text-muted">Usa tu cuenta de Google para acceder</p>
       </div>
-      
-      <!-- Contenedor para el botón de Google -->
+
       <div id="google-signin-button" class="d-flex justify-content-center mb-3"></div>
-      
-      <!-- Enlace de fallback si Google no carga -->
+
       <div v-if="shouldShowFallbackButton" class="text-center mt-3">
         <a href="#" @click.prevent="handleManualLogin" class="text-primary text-decoration-none">
           <i class="fas fa-exclamation-triangle me-1"></i>
           ¿No aparece el botón de Google? Haz clic aquí para iniciar sesión
         </a>
       </div>
-      
-      <!-- Mensaje de error -->
+
       <div v-if="error" class="alert alert-danger mt-3" role="alert">
         <i class="fas fa-exclamation-triangle me-2"></i>
         {{ error }}
@@ -37,12 +33,12 @@
       <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
           <div class="mb-3">
-            <i class="fas fa-user-circle text-primary" style="font-size: 3rem;"></i>
+            <i class="fas fa-user-circle text-primary fs-1"></i>
           </div>
           <h4 class="text-primary mb-2">¡Bienvenido!</h4>
           <p class="text-muted mb-3">{{ userInfo.name }}</p>
           <p class="text-muted small mb-3">{{ userInfo.email }}</p>
-          
+
           <div class="d-flex justify-content-center gap-2">
             <button @click="logout" class="btn btn-outline-danger btn-sm">
               <i class="fas fa-sign-out-alt me-2"></i>
@@ -413,42 +409,3 @@ onUnmounted(() => {
   }
 });
 </script>
-
-<style scoped>
-.google-login-container {
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.card {
-  border-radius: 1rem;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-}
-
-.btn {
-  border-radius: 0.5rem;
-  font-weight: 500;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .google-login-container {
-    padding: 1rem;
-  }
-  
-  .card-body {
-    padding: 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .google-login-container {
-    padding: 0.5rem;
-  }
-  
-  .card-body {
-    padding: 1rem;
-  }
-}
-</style> 

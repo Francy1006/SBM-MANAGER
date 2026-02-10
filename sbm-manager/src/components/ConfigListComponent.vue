@@ -29,88 +29,86 @@
         </button>
       </div>
     </div>
-    
+
     <div v-if="!isVisible" class="alert alert-secondary" role="alert">
       <i class="fas fa-eye-slash me-2"></i>
       Contenido oculto
     </div>
-    
+
     <div v-else>
-    
-    <div v-if="showInfoAlert && infoAlertText" class="alert alert-info mb-3">
-      <i class="fas fa-info-circle me-2"></i>
-      <strong> Nota:</strong> {{ infoAlertText }}
-    </div>
-    
-    <div v-if="loading" class="text-center py-3">
-      <div class="spinner-border text-primary" role="status"></div>
-      <p class="mt-2">Cargando configuración...</p>
-    </div>
-    
-    <div v-else-if="configDetails.length > 0 && props.fields" class="config-details">
-      <div v-for="(detail, rowIdx) in configDetails" :key="rowIdx" class="config-item mb-3 p-3 border rounded">
-        <div class="row align-items-center">
-          <div v-for="field in props.fields" :key="field.key" class="col-md-4">
-            <label class="form-label fw-bold">{{ field.label }}:</label>
-            <template v-if="field.editable">
-              <input
-                type="text"
-                class="form-control"
-                :value="detail[field.key]"
-                @input="updateGenericValue(rowIdx, field.key, $event.target.value)"
-              />
-            </template>
-            <template v-else>
-              <p class="text-muted mb-0">{{ detail[field.key] }}</p>
-            </template>
+      <div v-if="showInfoAlert && infoAlertText" class="alert alert-info mb-3">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong> Nota:</strong> {{ infoAlertText }}
+      </div>
+
+      <div v-if="loading" class="text-center py-3">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Cargando configuración...</p>
+      </div>
+
+      <div v-else-if="configDetails.length > 0 && props.fields" class="config-details">
+        <div v-for="(detail, rowIdx) in configDetails" :key="rowIdx" class="config-item mb-3 p-3 border rounded">
+          <div class="row align-items-center">
+            <div v-for="field in props.fields" :key="field.key" class="col-md-4">
+              <label class="form-label fw-bold">{{ field.label }}:</label>
+              <template v-if="field.editable">
+                <input
+                  type="text"
+                  class="form-control"
+                  :value="detail[field.key]"
+                  @input="updateGenericValue(rowIdx, field.key, $event.target.value)"
+                />
+              </template>
+              <template v-else>
+                <p class="text-muted mb-0">{{ detail[field.key] }}</p>
+              </template>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <!-- Legacy para franquicias -->
-    <div v-else-if="configDetails.length > 0" class="config-details">
-      <div v-for="detail in configDetails" :key="detail.id" class="config-item mb-3 p-3 border rounded">
-        <div class="row align-items-center">
-          <div class="col-md-2">
-            <label class="form-label fw-bold">Nombre:</label>
-            <p class="text-primary fw-bold mb-0">{{ detail.detail }}</p>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">{{ detail.field_verbose_names?.detail || 'Detalle' }}:</label>
-            <p class="text-muted mb-0">{{ detail.description }}</p>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-bold">{{ detail.field_verbose_names?.value || 'Valor' }}:</label>
-            <input 
-              v-if="detail.type === 2" 
-              type="number" 
-              class="form-control" 
-              :value="detail.value" 
-              step="0.01" 
-              min="0"
-              @input="updateConfigValue(detail.id, $event.target.value)"
-            />
-            <input 
-              v-else 
-              type="text" 
-              class="form-control" 
-              :value="detail.value"
-              @input="updateConfigValue(detail.id, $event.target.value)"
-            />
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-bold">{{ detail.field_verbose_names?.index || 'Índice' }}:</label>
-            <input 
-              type="number" 
-              class="form-control" 
-              :value="detail.index" 
-              min="1"
-              step="1"
-              @input="updateConfigIndex(detail.id, $event.target.value)"
-            />
-          </div>
-          <div class="col-md-3">
-            <div class="d-flex align-items-center">
+
+      <div v-else-if="configDetails.length > 0" class="config-details">
+        <div v-for="detail in configDetails" :key="detail.id" class="config-item mb-3 p-3 border rounded">
+          <div class="row align-items-center">
+            <div class="col-md-2">
+              <label class="form-label fw-bold">Nombre:</label>
+              <p class="text-primary fw-bold mb-0">{{ detail.detail }}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">{{ detail.field_verbose_names?.detail || 'Detalle' }}:</label>
+              <p class="text-muted mb-0">{{ detail.description }}</p>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-bold">{{ detail.field_verbose_names?.value || 'Valor' }}:</label>
+              <input 
+                v-if="detail.type === 2" 
+                type="number" 
+                class="form-control" 
+                :value="detail.value" 
+                step="0.01" 
+                min="0"
+                @input="updateConfigValue(detail.id, $event.target.value)"
+              />
+              <input 
+                v-else 
+                type="text" 
+                class="form-control" 
+                :value="detail.value"
+                @input="updateConfigValue(detail.id, $event.target.value)"
+              />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-bold">{{ detail.field_verbose_names?.index || 'Índice' }}:</label>
+              <input 
+                type="number" 
+                class="form-control" 
+                :value="detail.index" 
+                min="1"
+                step="1"
+                @input="updateConfigIndex(detail.id, $event.target.value)"
+              />
+            </div>
+            <div class="col-md-3">
               <span class="badge me-2" :class="detail.is_confirmed ? 'bg-success text-white' : 'bg-warning'">
                 {{ detail.is_confirmed ? 'Confirmado' : 'Pendiente' }}
               </span>
@@ -118,14 +116,13 @@
           </div>
         </div>
       </div>
-    </div>
-    
-    <div v-else class="alert alert-warning">
-      <i class="fas fa-exclamation-triangle me-2"></i>
-      No se encontraron configuraciones.
+
+      <div v-else class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        No se encontraron configuraciones.
+      </div>
     </div>
   </div>
-</div>
 </template>
 
 <script setup>
@@ -335,62 +332,3 @@ onMounted(() => {
   fetchConfigDetails();
 });
 </script>
-
-<style scoped>
-.config-list-container {
-  margin-top: 20px;
-}
-
-.config-details {
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  padding: 15px;
-}
-
-.config-item {
-  background-color: white;
-  transition: all 0.3s ease;
-}
-
-.config-item:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.form-label {
-  color: #495057;
-  font-weight: 600;
-}
-
-.form-control {
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 0.9rem;
-}
-
-.form-control:focus {
-  border-color: #80bdff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-/* Responsive para móviles */
-@media (max-width: 768px) {
-  .config-item {
-    padding: 10px !important;
-  }
-  
-  .form-control {
-    font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .config-item {
-    padding: 8px !important;
-  }
-  
-  .form-control {
-    font-size: 0.8rem;
-  }
-}
-</style> 

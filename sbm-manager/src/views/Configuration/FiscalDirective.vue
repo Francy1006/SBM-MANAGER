@@ -54,5 +54,3 @@ const handleUpdated = (id) => {
   console.log('Directiva Fiscal actualizada:', id);
 };
 </script>
-
-<style scoped></style>

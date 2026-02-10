@@ -1,5 +1,7 @@
 <template>
   <div class="mb-4 p-4 rounded shadow-sm bg-white">
+    
+    <!-- HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
       <h4 class="mb-0 text-primary fw-semibold">
         <i :class="iconClass"></i>
@@ -7,11 +9,18 @@
       </h4>
     </div>
 
+    <!-- OPTIONS -->
     <OptionsComponent @toggle-secret-fields="showSecretFields = $event" />
+
+    <!-- LOADING -->
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-primary" role="status"></div>
     </div>
+
+    <!-- CONTENT -->
     <div v-else>
+      
+      <!-- SEARCH -->
       <div class="mb-4">
         <div class="row">
           <div class="col-12 col-md-6">
@@ -34,83 +43,122 @@
           </div>
         </div>
       </div>
-      
+
+      <!-- ACTION BUTTONS -->
       <div class="mb-4" v-if="selectedCount > 0">
-        <div class="row justify-content-end align-items-center">
-          <div class="col-auto mb-2 mb-md-0">
+        <div class="row justify-content-end align-items-center g-2">
+          
+          <div class="col-auto">
             <span class="badge bg-light">{{ selectedCount }} seleccionados</span>
           </div>
-          <div class="col-auto mb-2 mb-md-0" v-if="showPropertiesButton">
-            <button class="btn btn-warning btn-sm rounded-pill px-3" @click="showProperties" :disabled="selectedCount !== 1">
+          
+          <div class="col-auto" v-if="showPropertiesButton">
+            <button class="btn btn-warning btn-sm rounded-pill px-3"
+                    @click="showProperties"
+                    :disabled="selectedCount !== 1">
               <i class="fas fa-cog me-1"></i> Propiedades
             </button>
           </div>
-          <div class="col-auto mb-2 mb-md-0">
-            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" :disabled="selectedCount !== 1" @click="configureSelected">
+
+          <div class="col-auto">
+            <button class="btn btn-outline-primary btn-sm rounded-pill px-3"
+                    @click="configureSelected"
+                    :disabled="selectedCount !== 1">
               <i class="fas fa-cog me-1"></i> Configurar
             </button>
           </div>
+
           <div class="col-auto">
-            <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="deleteSelected" :disabled="selectedCount > 1">
+            <button class="btn btn-outline-secondary btn-sm rounded-pill px-3"
+                    @click="deleteSelected"
+                    :disabled="selectedCount > 1">
               <i class="fas fa-trash me-1"></i> Eliminar
             </button>
           </div>
+
         </div>
       </div>
 
+      <!-- TABLE -->
       <div class="table-responsive" style="overflow-x: auto; width: calc(100vw - 250px - 1rem); margin-right: 1rem;">
         <table class="table table-hover align-middle table-bordered" :key="tableKey">
+          
+          <!-- HEAD -->
           <thead class="table-dark text-center">
             <tr>
               <th v-if="filteredRows.length > 0" style="width:60px!important;" class="align-middle">
                 <input type="checkbox" :checked="allSelected" @change.stop="toggleAllSelection" />
               </th>
-              <th v-for="col in visibleColumns" :key="col" style="min-width:200px!important;" class="align-middle">{{ verboseNames[col] }}</th>
+              <th v-for="col in visibleColumns" :key="col" style="min-width:200px!important;" class="align-middle">
+                {{ verboseNames[col] }}
+              </th>
             </tr>
           </thead>
+
+          <!-- BODY -->
           <tbody>
+            <!-- EMPTY STATE -->
             <tr v-if="filteredRows.length === 0">
               <td :colspan="visibleColumns.length" class="text-center text-muted py-4">
                 <i class="fas fa-info-circle me-2"></i> 
-                {{ searchTerm ? 'No se encontraron resultados para "' + searchTerm + '"' : 'No hay elementos disponibles' }}
+                {{ searchTerm ? `No se encontraron resultados para "${searchTerm}"` : 'No hay elementos disponibles' }}
               </td>
             </tr>
-            <tr v-for="row in filteredRows" :key="'row-' + row.code" :class="{ 
-              'table-primary fw-bold': selected.includes(String(row.code)) || row.code === editingRowId,
-              'text-white': row.code === editingRowId
-            }">
+
+            <!-- ROWS -->
+            <tr v-for="row in filteredRows" :key="'row-' + row.code" 
+                :class="{
+                  'table-primary fw-bold': selected.includes(String(row.code)) || row.code === editingRowId,
+                  'text-white': row.code === editingRowId
+                }">
+
+              <!-- SELECTION CHECKBOX -->
               <td v-if="rows.length > 0" class="text-center">
-                <input type="checkbox" :key="'checkbox-' + row.code" :value="String(row.code)" v-model="selected" @change.stop="toggleRowSelection(row.code)" />
+                <input type="checkbox"
+                       :key="'checkbox-' + row.code"
+                       :value="String(row.code)"
+                       v-model="selected"
+                       @change.stop="toggleRowSelection(row.code)" />
               </td>
+
+              <!-- CELLS -->
               <td v-for="col in visibleColumns" :key="col">
-                <span v-if="col === 'state' && (states && (Array.isArray(states) || states.value))">
+
+                <!-- STATE -->
+                <span v-if="col === 'state' && states">
                   {{ getStateName(row[col]) }}
                 </span>
+
+                <!-- BOOLEAN -->
                 <span v-else-if="typeof row[col] === 'boolean'">
                   <i v-if="row[col]" class="fas fa-check text-success" style="font-size: x-large;"></i>
                   <i v-else class="fas fa-times text-danger" style="font-size: x-large;"></i>
                 </span>
+
+                <!-- CLOUDINARY IMAGE -->
                 <span v-else-if="typeof row[col] === 'string' && row[col].startsWith('https://res.cloudinary.com')">
-                  <img :src="row[col]" alt="Imagen Cloudinary" style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px #0001;" />
+                  <img :src="row[col]" alt="Imagen Cloudinary"
+                       style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px #0001;" />
                 </span>
+
+                <!-- URL -->
                 <span v-else-if="col.toLowerCase().includes('url') && row[col]">
                   <a :href="row[col]" target="_blank" rel="noopener noreferrer">{{ row[col] }}</a>
                 </span>
+
+                <!-- RATING -->
                 <span v-else-if="col === 'rating'">
                   <span class="crudgrid-rating">
                     <span v-for="star in 5" :key="star">
-                      <i
-                        class="fa-star fa-solid"
-                        :style="{
-                          color: row[col] >= star ? '#ffd700' : '#ccc',
-                          fontSize: '1.3em',
-                          marginRight: '2px',
-                        }"
-                      ></i>
+                      <i class="fa-star fa-solid" 
+                         :style="{ color: row[col] >= star ? '#ffd700' : '#ccc', fontSize: '1.3em', marginRight: '2px' }">
+                      </i>
                     </span>
                   </span>
                 </span>
-                <span v-else :class="{'price-bold': fields.find(f => f.key === col && f.type === 'price')}">
+
+                <!-- DEFAULT / SECRET FIELDS -->
+                <span :class="{'price-bold': fields.find(f => f.key === col && f.type === 'price')}">
                   {{
                     fields.find(f => f.key === col && f.secretField) && !showSecretFields
                       ? (typeof row[col] === 'string' || typeof row[col] === 'number'
@@ -119,12 +167,14 @@
                       : formatValue(row[col], col)
                   }}
                 </span>
+
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      
+
+      <!-- PAGINATION -->
       <div v-if="totalItems > 0" class="mt-4">
         <div class="d-flex justify-content-start align-items-center">
           <small class="text-muted me-3">
@@ -132,31 +182,32 @@
           </small>
           <nav aria-label="Navegación de páginas" style="padding-left: 30px;">
             <ul class="pagination pagination-sm mb-0">
+              
               <li class="page-item" :class="{ disabled: currentPage === 1 }">
                 <button class="page-link" @click="goToPage(currentPage - 1)" :disabled="currentPage === 1">
                   <i class="fas fa-chevron-left"></i>
                 </button>
               </li>
-              <li 
-                v-for="page in visiblePages" 
-                :key="page"
-                class="page-item"
-                :class="{ active: page === currentPage }"
-              >
+
+              <li v-for="page in visiblePages" :key="page" class="page-item" :class="{ active: page === currentPage }">
                 <button class="page-link" @click="goToPage(page)">{{ page }}</button>
               </li>
+
               <li class="page-item" :class="{ disabled: currentPage === totalPages }">
                 <button class="page-link" @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages">
                   <i class="fas fa-chevron-right"></i>
                 </button>
               </li>
+
             </ul>
           </nav>
         </div>
       </div>
+
     </div>
   </div>
 </template>
+
 
 <script>
 import api from '../api/axios';
@@ -510,204 +561,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.table td, .table th {
-  font-weight: normal !important;
-  font-family: Arial, sans-serif !important;
-}
-
-/* Estilos para botones deshabilitados */
-.btn:disabled {
-  opacity: 0.6 !important;
-  cursor: not-allowed !important;
-  pointer-events: none !important;
-}
-
-.btn:disabled:focus {
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-/* Estilos para filas seleccionadas */
-.table-primary {
-  background-color: #e7f1ff !important;
-  color: #000 !important;
-  font-weight: bold !important;
-  border: 2px solid #000 !important;
-}
-
-.table-primary td {
-  border-color: #000 !important;
-  color: #000 !important;
-  font-weight: bold !important;
-}
-
-/* Hover effect para filas seleccionadas */
-.table-primary:hover {
-  background-color: #d1e7ff !important;
-  color: #000 !important;
-  font-weight: bold !important;
-}
-
-/* Estilos para filas en edición (texto blanco) */
-.table-primary.text-white {
-  background-color: #0d6efd !important;
-  color: white !important;
-}
-
-.table-primary.text-white td {
-  color: white !important;
-}
-
-.table-primary.text-white:hover {
-  background-color: #0b5ed7 !important;
-  color: white !important;
-}
-
-/* Estilos para checkboxes en filas seleccionadas */
-.table-primary input[type="checkbox"] {
-  accent-color: #0d6efd;
-}
-
-/* Estilos para checkboxes en filas en edición */
-.table-primary.text-white input[type="checkbox"] {
-  accent-color: white;
-}
-
-/* Estilos para la barra de búsqueda */
-.input-group {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.input-group-text {
-  border: 1px solid #ced4da;
-  background-color: #f8f9fa;
-}
-
-.form-control {
-  border: 1px solid #ced4da;
-  border-left: none;
-}
-
-.form-control:focus {
-  box-shadow: none;
-  border-color: #80bdff;
-}
-
-.form-control:focus + .input-group-text {
-  border-color: #80bdff;
-}
-
-/* Estilos para paginación */
-.pagination {
-  margin-bottom: 0;
-}
-
-.page-link {
-  border: 1px solid #dee2e6;
-  color: #007bff;
-  background-color: #fff;
-}
-
-.page-link:hover {
-  color: #0056b3;
-  background-color: #e9ecef;
-  border-color: #dee2e6;
-}
-
-.page-item.active .page-link {
-  background-color: #007bff;
-  border-color: #007bff;
-  color: white;
-}
-
-.page-item.disabled .page-link {
-  color: #6c757d;
-  background-color: #fff;
-  border-color: #dee2e6;
-  cursor: not-allowed;
-}
-
-.page-item.disabled .page-link:hover {
-  color: #6c757d;
-  background-color: #fff;
-  border-color: #dee2e6;
-}
-
-/* Responsive para móviles */
-@media (max-width: 768px) {
-  .table-responsive {
-    font-size: 0.85rem;
-  }
-  
-  .table th,
-  .table td {
-    padding: 0.5rem 0.25rem;
-    font-size: 0.85rem;
-  }
-  
-  .btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-  }
-  
-  .pagination {
-    justify-content: center;
-  }
-  
-  .page-link {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-  }
-  
-  .input-group {
-    margin-bottom: 1rem;
-  }
-  
-  .form-control {
-    font-size: 0.9rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .table-responsive {
-    font-size: 0.75rem;
-  }
-  
-  .table th,
-  .table td {
-    padding: 0.25rem 0.125rem;
-    font-size: 0.75rem;
-  }
-  
-  .btn-sm {
-    padding: 0.125rem 0.25rem;
-    font-size: 0.7rem;
-  }
-  
-  .page-link {
-    padding: 0.125rem 0.25rem;
-    font-size: 0.7rem;
-  }
-  
-  .form-control {
-    font-size: 0.8rem;
-  }
-  
-  .badge {
-    font-size: 0.7rem;
-  }
-}
-
-.crudgrid-rating {
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.price-bold {
-  font-weight: bold !important;
-}
-</style>

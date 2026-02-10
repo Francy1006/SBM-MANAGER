@@ -33,7 +33,7 @@
     <br>
     <!-- Botones de acción -->
     <div class="mt-4 mb-4" v-if="!showForm && !showProperties">
-      <button @click="showCreateForm" class="btn btn-danger rounded-pill px-4 crud-btn">
+      <button @click="showCreateForm" class="btn btn-success rounded-pill px-4 crud-btn">
         <i class="fa-solid fa-plus me-2"></i> Crear {{ resourceName }}
       </button>
     </div>

@@ -1,5 +1,6 @@
 <template>
   <CRUDManagerComponent
+    class="crud-manager"
     title="Administrador de Franquicias"
     resourceName="Franquicia"
     endpoint="/franchises/"
@@ -23,6 +24,7 @@
     @row-selected="handleFranchiseSelected"
   />
 </template>
+
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
@@ -124,39 +126,3 @@ onMounted(() => {
   fetchFranchises();
 });
 </script>
-
-<style scoped>
-.properties-content {
-  color: #6c757d;
-}
-
-.properties-content h4 {
-  color: #495057;
-  font-family: 'DINAlternate', sans-serif;
-  font-weight: bold;
-}
-
-.properties-content ul li {
-  margin-bottom: 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.properties-content ul li:last-child {
-  border-bottom: none;
-}
-
-/* Responsive para móviles */
-@media (max-width: 768px) {
-  h1 {
-    font-size: 1.5rem !important;
-    text-align: center;
-  }
-}
-
-@media (max-width: 480px) {
-  h1 {
-    font-size: 1.25rem !important;
-  }
-}
-</style> 

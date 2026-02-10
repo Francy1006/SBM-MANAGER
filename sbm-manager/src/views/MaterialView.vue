@@ -14,6 +14,7 @@
   >
     <template #properties>
       <PropertiesComponent
+        class="properties-content"
         title="Propiedades del Material"
         :total="totalMaterials"
         :activos="activeMaterials"
@@ -26,6 +27,7 @@
     </template>
   </CRUDManagerComponent>
 </template>
+
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';

@@ -14,19 +14,7 @@
     :systemFields="systemFields"
     :systemVerboseNames="systemVerboseNames"
     :configComponent="ConfigListComponent"
-    :configProps="{
-      code: selectedPriceConfiguration,
-      endpointBase: `/price-configuration-formula/?code=${selectedPriceConfiguration}`,
-      endpointType: 'code',
-      title: 'Configuración de Precios',
-      fields: [
-        { key: 'price_configuration', label: 'Configuración', editable: false },
-        { key: 'formula_template', label: 'Plantilla', editable: false },
-        { key: 'formula_translate', label: 'Fórmula', editable: false }
-      ],
-      infoAlertText: 'Formula para calculo de producto',
-      showInfoAlert: true
-    }"
+    :configProps="configProps"
     :showCalculationComponent="true"
     :calculationCode="selectedPriceConfiguration"
     :baseNetAmount="selectedBaseNetAmount"
@@ -40,6 +28,7 @@
     @row-selected="handleProductSelected"
     @show-properties="handleShowProperties"
   />
+
   <template v-if="showConfigList">
     <div class="modal-backdrop fade show"></div>
     <div class="modal d-block" tabindex="-1">
@@ -54,6 +43,7 @@
     </div>
   </template>
 </template>
+
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
@@ -223,39 +213,3 @@ onMounted(() => {
   //fetchProducts();
 });
 </script>
-
-<style scoped>
-.properties-content {
-  color: #6c757d;
-}
-
-.properties-content h4 {
-  color: #495057;
-  font-family: 'DINAlternate', sans-serif;
-  font-weight: bold;
-}
-
-.properties-content ul li {
-  margin-bottom: 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.properties-content ul li:last-child {
-  border-bottom: none;
-}
-
-/* Responsive para móviles */
-@media (max-width: 768px) {
-  h1 {
-    font-size: 1.5rem !important;
-    text-align: center;
-  }
-}
-
-@media (max-width: 480px) {
-  h1 {
-    font-size: 1.25rem !important;
-  }
-}
-</style> 

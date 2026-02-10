@@ -1,6 +1,6 @@
 <template>
-  <div class="mb-3 p-3 rounded shadow-sm bg-white">
-    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+  <div class="stats-container mb-3 p-3 rounded shadow-sm bg-white">
+    <div class="stats-header d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
       <h4 class="mb-0 text-primary fw-semibold">
         <i class="fas fa-chart-bar me-2"></i>
         Estadísticas
@@ -23,7 +23,7 @@
         :key="index" 
         class="col-12 col-md-6 col-lg-3 mb-2"
       >
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card border-0 shadow-sm h-100 stat-card">
           <div class="card-body text-center p-2">
             <div class="stat-value mb-1">
               <span class="h4 fw-bold" :class="getValueColor(stat)">
@@ -41,7 +41,7 @@
     </div>
 
     <div v-if="!loading && !error && (!stats || stats.length === 0)" class="text-center py-3">
-      <i class="fas fa-info-circle text-muted mb-2" style="font-size: 1.5rem;"></i>
+      <i class="fas fa-info-circle text-muted mb-2 stats-empty-icon"></i>
       <p class="text-muted mb-0 small">No hay estadísticas disponibles</p>
     </div>
   </div>
@@ -206,47 +206,3 @@ export default {
   }
 };
 </script>
-
-<style scoped>
-.stat-value {
-  font-family: 'DINAlternate', sans-serif;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  letter-spacing: 0.5px;
-}
-
-.card {
-  transition: transform 0.2s ease-in-out;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-}
-
-/* Responsive para móviles */
-@media (max-width: 768px) {
-  .col-md-6 {
-    margin-bottom: 1rem;
-  }
-  
-  .stat-value .h3 {
-    font-size: 1.5rem;
-  }
-  
-  .stat-label {
-    font-size: 0.7rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .stat-value .h3 {
-    font-size: 1.25rem;
-  }
-  
-  .stat-label {
-    font-size: 0.65rem;
-  }
-}
-</style> 
