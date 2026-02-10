@@ -1,8 +1,10 @@
 <template>
   <div class="crud-manager container-fluid py-4">
-    <h1 class="crud-title mb-4">
-      {{ title }}
+    <h1 class="crud-title mb-4 d-flex align-items-center gap-2">
+      <i :class="iconClass" style="margin-right: 8px;"></i>
+      <span>{{ title }}</span>
     </h1>
+
 
     <!-- Título del componente (opcional) -->
     <div v-if="componentTitle" class="row mt-4 mb-5">
@@ -20,15 +22,12 @@
     </div>
 
     <!-- Componente de Estadísticas (opcional) -->
-    <StatsGeneralComponent v-if="statsEndpoint && statsEndpoint.trim() !== ''" 
-      :endpoint="statsEndpoint" :title="statsTitle" />
+    <StatsGeneralComponent v-if="statsEndpoint && statsEndpoint.trim() !== ''" :endpoint="statsEndpoint"
+      :title="statsTitle" />
 
     <!-- Componente de Configuración (opcional) -->
-    <ConfigListComponent v-if="showConfigList && configListFranchiseId" 
-      :franchiseId="configListFranchiseId"
-      :endpointType="configListEndpointType" 
-      :title="configListTitle" 
-      :endpointBase="endpointBase" />
+    <ConfigListComponent v-if="showConfigList && configListFranchiseId" :franchiseId="configListFranchiseId"
+      :endpointType="configListEndpointType" :title="configListTitle" :endpointBase="endpointBase" />
 
     <br>
     <!-- Botones de acción -->
@@ -39,51 +38,29 @@
     </div>
 
     <!-- Componente de Formulario -->
-    <SimpleFormComponent v-if="(!showConfigForm || !showConfigFormComponent) && !showProperties" 
-      :show="showForm" :is-edit="isEdit" :fields="fields" 
-      :values="editingData" :loading="loading" 
-      v-bind="states ? { states } : {}"
+    <SimpleFormComponent v-if="(!showConfigForm || !showConfigFormComponent) && !showProperties" :show="showForm"
+      :is-edit="isEdit" :fields="fields" :values="editingData" :loading="loading" v-bind="states ? { states } : {}"
       @close="onClose" @save="onSave" />
 
     <!-- Componente de Configuración -->
-    <ConfigFormComponent v-if="showConfigForm && showConfigFormComponent && selectedRow" 
-      :catalog="selectedRow"
-      :configurationName="configFormName" 
-      :publicPivotField="configFormPivotField" 
-      @close="onConfigFormClose"
+    <ConfigFormComponent v-if="showConfigForm && showConfigFormComponent && selectedRow" :catalog="selectedRow"
+      :configurationName="configFormName" :publicPivotField="configFormPivotField" @close="onConfigFormClose"
       @updated="onConfigFormUpdated" />
 
     <!-- Componente de Tabla CRUD -->
-    <CRUDGridComponent v-if="!showProperties" ref="crudGridRef" 
-      :resourceName="resourceName"
-      :endpoint="finalGetEndpoint" 
-      :iconClass="iconClass" 
-      :showPropertiesButton="showPropertiesButton"
-      v-bind="states ? { states } : {}" 
-      :fields="fields" 
-      @configure="onConfigure" 
-      @row-selected="onRowSelected"
+    <CRUDGridComponent v-if="!showProperties" ref="crudGridRef" :resourceName="resourceName"
+      :endpoint="finalGetEndpoint" :iconClass="iconClass" :showPropertiesButton="showPropertiesButton"
+      v-bind="states ? { states } : {}" :fields="fields" @configure="onConfigure" @row-selected="onRowSelected"
       @show-properties="onShowProperties" />
 
     <!-- Componente de Propiedades -->
-    <PropertiesComponent v-if="showProperties" 
-      :product="selectedRow" 
-      :propertiesTitle="propertiesTitle"
-      :fields="props.propertiesFields" 
-      :verboseNames="props.propertiesVerboseNames" 
-      :systemFields="props.systemFields"
-      :systemVerboseNames="props.systemVerboseNames" 
-      :configComponent="props.configComponent"
-      :configProps="props.configProps" 
-      :showCalculationComponent="props.showCalculationComponent"
-      :calculationCode="props.calculationCode" 
-      :baseNetAmount="props.baseNetAmount" 
-      :netAmount="props.netAmount"
-      :grossAmount="props.grossAmount" 
-      :ivaAmount="props.ivaAmount" 
-      :additionalTaxAmount="props.additionalTaxAmount"
-      :retentionAmount="props.retentionAmount" 
-      :selectedProductSku="props.selectedProductSku"
+    <PropertiesComponent v-if="showProperties" :product="selectedRow" :propertiesTitle="propertiesTitle"
+      :fields="props.propertiesFields" :verboseNames="props.propertiesVerboseNames" :systemFields="props.systemFields"
+      :systemVerboseNames="props.systemVerboseNames" :configComponent="props.configComponent"
+      :configProps="props.configProps" :showCalculationComponent="props.showCalculationComponent"
+      :calculationCode="props.calculationCode" :baseNetAmount="props.baseNetAmount" :netAmount="props.netAmount"
+      :grossAmount="props.grossAmount" :ivaAmount="props.ivaAmount" :additionalTaxAmount="props.additionalTaxAmount"
+      :retentionAmount="props.retentionAmount" :selectedProductSku="props.selectedProductSku"
       @close="onPropertiesClose">
       <slot name="properties"></slot>
     </PropertiesComponent>

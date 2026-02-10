@@ -1,9 +1,9 @@
 <template>
   <CRUDManagerComponent
-    title="Administrador de Proveedores"
-    resourceName="Proveedor"
+    title="Proveedores"
+    resourceName="Proveedores"
     endpoint="/providers/list"
-    iconClass="fas fa-truck me-2 text-secondary"
+    iconClass="fas fa-industry me-2"
     :fields="fields"
     :states="states"
     :showPropertiesButton="true"

@@ -1,9 +1,9 @@
 <template>
   <CRUDManagerComponent
-    title="Administrador de Servicios"
-    resourceName="Servicio"
+    title="Servicios"
+    resourceName="Servicios"
     endpoint="/api/catalog/services/"
-    iconClass="fas fa-cogs me-2 text-secondary"
+    iconClass="fas fa-people-carry me-2"
     :fields="fields"
     :states="states"
     :showPropertiesButton="true"

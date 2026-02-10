@@ -14,7 +14,7 @@
       <li>
         <router-link to="/franquicias" class="nav-link" active-class="active">
           <i class="fa-solid fa-cube"></i>
-          <span class="nav-text">Franquicias</span>
+          <span class="nav-text">Marcas</span>
         </router-link>
       </li>
       <li>
@@ -25,25 +25,25 @@
       </li>
       <li>
         <router-link to="/productos" class="nav-link" active-class="active">
-          <i class="fa-solid fa-box"></i>
+          <i class="fa-solid fa-dolly"></i>
           <span class="nav-text">Productos</span>
         </router-link>
       </li>
       <li>
         <router-link to="/materiales" class="nav-link" active-class="active">
-          <i class="fa-solid fa-tools"></i>
+          <i class="fa-solid fa-spoon"></i>
           <span class="nav-text">Materiales</span>
         </router-link>
       </li>
       <li>
         <router-link to="/servicios" class="nav-link" active-class="active">
-          <i class="fa-solid fa-cogs"></i>
+          <i class="fa-solid fa-people-carry"></i>
           <span class="nav-text">Servicios</span>
         </router-link>
       </li>
       <li>
         <router-link to="/proveedores" class="nav-link" active-class="active">
-          <i class="fa-solid fa-truck"></i>
+          <i class="fa-solid fa-industry"></i>
           <span class="nav-text">Proveedores</span>
         </router-link>
       </li>

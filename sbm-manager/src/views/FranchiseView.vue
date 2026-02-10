@@ -1,10 +1,10 @@
 <template>
   <CRUDManagerComponent
     class="crud-manager"
-    title="Administrador de Franquicias"
-    resourceName="Franquicia"
+    title="Marcas"
+    resourceName="Marcas"
     endpoint="/franchises/"
-    iconClass="fas fa-cubes me-2 text-secondary"
+    iconClass="fas fa-cube me-2"
     :fields="fields"
     :states="states"
     :showPropertiesButton="true"
@@ -41,9 +41,9 @@ const selectedFranchise = ref('');
 const propertiesTitle = computed(() => {
   if (selectedFranchise.value) {
     const franchise = franchises.value.find(f => f.id === selectedFranchise.value);
-    return franchise ? `${franchise.franchise} - ID: ${franchise.id}` : "Franquicia: Sistema de Gestión";
+    return franchise ? `${franchise.franchise} - ID: ${franchise.id}` : "Marca: Sistema de Gestión";
   }
-  return "Franquicia: Sistema de Gestión";
+  return "Marca: Sistema de Gestión";
 });
 
 // Computed para estadísticas
@@ -70,7 +70,7 @@ const selectedFranchiseCode = computed(() => {
 });
 
 const fields = ref([
-  { key: 'franchise', label: 'Nombre de Franquicia', type: 'text', required: true, maxlength: 50 },
+  { key: 'franchise', label: 'Nombre de Marca', type: 'text', required: true, maxlength: 50 },
   { key: 'description', label: 'Siglas', type: 'text', required: true, maxlength: 36 },
   { key: 'state', label: 'Estado', type: 'select', required: true, optionsKey: 'states' },
 ]);
@@ -102,11 +102,11 @@ const handleRefresh = () => {
 };
 
 const handleCreated = (data) => {
-  console.log('Franquicia creada:', data);
+  console.log('Marca creada:', data);
 };
 
 const handleUpdated = (id) => {
-  console.log('Franquicia actualizada:', id);
+  console.log('Marca actualizada:', id);
 };
 
 // Escuchar cuando se selecciona una franquicia

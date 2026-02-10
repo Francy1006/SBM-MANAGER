@@ -1,10 +1,10 @@
 <template>
   <CRUDManagerComponent
-    title="Administrador de Productos"
-    resourceName="Producto"
+    title="Productos"
+    resourceName="Productos"
     get-endpoint="/products/list/"
     create-endpoint="/products/"
-    iconClass="fas fa-box me-2 text-secondary"
+    iconClass="fas fa-dolly me-2"
     :fields="fields"
     :states="states"
     :showPropertiesButton="true"

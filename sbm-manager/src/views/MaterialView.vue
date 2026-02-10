@@ -1,9 +1,9 @@
 <template>
   <CRUDManagerComponent
-    title="Administrador de Materiales"
-    resourceName="Material"
+    title="Materiales"
+    resourceName="Materiales"
     endpoint="/api/catalog/materials/"
-    iconClass="fas fa-tools me-2 text-secondary"
+    iconClass="fas fa-spoon me-2"
     :fields="fields"
     :states="states"
     :showPropertiesButton="true"

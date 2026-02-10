@@ -1,7 +1,8 @@
 <template>
   <div class="catalog-manager container-fluid py-4">
     <h1 class="catalog-title mb-4">
-      Administrador de Catálogos
+      <i class="fa-solid fa-book"></i>
+      Catálogos
     </h1>
 
     <div class="row mb-4">
@@ -9,7 +10,7 @@
         <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center">
           <label for="franchiseSelect" class="form-label fw-bold text-black mb-2 mb-md-0 me-md-3 label-franchise">
             <i class="fas fa-cube text-secondary me-2"></i>
-            Selecciona Franquicia
+            Selecciona Marca
           </label>
           <select
             id="franchiseSelect"
@@ -31,7 +32,7 @@
       title=""
       resourceName="Catálogo"
       endpoint="/catalogs/list/"
-      iconClass="fas fa-book me-2 text-secondary"
+      iconClass=""
       :componentTitle="componentTitle"
       :fields="fields"
       :showConfigForm="true"
@@ -97,7 +98,7 @@ const selectedFranchiseCode = computed(() => {
 // Computed para el título del componente
 const componentTitle = computed(() => {
   if (!selectedFranchise.value) return null;
-  return `Franquicia: ${selectedFranchiseName.value} - ${selectedFranchiseSigla.value}`;
+  return `Marca: ${selectedFranchiseName.value} - ${selectedFranchiseSigla.value}`;
 });
 
 // Computed para el título de propiedades
