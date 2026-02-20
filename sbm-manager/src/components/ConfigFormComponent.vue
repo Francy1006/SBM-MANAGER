@@ -21,12 +21,10 @@
             placeholder="Descripción del producto" />
         </div>
 
-        <!-- ✅ COVER IMAGE CON PREVIEW -->
         <div class="mb-3 col-12 col-md-6">
           <label for="cover_image" class="form-label fw-semibold">URL de imagen de portada</label>
 
           <div class="input-group">
-            <!-- Preview -->
             <span class="input-group-text p-0 bg-white" style="overflow:hidden;">
               <div class="d-flex align-items-center justify-content-center" style="width:56px;height:56px;">
                 <template v-if="shouldShowCoverPreview && !coverPreviewError">
@@ -44,12 +42,10 @@
               </div>
             </span>
 
-            <!-- Input -->
             <input type="url" id="cover_image" v-model.trim="form.cover_image" class="form-control"
               placeholder="https://res.cloudinary.com/.../image.jpg" @input="coverPreviewError = false" />
           </div>
 
-          <!-- Ayuda opcional -->
           <div class="form-text">
             Insertar URL de Cloudinary (imagen) para ver la previsualización.
           </div>
@@ -95,7 +91,6 @@
 
       <div class="row mt-4">
         <div class="col-12 col-md-6 d-flex gap-3">
-
           <button type="submit" class="btn btn-primary w-100 fw-bold">
             Guardar configuración
           </button>
@@ -103,7 +98,6 @@
           <button type="button" class="btn btn-secondary text-white w-100 fw-semibold" @click="$emit('close')">
             Cancelar
           </button>
-
         </div>
       </div>
     </form>
@@ -117,10 +111,23 @@ import axios from '../api/axios';
 const props = defineProps({
   catalog: { type: Object, required: true },
   configurationName: { type: String, required: true },
-  publicPivotField: { type: String, required: true }
+  publicPivotField: { type: String, required: true },
+  resourcePath: { type: String, default: 'catalogs' },
+  lookupField: { type: String, default: 'code' }
 });
 
 const emits = defineEmits(['close', 'updated']);
+
+const resourcePath = computed(() => (props.resourcePath || 'catalogs').trim().replace(/^\/+/, '').replace(/\/+$/, ''));
+
+const lookupValue = computed(() => {
+  const obj = props.catalog || {};
+  const v1 = obj?.[props.lookupField];
+  const v2 = obj?.code;
+  const v3 = obj?.[props.publicPivotField];
+  const val = v1 ?? v2 ?? v3;
+  return val != null ? String(val) : '';
+});
 
 const originalValues = ref({});
 
@@ -133,21 +140,16 @@ const form = reactive({
   rations_quantity: 1,
   is_visible: false,
   is_deleted: false,
-  is_confirmed: false,
+  is_confirmed: false
 });
 
-/** ✅ Preview state */
 const coverPreviewError = ref(false);
 
-/** ✅ Detectar Cloudinary + imagen */
 const shouldShowCoverPreview = computed(() => {
   const url = (form.cover_image || '').trim();
   if (!url) return false;
 
-  // Cloudinary típico: res.cloudinary.com/.../image/upload/.../file.ext
   const isCloudinary = /(^https?:\/\/)?res\.cloudinary\.com\//i.test(url);
-
-  // Extensiones comunes (si usas URLs sin extensión, puedo ajustarlo a tu patrón)
   const looksLikeImage =
     /\.(png|jpe?g|webp|gif|bmp|svg)(\?.*)?$/i.test(url) ||
     /\/image\/upload\//i.test(url);
@@ -181,14 +183,18 @@ function assignValues() {
   };
 }
 
-watch(() => props.catalog, (newCatalog) => {
-  if (!newCatalog) return;
-  assignValues();
-}, { immediate: true });
+watch(
+  () => props.catalog,
+  (newCatalog) => {
+    if (!newCatalog) return;
+    assignValues();
+  },
+  { immediate: true }
+);
 
 async function onSubmit() {
-  if (!props.catalog || !props.catalog.code) {
-    alert('No se encontró el código del catálogo.');
+  if (!lookupValue.value) {
+    alert('No se encontró el identificador para actualizar.');
     return;
   }
 
@@ -210,25 +216,22 @@ async function onSubmit() {
   }
 
   try {
-    const response = await axios.patch(`/catalogs/${props.catalog.code}/`, changes, {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.log('PATCH URL =>', `${resourcePath.value}/${encodeURIComponent(lookupValue.value)}/`);
+    const url = `${resourcePath.value}/${encodeURIComponent(lookupValue.value)}/`;
+    const response = await axios.patch(url, changes, { headers: { 'Content-Type': 'application/json' } });
 
     Object.keys(changes).forEach((key) => {
-      if (Object.prototype.hasOwnProperty.call(originalValues.value, key)) {
-        originalValues.value[key] = form[key];
-      }
-      if (Object.prototype.hasOwnProperty.call(props.catalog, key)) {
-        props.catalog[key] = form[key];
-      }
+      if (Object.prototype.hasOwnProperty.call(originalValues.value, key)) originalValues.value[key] = form[key];
+      if (Object.prototype.hasOwnProperty.call(props.catalog, key)) props.catalog[key] = form[key];
     });
 
     alert('Configuración actualizada correctamente');
     emits('updated', response.data);
     emits('close');
   } catch (e) {
-    console.error('Error updating catalog:', e);
-    alert('Error al actualizar el catálogo.');
+    console.error('Error updating item:', e);
+    const msg = e?.response?.data?.detail || e?.response?.data || e?.message || 'Error desconocido';
+    alert(`Error al actualizar: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`);
   }
 }
 </script>

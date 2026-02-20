@@ -1,7 +1,6 @@
 <template>
   <div class="crud-manager container-fluid py-4">
 
-    <!-- Card del título -->
     <div v-if="title" class="card w-90 mx-4 mb-4">
       <div class="card-body">
         <h1 class="crud-title mb-0 d-flex align-items-center">
@@ -11,7 +10,6 @@
       </div>
     </div>
 
-    <!-- Título del componente (opcional) -->
     <div v-if="componentTitle" class="row mt-4 mb-5">
       <div class="col-12">
         <h2 class="fw-bold text-black">
@@ -26,14 +24,12 @@
       </div>
     </div>
 
-    <!-- Componente de Estadísticas (opcional) -->
     <StatsGeneralComponent
       v-if="statsEndpoint && statsEndpoint.trim() !== ''"
       :endpoint="statsEndpoint"
       :title="statsTitle"
     />
 
-    <!-- Componente de Configuración (opcional) -->
     <ConfigListComponent
       v-if="showConfigList && configListFranchiseId"
       :franchiseId="configListFranchiseId"
@@ -44,19 +40,16 @@
 
     <br>
 
-    <!-- Tarjeta de acciones -->
     <div class="card shadow-sm mb-4" v-if="!showForm && !showProperties">
       <div class="card-body px-4">
         <div class="d-flex align-items-center justify-content-between">
 
-          <!-- Izquierda: Botón Crear -->
           <div class="mt-2 mb-2">
             <button @click="showCreateForm" class="btn btn-success rounded-pill px-4 crud-btn">
               <i class="fa-solid fa-plus me-2"></i> Crear {{ resourceName }}
             </button>
           </div>
 
-          <!-- Derecha: Totales -->
           <div class="text-end">
             <div class="fw-semibold text-muted">
               TOTAL lista <span class="text-dark">{{ totalList }}</span>
@@ -70,7 +63,6 @@
       </div>
     </div>
 
-    <!-- Componente de Formulario -->
     <SimpleFormComponent
       v-if="(!showConfigForm || !showConfigFormComponent) && !showProperties"
       :show="showForm"
@@ -83,17 +75,17 @@
       @save="onSave"
     />
 
-    <!-- Componente de Configuración -->
     <ConfigFormComponent
       v-if="showConfigForm && showConfigFormComponent && selectedRow"
       :catalog="selectedRow"
       :configurationName="configFormName"
       :publicPivotField="configFormPivotField"
+      :resourcePath="props.configFormResourcePath"
+      :lookupField="props.configFormLookupField"
       @close="onConfigFormClose"
       @updated="onConfigFormUpdated"
     />
 
-    <!-- Componente de Tabla CRUD -->
     <CRUDGridComponent
       v-if="!showProperties"
       ref="crudGridRef"
@@ -112,7 +104,6 @@
       @counts-updated="onCountsUpdated"
     />
 
-    <!-- Componente de Propiedades -->
     <PropertiesComponent
       v-if="showProperties"
       :product="selectedRow"
@@ -150,9 +141,7 @@ import PropertiesComponent from './PropertiesComponent.vue';
 import ConfigListComponent from './ConfigListComponent.vue';
 import axios from '../api/axios';
 
-// Props
 const props = defineProps({
-  // Configuración general
   title: { type: String, required: true },
   componentTitle: { type: String, default: null },
   resourceName: { type: String, required: true },
@@ -162,31 +151,25 @@ const props = defineProps({
   postEndpoint: { type: String, default: null },
   iconClass: { type: String, default: 'fa-solid fa-list-alt text-secondary' },
 
-  // Configuración de estadísticas
   statsEndpoint: { type: String, default: null },
   statsTitle: { type: String, default: 'Estadísticas' },
 
-  // Configuración de formulario
   fields: { type: Array, required: true },
-
-  // Configuración adicional para CRUDGrid
   states: { type: [Array, Object], default: null },
 
-  // Configuración de API
   updateEndpoint: { type: String, default: null },
 
-  // Configuración del ConfigFormComponent
   showConfigForm: { type: Boolean, default: false },
   configFormName: { type: String, default: 'Configuración' },
   configFormPivotField: { type: String, default: 'id' },
+  configFormResourcePath: { type: String, default: 'catalogs' },
+  configFormLookupField: { type: String, default: 'sku' },
 
-  // Configuración del ConfigListComponent
   showConfigList: { type: Boolean, default: false },
   configListFranchiseId: { type: [String, Number], default: null },
   configListEndpointType: { type: String, default: 'id' },
   configListTitle: { type: String, default: 'Configuración' },
 
-  // Configuración de Propiedades
   showPropertiesButton: { type: Boolean, default: false },
   propertiesProduct: { type: Object, default: null },
   propertiesProductTitle: { type: String, default: '' },
@@ -195,11 +178,9 @@ const props = defineProps({
   systemFields: { type: Array, default: () => [] },
   systemVerboseNames: { type: Object, default: () => ({}) },
 
-  // Configuración de alerta de fecha
   showDateAlert: { type: Boolean, default: false },
   endpointBase: { type: String, default: '' },
 
-  // Configuración para el componente PropertiesComponent
   configComponent: { type: String, default: null },
   configProps: { type: Object, default: () => ({}) },
   showCalculationComponent: { type: Boolean, default: false },
@@ -212,14 +193,11 @@ const props = defineProps({
   retentionAmount: { type: [Number, String], default: null },
   selectedProductSku: { type: String, default: null },
 
-  // Configuración de OptionsComponent
   optionsProps: { type: Object, default: () => ({}) }
 });
 
-// Emits
 const emit = defineEmits(['refresh', 'created', 'updated', 'mounted', 'row-selected', 'import', 'export']);
 
-// Reactive data
 const currentDate = ref(getCurrentDate());
 const isEdit = ref(false);
 const editingData = ref({});
@@ -230,20 +208,15 @@ const selectedRow = ref(null);
 const showConfigFormComponent = ref(false);
 const showProperties = ref(false);
 
-// ✅ NUEVO: Totales para la tarjeta de acciones
 const totalList = ref(0);
 const totalDeleted = ref(0);
 
-// Depuración: watcher para ver si cambia el título
 watch(() => props.propertiesProduct, () => {});
 
-// Computed properties
 const finalGetEndpoint = computed(() => props.getEndpoint || props.endpoint);
 const finalCreateEndpoint = computed(() => props.createEndpoint || props.endpoint);
 
-const finalUpdateEndpoint = computed(() => {
-  return props.endpoint;
-});
+const finalUpdateEndpoint = computed(() => props.endpoint);
 
 const propertiesTitle = computed(() => {
   if (selectedRow.value && selectedRow.value.sku) {
@@ -254,7 +227,6 @@ const propertiesTitle = computed(() => {
   return "Producto: Sistema de Gestión";
 });
 
-// Methods
 function getCurrentDate() {
   return capitalizeFirst(
     new Date().toLocaleString('es-ES', {
@@ -274,13 +246,11 @@ function capitalizeFirst(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// ✅ NUEVO: handler para recibir conteos desde CRUDGridComponent
 function onCountsUpdated(payload) {
   totalList.value = payload?.total ?? 0;
   totalDeleted.value = payload?.deleted ?? 0;
 }
 
-// Función para actualizar el estado de los campos según el modo
 function updateFieldsState() {
   props.fields.forEach(field => {
     if (field.disabledOnEdit) {
@@ -318,7 +288,7 @@ async function onSave(data) {
     showForm.value = false;
     updateFieldsState();
     if (crudGridRef.value) {
-      crudGridRef.value.resetEditingState();
+      crudGridRef.value.resetEditingState?.();
     }
     emit('refresh');
   } catch (error) {
@@ -394,7 +364,7 @@ function onClose() {
   showForm.value = false;
   updateFieldsState();
   if (crudGridRef.value) {
-    crudGridRef.value.resetEditingState();
+    crudGridRef.value.resetEditingState?.();
   }
 }
 
@@ -443,16 +413,15 @@ function onConfigFormClose() {
   showConfigFormComponent.value = false;
 
   if (crudGridRef.value) {
-    crudGridRef.value.resetEditingState(); // 🔥 agregar
+    crudGridRef.value.resetEditingState?.();
     crudGridRef.value.selected = [];
   }
 }
 
 function onConfigFormUpdated() {
-  emit('refresh');
-  if (crudGridRef.value) {
-    crudGridRef.value.loadData();
-  }
+  const grid = crudGridRef.value;
+  grid?.resetEditingState?.();
+  (grid?.fetchData || grid?.loadData)?.call(grid);
 }
 
 function onShowProperties(row) {

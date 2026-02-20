@@ -25,19 +25,21 @@
       v-if="selectedFranchise"
       title=""
       resourceName="item Catálogo"
-      endpoint="/catalogs/list/"
+      endpoint="catalogs/list/"
       iconClass=""
       :componentTitle="componentTitle"
       :fields="fields"
       :showConfigForm="true"
       configFormName="Catálogo"
+      configFormResourcePath="catalogs"
       configFormPivotField="sku"
+      configFormLookupField="sku"
       :showPropertiesButton="true"
       :showConfigList="false"
       :configListFranchiseId="selectedFranchise"
       configListEndpointType="id"
       configListTitle=""
-      :endpointBase="`/franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
+      :endpointBase="`franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
       :optionsProps="optionsProps"
       @refresh="handleRefresh"
       @created="handleCreated"
@@ -84,7 +86,6 @@ const componentTitle = computed(() => {
 
 const lastUpdate = computed(() => new Date().toLocaleString('es-ES'));
 
-// Configuración de OptionsComponent
 const optionsProps = ref({
   showToggleButton: true,
   toggleButtonText: '',
@@ -108,13 +109,13 @@ const optionsProps = ref({
 const fields = ref([
   { key: 'sku', label: 'SKU', type: 'text', required: true, maxlength: 50 },
   { key: 'cover_image', label: 'Imagen de Portada', type: 'url', required: false, maxlength: 500, omitInForm: true },
-  { key: 'menu', label: 'Menú', type: 'dynamic-select', required: true, endpoint: '/menus', labelKey: 'menu', valueKey: 'id', hideInGrid: true },
+  { key: 'menu', label: 'Menú', type: 'dynamic-select', required: true, endpoint: 'menus/', labelKey: 'menu', valueKey: 'id', hideInGrid: true },
   { key: 'menu_name', label: 'Menú', type: 'pill_name', required: false, omitInForm: true, pillMap: { bellavita: 'bg-primary', raffinata: 'bg-danger' } },
-  { key: 'category', label: 'Categoría', type: 'dynamic-select', required: true, endpoint: '/item-categories', labelKey: 'category', valueKey: 'id', hideInGrid: true },
+  { key: 'category', label: 'Categoría', type: 'dynamic-select', required: true, endpoint: 'item-categories/', labelKey: 'category', valueKey: 'id', hideInGrid: true },
   { key: 'category_name', label: 'Categoría', type: 'text', required: false, omitInForm: true },
-  { key: 'item_type', label: 'Tipo de Item', type: 'dynamic-select', required: true, endpoint: '/item-types', labelKey: 'type', valueKey: 'id', hideInGrid: true },
+  { key: 'item_type', label: 'Tipo de Item', type: 'dynamic-select', required: true, endpoint: 'item-types/', labelKey: 'type', valueKey: 'id', hideInGrid: true },
   { key: 'type_name', label: 'Tipo de Item', type: 'text', required: false, omitInForm: true },
-  { key: 'item_group', label: 'Grupo de Item', type: 'dynamic-select', required: true, endpoint: '/item-groups', labelKey: 'group_name', valueKey: 'id', hideInGrid: true },
+  { key: 'item_group', label: 'Grupo de Item', type: 'dynamic-select', required: true, endpoint: 'item-groups/', labelKey: 'group_name', valueKey: 'id', hideInGrid: true },
   { key: 'group_name', label: 'Grupo de Item', type: 'text', required: false, omitInForm: true },
   { key: 'name', label: 'Nombre', type: 'text', required: true, maxlength: 255, uppercase: true },
   { key: 'description', label: 'Descripción', type: 'textarea', required: true, uppercase: true },
@@ -126,15 +127,16 @@ const fields = ref([
   { key: 'iva_amount', label: 'IVA', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, hideInGrid: true },
   { key: 'aditional_tax_amount', label: 'Impuesto adicional', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, hideInGrid: true },
   { key: 'retention_amount', label: 'Retención', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, hideInGrid: true },
-  { key: 'price_configuration', label: 'Configuración de Precio', type: 'dynamic-select', required: true, endpoint: '/price-configurations/catalog/', labelKey: 'price_configuration', valueKey: 'code', formGroup: 'price_data', hideInGrid: true },
+  { key: 'price_configuration', label: 'Configuración de Precio', type: 'dynamic-select', required: true, endpoint: 'price-configurations/catalog/', labelKey: 'price_configuration', valueKey: 'code', formGroup: 'price_data', hideInGrid: true },
   { key: 'min_quantity_purchase', label: 'Cantidad Mínima de Compra', type: 'number', required: true, min: 1 },
   { key: 'rations_quantity', label: 'Cantidad de Raciones', type: 'number', required: true, min: 1 },
   { key: 'item_configuration', label: 'Configuración de Item', type: 'text', required: false, hideInGrid: true, omitInForm: true },
-  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', required: true, endpoint: '/instructions', labelKey: 'instruction', valueKey: 'id', hideInGrid: true },
+  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', required: true, endpoint: 'instructions/', labelKey: 'instruction', valueKey: 'id', hideInGrid: true },
   { key: 'configuration', label: 'Configuración', type: 'text', required: false, hideInGrid: true },
   { key: 'is_visible', label: 'Visible', type: 'checkbox', required: false },
+  { key: 'is_deleted', label: 'Eliminado', type: 'checkbox', required: false },
   { key: 'is_confirmed', label: 'Confirmado', type: 'checkbox', required: false },
-  { key: 'created_at', label: 'Creado en', type: 'text', required: false, hideInGrid: true, omitInForm: true },
+  { key: 'created_at', label: 'Creado en', type: 'text', required: false, hideInGrid: true, omitInForm: true }
 ]);
 
 const onFranchiseChange = (payload) => {
@@ -143,13 +145,14 @@ const onFranchiseChange = (payload) => {
   selectedFranchiseSigla.value = payload.sigla;
 };
 
-const handleRefresh = () => window.location.reload();
+const handleRefresh = () => {
+  console.log('Refresh solicitado');
+};
 const handleCreated = (data) => console.log('Catálogo creado:', data);
 const handleUpdated = (id) => console.log('Catálogo actualizado:', id);
 
 const handleCatalogSelected = (catalog) => {
   if (!catalog) {
-    // Si se deselecciona, limpiar los valores
     selectedCatalogId.value = null;
     selectedCatalogName.value = '';
     selectedCatalogSku.value = '';
@@ -161,12 +164,10 @@ const handleCatalogSelected = (catalog) => {
 };
 
 const handleImport = () => {
-  // Método vacío, se implementará después
   console.log('Importar catálogos');
 };
 
 const handleExport = () => {
-  // Método vacío, se implementará después
   console.log('Exportar catálogos');
 };
 
@@ -180,7 +181,7 @@ onMounted(async () => {
   }
 
   try {
-    const res = await axios.get('/franchises/');
+    const res = await axios.get('franchises/');
     franchises.value = Array.isArray(res.data) ? res.data : (res.data.results || []);
   } catch {
     franchises.value = [];

@@ -111,8 +111,25 @@
               <th v-if="filteredRows.length > 0" style="width:60px!important;" class="align-middle">
                 <input type="checkbox" :checked="allSelected" @change.stop="toggleAllSelection" />
               </th>
-              <th v-for="col in visibleColumns" :key="col" style="min-width:200px!important;" class="align-middle">
-                {{ verboseNames[col] }}
+              <th v-for="col in visibleColumns" :key="col" style="min-width:200px!important; cursor:pointer;"
+                class="align-middle" @click="toggleSort(col)">
+                <div class="d-flex justify-content-between align-items-center">
+
+                  <span>
+                    {{ getColumnLabel(col) }}
+                  </span>
+
+                  <!-- 🔥 SORT ICON FIX (REF: SORT_ICON_FIX_002) -->
+                  <span>
+                    <i v-if="sortKey === col && sortDirection === 'asc'" class="fas fa-arrow-up text-warning"></i>
+
+                    <i v-else-if="sortKey === col && sortDirection === 'desc'"
+                      class="fas fa-arrow-down text-warning"></i>
+
+                    <i v-else class="fas fa-arrow-up text-secondary opacity-50"></i>
+                  </span>
+
+                </div>
               </th>
             </tr>
           </thead>
@@ -275,6 +292,9 @@ export default {
       // ✅ NUEVO: checkboxes debajo de búsqueda
       hideDeleted: true,
       blockGroupDelete: true,
+      // 🔥 SORT STATE (REF: SORT_STATE_001)
+      sortKey: 'created_at',
+      sortDirection: 'desc',
     };
   },
   computed: {
@@ -437,7 +457,9 @@ export default {
 
       try {
         // Soporta 1 o múltiples (si blockGroupDelete está en false)
-        await api.post('/franchises/soft_delete/', {
+        const base = this.endpoint.split('?')[0].split('/').filter(Boolean)[0];
+
+        await api.post(`/${base}/soft_delete/`, {
           ids: [...this.selected]
         });
 
@@ -461,6 +483,13 @@ export default {
 
         params.append('page', this.currentPage.toString());
         params.append('page_size', this.pageSize.toString());
+        // 🔥 SEND ORDERING (REF: SORT_BACKEND_001)
+        const orderingValue =
+          this.sortDirection === 'desc'
+            ? `-${this.sortKey}`
+            : this.sortKey;
+
+        params.append('ordering', orderingValue);
 
         if (this.searchTerm.trim()) {
           params.append('search', this.searchTerm);
@@ -643,6 +672,35 @@ export default {
         .replace(/[:T]/g, '-')}.xlsx`;
 
       XLSX.writeFile(workbook, fileName);
+    },
+    // 🔥 TOGGLE SORT (REF: SORT_METHOD_001)
+    async toggleSort(col) {
+      if (this.sortKey === col) {
+        this.sortDirection =
+          this.sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.sortKey = col;
+        this.sortDirection = 'asc';
+      }
+
+      this.currentPage = 1;
+      await this.fetchData();
+    },
+    // 🔥 COLUMN LABEL RESOLVER (REF: COLUMN_LABEL_FIX_001)
+    getColumnLabel(col) {
+      // 1️⃣ Buscar en fields
+      const field = this.fields.find(f => f.key === col);
+      if (field && field.label) {
+        return field.label;
+      }
+
+      // 2️⃣ Buscar en verboseNames del backend
+      if (this.verboseNames && this.verboseNames[col]) {
+        return this.verboseNames[col];
+      }
+
+      // 3️⃣ Fallback
+      return col;
     },
   },
   watch: {

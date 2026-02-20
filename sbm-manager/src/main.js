@@ -5,11 +5,14 @@ import './assets/style/main-style.css';
 import './assets/style/animations.css';
 import { useAuth } from './composables/useAuth';
 
+if (!window.location.hash && window.location.pathname !== '/') {
+  window.location.replace('/#' + window.location.pathname + window.location.search);
+}
+
 const app = createApp(App);
 app.use(router);
 
-// Inicializar estado de autenticación
 const { checkAuthStatus } = useAuth();
 checkAuthStatus();
 
-app.mount('#app'); 
+app.mount('#app');
