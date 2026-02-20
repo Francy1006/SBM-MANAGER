@@ -10,7 +10,12 @@
     </div>
 
     <!-- OPTIONS -->
-    <OptionsComponent @toggle-secret-fields="showSecretFields = $event" />
+    <OptionsComponent 
+      v-bind="optionsProps"
+      @toggle-secret-fields="showSecretFields = $event"
+      @import="handleImport"
+      @export="handleExport"
+    />
 
     <!-- LOADING -->
     <div v-if="loading" class="text-center py-5">
@@ -46,34 +51,39 @@
 
       <!-- ACTION BUTTONS -->
       <div class="mb-4" v-if="selectedCount > 0">
-        <div class="row justify-content-end align-items-center g-2">
+        <div class="row justify-content-between align-items-center g-2">
           
-          <div class="col-auto">
-            <span class="badge bg-light">{{ selectedCount }} seleccionados</span>
+          <div class="col-auto d-flex align-items-center gap-2">
+            <span class="badge text-secondary">{{ selectedCount }} seleccionados</span>
+            <span v-if="sumFieldKey && selectedCount > 0 && showSecretFields" class="badge bg-danger text-white">
+              TOTAL Suma: {{ formatSumValue(calculatedSum) }}
+            </span>
           </div>
           
-          <div class="col-auto" v-if="showPropertiesButton">
-            <button class="btn btn-warning btn-sm rounded-pill px-3"
-                    @click="showProperties"
-                    :disabled="selectedCount !== 1">
-              <i class="fas fa-cog me-1"></i> Propiedades
-            </button>
-          </div>
+          <div class="col-auto d-flex gap-2">
+            <div v-if="showPropertiesButton">
+              <button class="btn btn-warning btn-sm rounded-pill px-3"
+                      @click="showProperties"
+                      :disabled="selectedCount !== 1">
+                <i class="fas fa-cog me-1"></i> Propiedades
+              </button>
+            </div>
 
-          <div class="col-auto">
-            <button class="btn btn-outline-primary btn-sm rounded-pill px-3"
-                    @click="configureSelected"
-                    :disabled="selectedCount !== 1">
-              <i class="fas fa-cog me-1"></i> Configurar
-            </button>
-          </div>
+            <div>
+              <button class="btn btn-outline-primary btn-sm rounded-pill px-3"
+                      @click="configureSelected"
+                      :disabled="selectedCount !== 1">
+                <i class="fas fa-cog me-1"></i> Configurar
+              </button>
+            </div>
 
-          <div class="col-auto">
-            <button class="btn btn-outline-secondary btn-sm rounded-pill px-3"
-                    @click="deleteSelected"
-                    :disabled="selectedCount > 1">
-              <i class="fas fa-trash me-1"></i> Eliminar
-            </button>
+            <div>
+              <button class="btn btn-outline-secondary btn-sm rounded-pill px-3"
+                      @click="deleteSelected"
+                      :disabled="selectedCount > 1">
+                <i class="fas fa-trash me-1"></i> Eliminar
+              </button>
+            </div>
           </div>
 
         </div>
@@ -136,13 +146,13 @@
                 </span>
 
                 <!-- CLOUDINARY IMAGE -->
-                <span v-else-if="typeof row[col] === 'string' && row[col].startsWith('https://res.cloudinary.com')">
+                <span v-else-if="typeof row[col] === 'string' && row[col] && row[col].startsWith('https://res.cloudinary.com')">
                   <img :src="row[col]" alt="Imagen Cloudinary"
                        style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px #0001;" />
                 </span>
 
-                <!-- URL -->
-                <span v-else-if="col.toLowerCase().includes('url') && row[col]">
+                <!-- URL (solo si no es Cloudinary) -->
+                <span v-else-if="col.toLowerCase().includes('url') && row[col] && !(typeof row[col] === 'string' && row[col].startsWith('https://res.cloudinary.com'))">
                   <a :href="row[col]" target="_blank" rel="noopener noreferrer">{{ row[col] }}</a>
                 </span>
 
@@ -157,8 +167,16 @@
                   </span>
                 </span>
 
-                <!-- DEFAULT / SECRET FIELDS -->
-                <span :class="{'price-bold': fields.find(f => f.key === col && f.type === 'price')}">
+                <!-- PILL NAME (badge con clases dinámicas) -->
+                <span v-else-if="fields.find(f => f.key === col && f.type === 'pill_name') && row[col]">
+                  <span class="badge rounded-pill text-white" :class="getPillClass(col, row[col])">
+                    {{ String(row[col]).toUpperCase() }}
+                  </span>
+                </span>
+
+                <!-- DEFAULT / SECRET FIELDS (solo si no es Cloudinary ni URL) -->
+                <span v-else
+                      :class="{'price-bold': fields.find(f => f.key === col && f.type === 'price')}">
                   {{
                     fields.find(f => f.key === col && f.secretField) && !showSecretFields
                       ? (typeof row[col] === 'string' || typeof row[col] === 'number'
@@ -224,6 +242,7 @@ export default {
     iconClass: { type: String, default: 'fas fa-list-alt me-2 text-secondary' },
     showPropertiesButton: { type: Boolean, default: true },
     fields: { type: Array, default: () => [] }, // NUEVO
+    optionsProps: { type: Object, default: () => ({}) }, // Props para OptionsComponent
   },
   data() {
     return {
@@ -294,6 +313,36 @@ export default {
       }
       
       return pages;
+    },
+    // Computed para encontrar el campo con sumCount: true
+    sumFieldKey() {
+      const sumFields = this.fields.filter(f => f.sumCount === true);
+      if (sumFields.length === 0) {
+        return null;
+      }
+      if (sumFields.length > 1) {
+        console.warn('Advertencia: Múltiples campos con sumCount: true encontrados. Solo se usará el primero.');
+      }
+      return sumFields[0].key;
+    },
+    // Computed para calcular la suma de los valores seleccionados
+    calculatedSum() {
+      if (!this.sumFieldKey || this.selected.length === 0) {
+        return 0;
+      }
+      
+      let sum = 0;
+      for (const selectedCode of this.selected) {
+        const row = this.filteredRows.find(r => String(r.code) === selectedCode);
+        if (row && row[this.sumFieldKey] !== undefined && row[this.sumFieldKey] !== null) {
+          const value = parseFloat(row[this.sumFieldKey]);
+          if (!isNaN(value)) {
+            sum += value;
+          }
+        }
+      }
+      
+      return sum;
     },
   },
   methods: {
@@ -546,11 +595,52 @@ export default {
     getTableKey() {
       return this.filteredRows.map(r => String(r.code)).join('-');
     },
+    getPillClass(col, value) {
+      const field = this.fields.find(f => f.key === col && f.type === 'pill_name');
+      if (!field || !field.pillMap || !value) {
+        return 'bg-secondary';
+      }
+      // Buscar en pillMap de forma case-insensitive
+      const valueStr = String(value).toLowerCase();
+      const mappedKey = Object.keys(field.pillMap).find(key => key.toLowerCase() === valueStr);
+      if (mappedKey) {
+        return field.pillMap[mappedKey];
+      }
+      // Clase por defecto si no hay mapeo
+      return 'bg-dark';
+    },
+    formatSumValue(value) {
+      if (value === null || value === undefined || isNaN(value)) {
+        return '$0';
+      }
+      // Formatear como precio
+      return '$' + Number(value).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    },
+    handleImport() {
+      // Emitir evento para que la vista maneje la importación
+      this.$emit('import');
+    },
+    handleExport() {
+      // Emitir evento para que la vista maneje la exportación
+      this.$emit('export');
+    },
   },
   watch: {
     endpoint: 'fetchData',
   },
   mounted() {
+    // Validar que solo hay un campo con sumCount: true
+    const sumFields = this.fields.filter(f => f.sumCount === true);
+    if (sumFields.length > 1) {
+      console.error('Error: Solo puede haber un campo con sumCount: true. Se encontraron:', sumFields.map(f => f.key));
+    }
+    // Validar que el campo con sumCount es de tipo numérico (price o number)
+    if (sumFields.length > 0) {
+      const sumField = sumFields[0];
+      if (sumField.type !== 'price' && sumField.type !== 'number') {
+        console.warn(`Advertencia: El campo "${sumField.key}" con sumCount: true debería ser de tipo "price" o "number" para realizar sumas correctamente.`);
+      }
+    }
     this.fetchData();
   },
   beforeUnmount() {

@@ -1,6 +1,10 @@
 /* =========================
    VARIABLES GLOBALES
 ========================= */
+body {
+  background-color: #F5F5F5;
+}
+
 :root {
   /* Header */
   --header-bg-color: #212529;

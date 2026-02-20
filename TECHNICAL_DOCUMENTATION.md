@@ -67,7 +67,7 @@ SBM-MANAGER/
 │   │   │   ├── PropertiesComponent.vue    # Propiedades de elementos
 │   │   │   ├── ConfigFormComponent.vue    # Configuraciones
 │   │   │   ├── ConfigListComponent.vue    # Lista de configuraciones
-│   │   │   ├── OptionsComponent.vue       # Opciones de visualización
+│   │   │   ├── OptionsComponent.vue       # Opciones de visualización (configurable)
 │   │   │   └── CalculationComponent.vue   # Cálculos
 │   │   ├── views/                  # Vistas principales
 │   │   │   ├── HomeView.vue        # Dashboard principal
@@ -167,6 +167,7 @@ const userInfo = ref({
 - Formateo automático de tipos de datos
 - Integración con estados y configuraciones
 - Responsive design
+- Componente de opciones configurable
 
 **Props principales:**
 ```javascript
@@ -176,7 +177,8 @@ const userInfo = ref({
   states: Array/Object,      // Estados disponibles
   iconClass: String,         // Icono del componente
   showPropertiesButton: Boolean,
-  fields: Array             // Configuración de campos
+  fields: Array,             // Configuración de campos
+  optionsProps: Object      // Props para OptionsComponent (opcional)
 }
 ```
 
@@ -188,6 +190,19 @@ const userInfo = ref({
 - Propiedades de elementos
 - Estadísticas integradas
 - Componentes de configuración
+- Pasa props a OptionsComponent a través de CRUDGridComponent
+
+**Props adicionales:**
+```javascript
+{
+  // ... otras props ...
+  optionsProps: Object      // Props para OptionsComponent (opcional)
+}
+```
+
+**Eventos adicionales:**
+- `import`: Emitido cuando se hace clic en el botón de importar
+- `export`: Emitido cuando se hace clic en el botón de exportar
 
 ### 3. GoogleLoginComponent.vue
 **Autenticación OAuth avanzada:**
@@ -307,6 +322,90 @@ VUE_APP_API_PASSWORD=contraseña
 - **Ocultación automática**: Campos marcados como secretos se ocultan por defecto
 - **Toggle de visibilidad**: Botón para mostrar/ocultar campos sensibles
 - **Formateo**: Reemplazo con caracteres ●
+- **Configuración personalizable**: Props configurables para personalizar el botón de opciones
+
+### 1.1. OptionsComponent
+**Componente de opciones configurable:**
+- **Botones configurables**: Toggle de campos secretos, Importar y Exportar
+- **Layout horizontal**: Botones ordenados horizontalmente con gap
+- **Props configurables**: Permite personalizar cada botón desde las vistas
+- **Iconos personalizables**: Configuración de iconos para cada botón
+- **Estilos personalizables**: Clases CSS configurables para cada botón
+- **Eventos emitidos**: Emite eventos para import/export que se propagan a las vistas
+
+**Props disponibles:**
+```javascript
+{
+  // Botón de toggle (mostrar/ocultar campos secretos)
+  showToggleButton: Boolean,    // Mostrar botón toggle (default: true)
+  toggleButtonClass: String,   // Clase CSS del botón (default: 'btn-outline-info')
+  toggleButtonText: String,    // Texto del botón (default: '')
+  toggleIconClass: String,     // Clase adicional para el icono (default: '')
+  iconShow: String,             // Icono cuando está visible (default: 'fas fa-eye')
+  iconHide: String,            // Icono cuando está oculto (default: 'fas fa-eye-slash')
+  
+  // Botón de importar
+  showImportButton: Boolean,    // Mostrar botón importar (default: false)
+  importButtonClass: String,    // Clase CSS del botón (default: 'btn-outline-success')
+  importButtonText: String,     // Texto del botón (default: 'Importar')
+  importIcon: String,           // Icono del botón (default: 'fas fa-file-import')
+  
+  // Botón de exportar
+  showExportButton: Boolean,    // Mostrar botón exportar (default: false)
+  exportButtonClass: String,    // Clase CSS del botón (default: 'btn-outline-primary')
+  exportButtonText: String,     // Texto del botón (default: 'Exportar')
+  exportIcon: String             // Icono del botón (default: 'fas fa-file-export')
+}
+```
+
+**Eventos emitidos:**
+- `toggle-secret-fields`: Emitido al hacer toggle de campos secretos
+- `import`: Emitido al hacer clic en el botón de importar
+- `export`: Emitido al hacer clic en el botón de exportar
+
+**Uso en vistas:**
+```javascript
+// En cualquier vista que use CRUDManagerComponent
+const optionsProps = ref({
+  // Botón de toggle
+  showToggleButton: true,
+  toggleButtonClass: 'btn-outline-info',
+  toggleButtonText: '',
+  iconShow: 'fas fa-eye',
+  iconHide: 'fas fa-eye-slash',
+  
+  // Botón de importar
+  showImportButton: true,
+  importButtonClass: 'btn-outline-success',
+  importButtonText: 'Importar',
+  importIcon: 'fas fa-file-import',
+  
+  // Botón de exportar
+  showExportButton: true,
+  exportButtonClass: 'btn-outline-primary',
+  exportButtonText: 'Exportar',
+  exportIcon: 'fas fa-file-export'
+});
+
+// Pasar a CRUDManagerComponent
+<CRUDManagerComponent
+  :optionsProps="optionsProps"
+  @import="handleImport"
+  @export="handleExport"
+  // ... otras props ...
+/>
+
+// Handlers en la vista
+const handleImport = () => {
+  // Implementar lógica de importación
+  console.log('Importar datos');
+};
+
+const handleExport = () => {
+  // Implementar lógica de exportación
+  console.log('Exportar datos');
+};
+```
 
 ### 2. Búsqueda Inteligente
 - **Debounce**: Búsqueda optimizada con delay
@@ -494,6 +593,8 @@ sonar-scanner \
 - [x] Selección múltiple
 - [x] Campos secretos
 - [x] Configuraciones dinámicas
+- [x] OptionsComponent configurable desde vistas
+- [x] Botones de importar/exportar en OptionsComponent
 
 ### 🔄 En Desarrollo
 - [ ] Testing automatizado
