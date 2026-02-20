@@ -3,7 +3,7 @@
     <!-- Layout principal solo si está autenticado -->
     <div v-if="isAuthenticated" style="display:flex;">
       <SidebarComponent />
-      <div style="flex:1; min-height:100vh; display:flex; flex-direction:column; margin-left:1.5rem;">
+      <div style="flex:1; min-height:100vh; display:flex; flex-direction:column;">
         <HeaderComponent />
         <router-view />
         <FooterComponent />

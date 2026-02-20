@@ -44,20 +44,31 @@
 
     <br>
 
- <!-- Tarjeta de acciones -->
-<div class="card shadow-sm mb-4" v-if="!showForm && !showProperties">
-  <div class="card-body">
+    <!-- Tarjeta de acciones -->
+    <div class="card shadow-sm mb-4" v-if="!showForm && !showProperties">
+      <div class="card-body px-4">
+        <div class="d-flex align-items-center justify-content-between">
 
-    <!-- Botones de acción -->
-    <div class="mt-2 mb-2 px-4">
-      <button @click="showCreateForm" class="btn btn-success rounded-pill px-4 crud-btn">
-        <i class="fa-solid fa-plus me-2"></i> Crear {{ resourceName }}
-      </button>
+          <!-- Izquierda: Botón Crear -->
+          <div class="mt-2 mb-2">
+            <button @click="showCreateForm" class="btn btn-success rounded-pill px-4 crud-btn">
+              <i class="fa-solid fa-plus me-2"></i> Crear {{ resourceName }}
+            </button>
+          </div>
+
+          <!-- Derecha: Totales -->
+          <div class="text-end">
+            <div class="fw-semibold text-muted">
+              TOTAL lista <span class="text-dark">{{ totalList }}</span>
+            </div>
+            <div class="fw-semibold text-muted">
+              TOTAL Eliminados <span class="text-dark">{{ totalDeleted }}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
-
-  </div>
-</div>
-
 
     <!-- Componente de Formulario -->
     <SimpleFormComponent
@@ -98,6 +109,7 @@
       @show-properties="onShowProperties"
       @import="handleImport"
       @export="handleExport"
+      @counts-updated="onCountsUpdated"
     />
 
     <!-- Componente de Propiedades -->
@@ -128,7 +140,6 @@
   </div>
 </template>
 
-
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import CRUDGridComponent from './CRUDGridComponent.vue';
@@ -142,184 +153,67 @@ import axios from '../api/axios';
 // Props
 const props = defineProps({
   // Configuración general
-  title: {
-    type: String,
-    required: true
-  },
-  componentTitle: {
-    type: String,
-    default: null
-  },
-  resourceName: {
-    type: String,
-    required: true
-  },
-  endpoint: {
-    type: String,
-    required: true
-  },
-  getEndpoint: {
-    type: String,
-    default: null
-  },
-  createEndpoint: {
-    type: String,
-    default: null
-  },
-  postEndpoint: {
-    type: String,
-    default: null
-  },
-  iconClass: {
-    type: String,
-    default: 'fa-solid fa-list-alt text-secondary'
-  },
+  title: { type: String, required: true },
+  componentTitle: { type: String, default: null },
+  resourceName: { type: String, required: true },
+  endpoint: { type: String, required: true },
+  getEndpoint: { type: String, default: null },
+  createEndpoint: { type: String, default: null },
+  postEndpoint: { type: String, default: null },
+  iconClass: { type: String, default: 'fa-solid fa-list-alt text-secondary' },
+
   // Configuración de estadísticas
-  statsEndpoint: {
-    type: String,
-    default: null
-  },
-  statsTitle: {
-    type: String,
-    default: 'Estadísticas'
-  },
+  statsEndpoint: { type: String, default: null },
+  statsTitle: { type: String, default: 'Estadísticas' },
+
   // Configuración de formulario
-  fields: {
-    type: Array,
-    required: true
-  },
+  fields: { type: Array, required: true },
+
   // Configuración adicional para CRUDGrid
-  states: {
-    type: [Array, Object],
-    default: null
-  },
+  states: { type: [Array, Object], default: null },
+
   // Configuración de API
-  createEndpoint: {
-    type: String,
-    default: null
-  },
-  updateEndpoint: {
-    type: String,
-    default: null
-  },
+  updateEndpoint: { type: String, default: null },
+
   // Configuración del ConfigFormComponent
-  showConfigForm: {
-    type: Boolean,
-    default: false
-  },
-  configFormName: {
-    type: String,
-    default: 'Configuración'
-  },
-  configFormPivotField: {
-    type: String,
-    default: 'id'
-  },
+  showConfigForm: { type: Boolean, default: false },
+  configFormName: { type: String, default: 'Configuración' },
+  configFormPivotField: { type: String, default: 'id' },
+
   // Configuración del ConfigListComponent
-  showConfigList: {
-    type: Boolean,
-    default: false
-  },
-  configListFranchiseId: {
-    type: [String, Number],
-    default: null
-  },
-  configListEndpointType: {
-    type: String,
-    default: 'id'
-  },
-  configListTitle: {
-    type: String,
-    default: 'Configuración'
-  },
+  showConfigList: { type: Boolean, default: false },
+  configListFranchiseId: { type: [String, Number], default: null },
+  configListEndpointType: { type: String, default: 'id' },
+  configListTitle: { type: String, default: 'Configuración' },
+
   // Configuración de Propiedades
-  showPropertiesButton: {
-    type: Boolean,
-    default: false
-  },
-  propertiesProduct: {
-    type: Object,
-    default: null
-  },
-  propertiesProductTitle: {
-    type: String,
-    default: ''
-  },
-  propertiesFields: {
-    type: Array,
-    default: () => []
-  },
-  propertiesVerboseNames: {
-    type: Object,
-    default: () => ({})
-  },
-  systemFields: {
-    type: Array,
-    default: () => []
-  },
-  systemVerboseNames: {
-    type: Object,
-    default: () => ({})
-  },
+  showPropertiesButton: { type: Boolean, default: false },
+  propertiesProduct: { type: Object, default: null },
+  propertiesProductTitle: { type: String, default: '' },
+  propertiesFields: { type: Array, default: () => [] },
+  propertiesVerboseNames: { type: Object, default: () => ({}) },
+  systemFields: { type: Array, default: () => [] },
+  systemVerboseNames: { type: Object, default: () => ({}) },
+
   // Configuración de alerta de fecha
-  showDateAlert: {
-    type: Boolean,
-    default: false
-  },
-  endpointBase: {
-    type: String,
-    default: ''
-  },
+  showDateAlert: { type: Boolean, default: false },
+  endpointBase: { type: String, default: '' },
+
   // Configuración para el componente PropertiesComponent
-  configComponent: {
-    type: String,
-    default: null
-  },
-  configProps: {
-    type: Object,
-    default: () => ({})
-  },
-  showCalculationComponent: {
-    type: Boolean,
-    default: false
-  },
-  calculationCode: {
-    type: String,
-    default: ''
-  },
-  baseNetAmount: {
-    type: [Number, String],
-    default: null
-  },
-  netAmount: {
-    type: [Number, String],
-    default: null
-  },
-  grossAmount: {
-    type: [Number, String],
-    default: null
-  },
-  ivaAmount: {
-    type: [Number, String],
-    default: null
-  },
-  additionalTaxAmount: {
-    type: [Number, String],
-    default: null
-  },
-  retentionAmount: {
-    type: [Number, String],
-    default: null
-  },
-  selectedProductSku: {
-    type: String,
-    default: null
-  },
+  configComponent: { type: String, default: null },
+  configProps: { type: Object, default: () => ({}) },
+  showCalculationComponent: { type: Boolean, default: false },
+  calculationCode: { type: String, default: '' },
+  baseNetAmount: { type: [Number, String], default: null },
+  netAmount: { type: [Number, String], default: null },
+  grossAmount: { type: [Number, String], default: null },
+  ivaAmount: { type: [Number, String], default: null },
+  additionalTaxAmount: { type: [Number, String], default: null },
+  retentionAmount: { type: [Number, String], default: null },
+  selectedProductSku: { type: String, default: null },
+
   // Configuración de OptionsComponent
-  optionsProps: {
-    type: Object,
-    default: () => ({})
-  }
+  optionsProps: { type: Object, default: () => ({}) }
 });
 
 // Emits
@@ -334,11 +228,14 @@ const showForm = ref(false);
 const crudGridRef = ref(null);
 const selectedRow = ref(null);
 const showConfigFormComponent = ref(false);
-const showProperties = ref(false); // Nuevo estado para mostrar/ocultar propiedades
+const showProperties = ref(false);
+
+// ✅ NUEVO: Totales para la tarjeta de acciones
+const totalList = ref(0);
+const totalDeleted = ref(0);
 
 // Depuración: watcher para ver si cambia el título
-watch(() => props.propertiesProduct, (newVal) => {
-});
+watch(() => props.propertiesProduct, () => {});
 
 // Computed properties
 const finalGetEndpoint = computed(() => props.getEndpoint || props.endpoint);
@@ -377,9 +274,14 @@ function capitalizeFirst(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// ✅ NUEVO: handler para recibir conteos desde CRUDGridComponent
+function onCountsUpdated(payload) {
+  totalList.value = payload?.total ?? 0;
+  totalDeleted.value = payload?.deleted ?? 0;
+}
+
 // Función para actualizar el estado de los campos según el modo
 function updateFieldsState() {
-  // Buscar campos que deben deshabilitarse en modo edición
   props.fields.forEach(field => {
     if (field.disabledOnEdit) {
       field.disabled = isEdit.value;
@@ -399,12 +301,10 @@ async function onSave(data) {
   try {
     const cleanedData = cleanData(data);
     if (isEdit.value && editingData.value.sku) {
-      // Usar PATCH y el SKU como identificador
       await axios.patch(`/products/${editingData.value.sku}/`, cleanedData);
       emit('updated', editingData.value.sku);
       alert(`${props.resourceName} actualizado exitosamente!`);
     } else if (isEdit.value && editingData.value.id) {
-      // Fallback por si hay id, pero preferir SKU
       await axios.patch(`${finalUpdateEndpoint.value}${editingData.value.id}/`, cleanedData);
       emit('updated', editingData.value.id);
       alert(`${props.resourceName} actualizado exitosamente!`);
@@ -420,7 +320,6 @@ async function onSave(data) {
     if (crudGridRef.value) {
       crudGridRef.value.resetEditingState();
     }
-    // Recargar datos
     emit('refresh');
   } catch (error) {
     let errorMessage = `Error al guardar ${props.resourceName}: `;
@@ -438,68 +337,54 @@ async function onSave(data) {
 }
 
 function cleanData(data) {
-  // Lista de campos a omitir
   const omitKeys = [
     'log', 'version', 'created_at', 'updated_at', 'deleted_at', 'confirmed_at',
     'created_by', 'updated_by', 'deleted_by', 'confirmed_by',
-    'url', // si tampoco lo quieres enviar
+    'url',
   ];
 
   const cleaned = {};
   const grouped = {};
+
   props.fields.forEach(field => {
     const key = field.key;
     if (omitKeys.includes(key)) return;
+
     if (field.formGroup) {
       if (!grouped[field.formGroup]) grouped[field.formGroup] = {};
       let value = data[field.formGroup]?.[key];
-      // Si es checkbox, asegúrate de que sea booleano
-      if (field.type === 'checkbox') {
-        value = value === true;
-      }
-      // Omitir si el valor es vacío
+      if (field.type === 'checkbox') value = value === true;
       if (value !== null && value !== undefined && value !== '') {
         grouped[field.formGroup][key] = value;
       }
     } else {
       let value = data[key];
-      // Si es checkbox, asegúrate de que sea booleano
-      if (field.type === 'checkbox') {
-        value = value === true;
-      }
-      // Omitir si el valor es vacío
+      if (field.type === 'checkbox') value = value === true;
       if (value !== null && value !== undefined && value !== '') {
         cleaned[key] = value;
       }
     }
   });
 
-  // Solo agrega los grupos si tienen al menos un valor no vacío
   Object.keys(grouped).forEach(group => {
     if (group === 'price_data') {
-      // Solo incluye los keys base_net_amount y price_configuration
       const pd = {};
       if ('base_net_amount' in grouped[group]) pd.base_net_amount = grouped[group].base_net_amount ?? null;
       if ('price_configuration' in grouped[group]) pd.price_configuration = grouped[group].price_configuration ?? null;
-      // Solo agrega si existen los keys
-      if (Object.keys(pd).length > 0) {
-        cleaned[group] = pd;
-      }
+      if (Object.keys(pd).length > 0) cleaned[group] = pd;
     } else {
-      // Para otros grupos, solo si tienen algún valor no vacío
       const groupValues = Object.values(grouped[group]);
       const hasValue = groupValues.some(v => v !== null && v !== undefined && v !== '');
-      if (hasValue) {
-        cleaned[group] = grouped[group];
-      }
+      if (hasValue) cleaned[group] = grouped[group];
     }
   });
-  // Elimina del nivel raíz los campos que pertenecen a un formGroup
+
   props.fields.forEach(field => {
     if (field.formGroup && cleaned.hasOwnProperty(field.key)) {
       delete cleaned[field.key];
     }
   });
+
   return cleaned;
 }
 
@@ -508,21 +393,18 @@ function onClose() {
   editingData.value = {};
   showForm.value = false;
   updateFieldsState();
-
   if (crudGridRef.value) {
     crudGridRef.value.resetEditingState();
   }
 }
 
 function onConfigure(row) {
-  // Si showConfigForm está habilitado, mostrar ConfigFormComponent
   if (props.showConfigForm) {
     selectedRow.value = row;
     showConfigFormComponent.value = true;
     return;
   }
 
-  // Agrupar campos con formGroup 'price_data' desde el nivel raíz
   const mappedRow = { ...row };
   const priceDataFields = props.fields.filter(f => f.formGroup === 'price_data');
   mappedRow.price_data = {};
@@ -531,7 +413,6 @@ function onConfigure(row) {
     if (f.key !== 'price_configuration' && val !== null && val !== '' && !isNaN(val)) {
       val = parseInt(val, 10);
     }
-    // Para price_configuration, forzar string o null
     if (f.key === 'price_configuration') {
       val = val ? String(val) : null;
     }
@@ -547,7 +428,6 @@ function onConfigure(row) {
 function onRowSelected(row) {
   selectedRow.value = row;
 
-  // Si se deselecciona y showConfigForm está habilitado, cerrar el formulario
   if (!row && props.showConfigForm) {
     showForm.value = false;
     isEdit.value = false;
@@ -555,21 +435,18 @@ function onRowSelected(row) {
     showConfigFormComponent.value = false;
   }
 
-  // Emitir evento de fila seleccionada
   emit('row-selected', row);
 }
 
 function onConfigFormClose() {
   selectedRow.value = null;
   showConfigFormComponent.value = false;
-  // Limpiar selección en la tabla
   if (crudGridRef.value) {
     crudGridRef.value.selected = [];
   }
 }
 
 function onConfigFormUpdated() {
-  // Recargar datos después de actualizar configuración
   emit('refresh');
   if (crudGridRef.value) {
     crudGridRef.value.loadData();
@@ -587,17 +464,14 @@ function onPropertiesClose() {
 }
 
 function handleImport() {
-  // Emitir evento de importación para que la vista lo maneje
   emit('import');
 }
 
 function handleExport() {
-  // Emitir evento de exportación para que la vista lo maneje
   emit('export');
 }
 
 onMounted(() => {
-  // Emitir evento de montaje
   emit('mounted');
 });
 </script>

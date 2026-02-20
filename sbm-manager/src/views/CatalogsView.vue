@@ -86,19 +86,19 @@ const lastUpdate = computed(() => new Date().toLocaleString('es-ES'));
 
 // Configuración de OptionsComponent
 const optionsProps = ref({
-  // Botón de toggle (mostrar/ocultar campos secretos)
   showToggleButton: true,
-  toggleButtonClass: 'btn-outline-info',
   toggleButtonText: '',
   toggleIconClass: '',
-  iconShow: 'fas fa-eye',
-  iconHide: 'fas fa-eye-slash',
-  // Botón de importar
+  iconHide: 'fas fa-eye',
+  iconShow: 'fas fa-eye-slash',
+  toggleClassWhenShown: 'btn-danger text-white',
+  toggleClassWhenHidden: 'btn-warning text-dark',
+
   showImportButton: true,
   importButtonClass: 'btn-outline-success',
   importButtonText: 'Importar',
   importIcon: 'fas fa-file-import',
-  // Botón de exportar
+
   showExportButton: true,
   exportButtonClass: 'btn-outline-primary',
   exportButtonText: 'Exportar',

@@ -1,33 +1,36 @@
 <template>
   <div class="options-bar mb-3 d-flex align-items-center gap-2">
     <!-- Botón de mostrar/ocultar campos secretos -->
-    <button 
+    <button
       v-if="showToggleButton"
-      :class="toggleButtonClass" 
-      class="btn btn-sm d-flex align-items-center" 
+      class="btn btn-sm d-flex align-items-center"
+      :class="computedToggleClass"
       @click="toggleSecretFields"
+      type="button"
     >
-      <i :class="[eyeIcon, toggleIconClass]"></i>
-      <span v-if="toggleButtonText">{{ toggleButtonText }}</span>
+      <i :class="[computedEyeIcon, toggleIconClass, (computedToggleText ? 'me-2' : '')]"></i>
+      <span v-if="computedToggleText">{{ computedToggleText }}</span>
     </button>
 
     <!-- Botón de importar -->
-    <button 
+    <button
       v-if="showImportButton"
-      :class="importButtonClass" 
-      class="btn btn-sm d-flex align-items-center" 
+      :class="importButtonClass"
+      class="btn btn-sm d-flex align-items-center"
       @click="handleImport"
+      type="button"
     >
       <i :class="[importIcon, 'me-2']"></i>
       <span v-if="importButtonText">{{ importButtonText }}</span>
     </button>
 
     <!-- Botón de exportar -->
-    <button 
+    <button
       v-if="showExportButton"
-      :class="exportButtonClass" 
-      class="btn btn-sm d-flex align-items-center" 
+      :class="exportButtonClass"
+      class="btn btn-sm d-flex align-items-center"
       @click="handleExport"
+      type="button"
     >
       <i :class="[exportIcon, 'me-2']"></i>
       <span v-if="exportButtonText">{{ exportButtonText }}</span>
@@ -44,26 +47,44 @@ export default {
       type: Boolean,
       default: true
     },
+
+    // 👇 (sigue existiendo para compatibilidad, pero ahora usamos computedToggleClass)
     toggleButtonClass: {
       type: String,
       default: 'btn-outline-info'
     },
+
+    // Texto opcional: si lo envías vacío, autogeneramos Mostrar/Ocultar
     toggleButtonText: {
       type: String,
       default: ''
     },
+
     toggleIconClass: {
       type: String,
       default: ''
     },
+
+    // Íconos configurables
     iconShow: {
       type: String,
-      default: 'fas fa-eye'
+      default: 'fas fa-eye'        // cuando ESTÁ mostrando
     },
     iconHide: {
       type: String,
-      default: 'fas fa-eye-slash'
+      default: 'fas fa-eye-slash'  // cuando ESTÁ ocultando
     },
+
+    // ✅ NUEVO (opcional): clases por estado (si no las pasas, usa defaults)
+    toggleClassWhenShown: {
+      type: String,
+      default: 'btn-success text-white' // mostrando secretos
+    },
+    toggleClassWhenHidden: {
+      type: String,
+      default: 'btn-warning text-dark'  // ocultando secretos
+    },
+
     // Configuración del botón de importar
     showImportButton: {
       type: Boolean,
@@ -81,6 +102,7 @@ export default {
       type: String,
       default: 'fas fa-file-import'
     },
+
     // Configuración del botón de exportar
     showExportButton: {
       type: Boolean,
@@ -99,27 +121,48 @@ export default {
       default: 'fas fa-file-export'
     }
   },
+
   data() {
     return {
+      // showSecret = true => mostrando campos secretos
       showSecret: false,
     };
   },
+
   computed: {
-    eyeIcon() {
+    // ✅ Ícono correcto: si muestra => iconShow, si oculta => iconHide
+    computedEyeIcon() {
       return this.showSecret ? this.iconShow : this.iconHide;
+    },
+
+    // ✅ Texto correcto
+    computedToggleText() {
+      // Si el usuario define un texto fijo, respétalo
+      if (this.toggleButtonText && this.toggleButtonText.trim().length > 0) {
+        return this.toggleButtonText;
+      }
+      // Si no, autogenera según estado
+      return this.showSecret ? 'Ocultar contenido privado' : 'Mostrar contenido privado';
+    },
+
+    // ✅ Clase/color por estado
+    computedToggleClass() {
+      // Si quieres seguir controlando desde fuera con toggleButtonClass (legacy),
+      // puedes combinarlo, pero aquí priorizamos los estados.
+      const stateClass = this.showSecret ? this.toggleClassWhenShown : this.toggleClassWhenHidden;
+      return `${stateClass}`;
     }
   },
+
   methods: {
     toggleSecretFields() {
       this.showSecret = !this.showSecret;
       this.$emit('toggle-secret-fields', this.showSecret);
     },
     handleImport() {
-      // Método vacío, se implementará después
       this.$emit('import');
     },
     handleExport() {
-      // Método vacío, se implementará después
       this.$emit('export');
     },
   },
