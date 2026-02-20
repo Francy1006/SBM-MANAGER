@@ -239,6 +239,7 @@
 import api from '../api/axios';
 import { mapGetters, mapActions } from 'vuex';
 import OptionsComponent from './OptionsComponent.vue';
+import * as XLSX from 'xlsx';
 
 export default {
   name: 'CRUDGridComponent',
@@ -573,8 +574,75 @@ export default {
     handleImport() {
       this.$emit('import');
     },
-    handleExport() {
-      this.$emit('export');
+    handleExport(payload) {
+      const format = (payload?.format || 'XLSX').toUpperCase();
+
+      if (format === 'XLSX') {
+        this.exportToXlsx();
+        return;
+      }
+
+      if (format === 'CSV') {
+        this.exportToCsv?.();
+        return;
+      }
+
+      if (format === 'PDF') {
+        alert('Export PDF pendiente');
+        return;
+      }
+    },
+    exportToXlsx() {
+      if (!this.filteredRows.length) {
+        alert('No hay datos para exportar.');
+        return;
+      }
+
+      const headers = this.visibleColumns.map(
+        col => this.verboseNames?.[col] || col
+      );
+
+      const data = this.filteredRows.map(row =>
+        this.visibleColumns.map(col => {
+          const value = row[col];
+
+          if (value === null || value === undefined) return '';
+
+          if (typeof value === 'boolean') {
+            return value ? 'SI' : 'NO';
+          }
+
+          const field = this.fields.find(f => f.key === col);
+
+          // Si es campo secreto y está oculto
+          if (field?.secretField && !this.showSecretFields) {
+            return '●●●●●';
+          }
+
+          if (field?.type === 'price') {
+            const n = Number(value);
+            return isNaN(n) ? '' : n;
+          }
+
+          return value;
+        })
+      );
+
+      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+      const workbook = XLSX.utils.book_new();
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        this.resourceName.substring(0, 31)
+      );
+
+      const fileName = `${this.resourceName.replace(/\s+/g, '_')}_${new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[:T]/g, '-')}.xlsx`;
+
+      XLSX.writeFile(workbook, fileName);
     },
   },
   watch: {

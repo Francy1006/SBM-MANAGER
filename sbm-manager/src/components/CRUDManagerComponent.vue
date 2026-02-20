@@ -441,7 +441,9 @@ function onRowSelected(row) {
 function onConfigFormClose() {
   selectedRow.value = null;
   showConfigFormComponent.value = false;
+
   if (crudGridRef.value) {
+    crudGridRef.value.resetEditingState(); // 🔥 agregar
     crudGridRef.value.selected = [];
   }
 }
