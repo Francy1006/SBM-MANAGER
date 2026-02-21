@@ -116,7 +116,7 @@ const fields = ref([
 
   { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', required: true, endpoint: '/instructions/', labelKey: 'instruction', valueKey: 'code', hideInGrid: true },
 
-  { key: 'configuration', label: 'Configuración', type: 'dynamic-select', required: false, endpoint: '/item-configurations/', labelKey: 'configuration', valueKey: 'code', hideInGrid: true },
+  { key: 'configuration', label: 'Configuración', type: 'dynamic-select', required: false, endpoint: '/item-configurations/', labelKey: 'configuration', valueKey: 'code', hideInGrid: true, omitInForm: true},
 
   { key: 'is_visible', label: 'Visible', type: 'checkbox', required: false },
   { key: 'is_deleted', label: 'Eliminado', type: 'checkbox', required: false },
