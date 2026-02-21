@@ -112,11 +112,14 @@ const fields = ref([
   { key: 'min_quantity_purchase', label: 'Cantidad Mínima de Compra', type: 'number', required: true, min: 1 },
   { key: 'rations_quantity', label: 'Cantidad de Raciones', type: 'number', required: true, min: 1 },
 
+  // NUEVO: requerido para poder crear ItemConfiguration en backend cuando no viene "configuration"
+  { key: 'package', label: 'Empaque', type: 'dynamic-select', required: true, endpoint: '/packages/', labelKey: 'description', valueKey: 'id', hideInGrid: true },
+
   { key: 'item_configuration', label: 'Configuración de Item', type: 'text', required: false, hideInGrid: true, omitInForm: true },
 
   { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', required: true, endpoint: '/instructions/', labelKey: 'instruction', valueKey: 'code', hideInGrid: true },
 
-  { key: 'configuration', label: 'Configuración', type: 'dynamic-select', required: false, endpoint: '/item-configurations/', labelKey: 'configuration', valueKey: 'code', hideInGrid: true, omitInForm: true},
+  { key: 'configuration', label: 'Configuración', type: 'dynamic-select', required: false, endpoint: '/item-configurations/', labelKey: 'configuration', valueKey: 'code', hideInGrid: true, omitInForm: true },
 
   { key: 'is_visible', label: 'Visible', type: 'checkbox', required: false },
   { key: 'is_deleted', label: 'Eliminado', type: 'checkbox', required: false },
