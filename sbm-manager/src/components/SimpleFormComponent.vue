@@ -7,114 +7,58 @@
           <span v-if="field.required" class="text-danger">*</span>
         </label>
 
-        <input
-          v-if="['text', 'email', 'url'].includes(field.type)"
-          :type="field.type"
-          class="form-control form-control-lg rounded-3"
-          :value="form[field.key]"
-          @input="handleInputUppercase(field, $event)"
-          :required="field.required"
-          :maxlength="field.maxlength"
-          :disabled="field.disabled"
-        />
+        <input v-if="['text', 'email', 'url'].includes(field.type)" :type="field.type"
+          class="form-control form-control-lg rounded-3" :value="form[field.key]"
+          @input="handleInputUppercase(field, $event)" :required="field.required" :maxlength="field.maxlength"
+          :disabled="field.disabled" />
 
         <div v-else-if="field.type === 'number' && field.suffix" class="input-group input-group-lg">
-          <input
-            type="number"
-            class="form-control rounded-3"
-            v-model.number="form[field.key]"
-            :required="field.required"
-            :min="field.min"
-            :max="field.max"
-            :step="field.step || 'any'"
-            :disabled="field.disabled"
-          />
+          <input type="number" class="form-control rounded-3" v-model.number="form[field.key]"
+            :required="field.required" :min="field.min" :max="field.max" :step="field.step || 'any'"
+            :disabled="field.disabled" />
           <span class="input-group-text">{{ field.suffix }}</span>
         </div>
 
-        <input
-          v-else-if="field.type === 'number'"
-          type="number"
-          class="form-control form-control-lg rounded-3"
-          v-model.number="form[field.key]"
-          :required="field.required"
-          :min="field.min"
-          :max="field.max"
-          :step="field.step || 'any'"
-          :disabled="field.disabled"
-        />
+        <input v-else-if="field.type === 'number'" type="number" class="form-control form-control-lg rounded-3"
+          v-model.number="form[field.key]" :required="field.required" :min="field.min" :max="field.max"
+          :step="field.step || 'any'" :disabled="field.disabled" />
 
-        <textarea
-          v-else-if="field.type === 'textarea'"
-          class="form-control form-control-lg rounded-3"
-          :value="form[field.key]"
-          @input="handleInputUppercase(field, $event)"
-          :required="field.required"
-          :rows="field.rows || 3"
-          :disabled="field.disabled"
-        />
+        <textarea v-else-if="field.type === 'textarea'" class="form-control form-control-lg rounded-3"
+          :value="form[field.key]" @input="handleInputUppercase(field, $event)" :required="field.required"
+          :rows="field.rows || 3" :disabled="field.disabled" />
 
-        <select
-          v-else-if="field.type === 'select'"
-          class="form-select form-select-lg rounded-3"
-          v-model="form[field.key]"
-          :required="field.required"
-          :disabled="field.disabled"
-        >
+        <select v-else-if="field.type === 'select'" class="form-select form-select-lg rounded-3"
+          v-model="form[field.key]" :required="field.required" :disabled="field.disabled">
           <option v-for="option in getOptions(field)" :key="option.id" :value="option.id">
             {{ option.state || option.label || option.name }}
           </option>
         </select>
 
-        <select
-          v-else-if="field.type === 'dynamic-select'"
-          class="form-select form-select-lg rounded-3"
-          v-model="form[field.key]"
-          :required="field.required"
-          :disabled="field.disabled || field.loading"
-        >
+        <select v-else-if="field.type === 'dynamic-select'" class="form-select form-select-lg rounded-3"
+          v-model="form[field.key]" :required="field.required" :disabled="field.disabled || field.loading">
           <option :value="null" disabled>Selecciona...</option>
 
-          <option
-            v-for="option in (field.options || [])"
-            :key="option[field.valueKey || 'id']"
-            :value="(field.valueKey || 'id') === 'id'
-              ? Number(option[field.valueKey || 'id'])
-              : String(option[field.valueKey || 'id'])"
-          >
+          <option v-for="option in (field.options || [])" :key="option[field.valueKey || 'id'] ?? option.code ?? option.id"
+            :value="String(option[field.valueKey || 'id'])">
             {{ option[field.labelKey || 'name'] }}
           </option>
         </select>
 
-        <div
-          v-else-if="field.type === 'dynamic-select' && field.disabled"
-          class="form-control form-control-lg rounded-3 bg-light"
-        >
+        <div v-else-if="field.type === 'dynamic-select' && field.disabled"
+          class="form-control form-control-lg rounded-3 bg-light">
           <span class="text-muted">
             {{ form[field.key] || 'No seleccionado' }}
           </span>
         </div>
 
-        <input
-          v-else-if="field.type === 'checkbox'"
-          type="checkbox"
-          class="form-check-input ms-2"
-          v-model="form[field.key]"
-          :disabled="field.disabled"
-          style="transform: scale(1.3); margin-top: 0.4em;"
-        />
+        <input v-else-if="field.type === 'checkbox'" type="checkbox" class="form-check-input ms-2"
+          v-model="form[field.key]" :disabled="field.disabled" style="transform: scale(1.3); margin-top: 0.4em;" />
 
         <div v-else-if="field.type === 'rating'" class="rating-input">
-          <span
-            v-for="star in 5"
-            :key="star"
-            class="star"
+          <span v-for="star in 5" :key="star" class="star"
             :class="{ filled: (form[`__hover_${field.key}`] || form[field.key]) >= star }"
-            @click="form[field.key] = star"
-            @mouseover="form[`__hover_${field.key}`] = star"
-            @mouseleave="form[`__hover_${field.key}`] = null"
-            style="cursor:pointer; font-size:2rem;"
-          >
+            @click="form[field.key] = star" @mouseover="form[`__hover_${field.key}`] = star"
+            @mouseleave="form[`__hover_${field.key}`] = null" style="cursor:pointer; font-size:2rem;">
             <i class="fa-star fa-solid"></i>
           </span>
           <span v-if="form[field.key] > 0" class="ms-2 text-secondary">
@@ -123,17 +67,9 @@
           <span v-else class="ms-2 text-secondary">Sin calificación</span>
         </div>
 
-        <input
-          v-else-if="field.type === 'price'"
-          type="text"
-          class="form-control form-control-lg rounded-3"
-          v-model="form[field.key]"
-          @input="onPriceInput(field)"
-          :required="field.required"
-          :maxlength="field.maxlength"
-          :disabled="field.disabled"
-          placeholder="$0"
-        />
+        <input v-else-if="field.type === 'price'" type="text" class="form-control form-control-lg rounded-3"
+          v-model="form[field.key]" @input="onPriceInput(field)" :required="field.required" :maxlength="field.maxlength"
+          :disabled="field.disabled" placeholder="$0" />
       </div>
 
       <div class="row mt-4">
@@ -203,14 +139,9 @@ export default {
           }
 
           if (field.type === 'dynamic-select') {
-            const vk = field.valueKey || 'id';
             const raw = this.form[field.key];
-
-            if (raw === '' || raw === undefined) {
-              this.form[field.key] = null;
-            } else if (raw !== null) {
-              this.form[field.key] = (vk === 'id') ? Number(raw) : String(raw);
-            }
+            if (raw === '' || raw === undefined || raw === null) this.form[field.key] = null;
+            else this.form[field.key] = String(raw);
           }
         });
       },
@@ -239,11 +170,8 @@ export default {
           try {
             const response = await axios.get(url);
             field.options = Array.isArray(response.data) ? response.data : (response.data?.results || []);
-            const vk = field.valueKey || 'id';
             const v = this.form[field.key];
-            if (v !== null && v !== undefined && v !== '') {
-              this.form[field.key] = (vk === 'id') ? Number(v) : String(v);
-            }
+            if (v !== null && v !== undefined && v !== '') this.form[field.key] = String(v);
           } catch (error) {
             console.error('[SimpleForm] Error loading options for', field.key, error);
             field.options = [];
@@ -273,9 +201,8 @@ export default {
         }
 
         if (field.type === 'dynamic-select') {
-          const vk = field.valueKey || 'id';
-          if (value === '' || value === undefined) value = null;
-          else if (value !== null) value = (vk === 'id') ? Number(value) : String(value);
+          if (value === '' || value === undefined || value === null) value = null;
+          else value = String(value);
         }
 
         if (field.formGroup) {

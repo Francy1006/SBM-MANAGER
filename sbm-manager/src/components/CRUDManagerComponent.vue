@@ -171,7 +171,7 @@ const totalDeleted = ref(0);
 watch(() => props.propertiesProduct, () => { });
 
 const finalGetEndpoint = computed(() => props.getEndpoint || props.endpoint);
-const finalCreateEndpoint = computed(() => props.createEndpoint || props.endpoint);
+const finalCreateEndpoint = computed(() => props.postEndpoint || props.createEndpoint || props.endpoint);
 
 const finalUpdateEndpoint = computed(() => props.endpoint);
 
@@ -237,6 +237,7 @@ async function onSave(data) {
       emit('updated', editingData.value.id);
       alert(`${props.resourceName} actualizado exitosamente!`);
     } else {
+      console.log('PAYLOAD CREATE JSON:', JSON.stringify(cleanedData, null, 2));
       const response = await axios.post(finalCreateEndpoint.value, cleanedData);
       emit('created', response.data);
       alert(`${props.resourceName} creado exitosamente!`);
@@ -245,9 +246,7 @@ async function onSave(data) {
     editingData.value = {};
     showForm.value = false;
     updateFieldsState();
-    if (crudGridRef.value) {
-      crudGridRef.value.resetEditingState?.();
-    }
+    refreshGrid();
     emit('refresh');
   } catch (error) {
     let errorMessage = `Error al guardar ${props.resourceName}: `;
@@ -420,4 +419,16 @@ function handleExport() {
 onMounted(() => {
   emit('mounted');
 });
+
+function refreshGrid() {
+  const grid = crudGridRef.value;
+  if (!grid) return;
+
+  // Limpia selección/estado visual y vuelve a pedir data
+  grid.resetEditingState?.();
+  grid.selected = [];
+  grid.currentPage = 1;
+
+  (grid.fetchData || grid.loadData)?.call(grid);
+}
 </script>

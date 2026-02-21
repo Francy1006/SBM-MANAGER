@@ -269,6 +269,7 @@ export default {
     showPropertiesButton: { type: Boolean, default: true },
     fields: { type: Array, default: () => [] },
     optionsProps: { type: Object, default: () => ({}) },
+    refreshKey: { type: [Number, String], default: 0 },
   },
   data() {
     return {
@@ -712,6 +713,14 @@ export default {
   },
   watch: {
     endpoint: 'fetchData',
+    refreshKey: {
+      handler() {
+        this.currentPage = 1;
+        this.selected = [];
+        this.fetchData();
+      },
+      immediate: false,
+    },
   },
   mounted() {
     const sumFields = this.fields.filter(f => f.sumCount === true);

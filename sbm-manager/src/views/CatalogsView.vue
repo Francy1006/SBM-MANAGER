@@ -11,52 +11,23 @@
       <div class="row">
         <div class="col-1"></div>
         <div class="col-10 w-100 text-center">
-          <FranchiseSelector
-            v-model="selectedFranchise"
-            :franchises="franchises"
-            @change="onFranchiseChange"
-          />
+          <FranchiseSelector v-model="selectedFranchise" :franchises="franchises" @change="onFranchiseChange" />
         </div>
       </div>
       <br />
     </div>
 
-    <CRUDManagerComponent
-      v-if="selectedFranchise"
-      title=""
-      resourceName="item Catálogo"
-      endpoint="catalogs/list/"
-      iconClass=""
-      :componentTitle="componentTitle"
-      :fields="fields"
-      :showConfigForm="true"
-      configFormName="Catálogo"
-      configFormResourcePath="catalogs"
-      configFormPivotField="sku"
-      configFormLookupField="sku"
-      :showPropertiesButton="true"
-      :showConfigList="false"
-      :configListFranchiseId="selectedFranchise"
-      configListEndpointType="id"
-      configListTitle=""
+    <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="item Catálogo" endpoint="catalogs/list/"
+      get-endpoint="catalogs/list/" post-endpoint="catalogs/" iconClass="" :componentTitle="componentTitle"
+      :fields="fields" :showConfigForm="true" configFormName="Catálogo" configFormResourcePath="catalogs"
+      configFormPivotField="sku" configFormLookupField="sku" :showPropertiesButton="true" :showConfigList="false"
+      :configListFranchiseId="selectedFranchise" configListEndpointType="id" configListTitle=""
       :endpointBase="`franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
-      :optionsProps="optionsProps"
-      @refresh="handleRefresh"
-      @created="handleCreated"
-      @updated="handleUpdated"
-      @row-selected="handleCatalogSelected"
-      @import="handleImport"
-      @export="handleExport"
-    >
+      :optionsProps="optionsProps" @refresh="handleRefresh" @created="handleCreated" @updated="handleUpdated"
+      @row-selected="handleCatalogSelected" @import="handleImport" @export="handleExport">
       <template #properties>
-        <PropertiesComponent
-          title="Propiedades del Catálogo"
-          :total="franchises.length"
-          :activos="null"
-          :inactivos="null"
-          :lastUpdate="lastUpdate"
-          status="Activo"
-        />
+        <PropertiesComponent title="Propiedades del Catálogo" :total="franchises.length" :activos="null"
+          :inactivos="null" :lastUpdate="lastUpdate" status="Activo" />
       </template>
     </CRUDManagerComponent>
   </div>
@@ -116,8 +87,10 @@ const fields = ref([
   { key: 'category', label: 'Categoría', type: 'dynamic-select', required: true, endpoint: '/item-categories/', labelKey: 'category', valueKey: 'id', hideInGrid: true },
   { key: 'category_name', label: 'Categoría', type: 'text', required: false, omitInForm: true },
 
-  { key: 'item_type', label: 'Tipo de Item', type: 'dynamic-select', required: true, endpoint: '/item-types/', labelKey: 'type', valueKey: 'id', hideInGrid: true },
+  { key: 'type', label: 'Tipo de Item', type: 'dynamic-select', required: true, endpoint: '/item-types/', labelKey: 'type', valueKey: 'id', hideInGrid: true },
   { key: 'type_name', label: 'Tipo de Item', type: 'text', required: false, omitInForm: true },
+
+  { key: 'restriction', label: 'Restricción', type: 'dynamic-select', required: true, endpoint: '/restrictions/', labelKey: 'restriction', valueKey: 'id', hideInGrid: true },
 
   { key: 'item_group', label: 'Grupo de Item', type: 'dynamic-select', required: true, endpoint: '/item-groups/', labelKey: 'group_name', valueKey: 'id', hideInGrid: true },
   { key: 'group_name', label: 'Grupo de Item', type: 'text', required: false, omitInForm: true },
@@ -127,7 +100,7 @@ const fields = ref([
   { key: 'obs', label: 'Observaciones', type: 'textarea', required: false },
   { key: 'chef_recommendation', label: 'Recomendación del Chef', type: 'checkbox', required: false },
 
-  { key: 'base_net_amount', label: 'Valor Base NETO', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true },
+  { key: 'base_net_amount', label: 'Valor Base NETO', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: false },
   { key: 'net_amount', label: 'Costo NETO', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, sumCount: true },
   { key: 'gross_amount', label: 'Costo BRUTO', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true },
   { key: 'iva_amount', label: 'IVA', type: 'price', required: true, formGroup: 'price_data', secretField: true, omitInForm: true, hideInGrid: true },
@@ -141,9 +114,9 @@ const fields = ref([
 
   { key: 'item_configuration', label: 'Configuración de Item', type: 'text', required: false, hideInGrid: true, omitInForm: true },
 
-  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', required: true, endpoint: '/instructions/', labelKey: 'instruction', valueKey: 'id', hideInGrid: true },
+  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', required: true, endpoint: '/instructions/', labelKey: 'instruction', valueKey: 'code', hideInGrid: true },
 
-  { key: 'configuration', label: 'Configuración', type: 'text', required: false, hideInGrid: true },
+  { key: 'configuration', label: 'Configuración', type: 'dynamic-select', required: false, endpoint: '/item-configurations/', labelKey: 'configuration', valueKey: 'code', hideInGrid: true },
 
   { key: 'is_visible', label: 'Visible', type: 'checkbox', required: false },
   { key: 'is_deleted', label: 'Eliminado', type: 'checkbox', required: false },
