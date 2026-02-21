@@ -146,14 +146,14 @@
 
             <!-- ROWS -->
             <tr v-for="row in filteredRows" :key="'row-' + row.code" :class="{
-              'table-primary fw-bold': selected.includes(String(row.code)) || row.code === editingRowId,
+              'table-primary fw-bold': selected.includes(String(row.code ?? row.id ?? row.sku)) || row.code === editingRowId,
               'text-white': row.code === editingRowId
             }">
 
               <!-- SELECTION CHECKBOX -->
               <td v-if="rows.length > 0" class="text-center">
-                <input type="checkbox" :key="'checkbox-' + row.code" :value="String(row.code)" v-model="selected"
-                  @change.stop="toggleRowSelection(row.code)" />
+                <input type="checkbox" :key="'checkbox-' + row.code" :value="String(row.code ?? row.id ?? row.sku)"
+                  v-model="selected" @change.stop="toggleRowSelection(row.code)" />
               </td>
 
               <!-- CELLS -->
@@ -309,7 +309,13 @@ export default {
       return this.columns.filter(col => col !== 'field_verbose_names' && col !== 'state_name' && !hidden.includes(col));
     },
     allSelected() {
-      return this.filteredRows.length > 0 && this.selected.length === this.filteredRows.length;
+      if (!this.filteredRows.length) return false;
+
+      const rowValues = this.filteredRows.map(r =>
+        String(r.code ?? r.id ?? r.sku)
+      );
+
+      return rowValues.every(val => this.selected.includes(val));
     },
     selectedCount() {
       return this.selected.length;
@@ -377,13 +383,16 @@ export default {
     ...mapActions([]),
 
     toggleAllSelection() {
+      const rowId = (row) => String(row?.code ?? row?.id ?? row?.sku);
+
       if (this.allSelected) {
         this.selected = [];
         this.$emit('row-selected', null);
       } else {
-        this.selected = this.filteredRows.map(row => String(row.code));
+        this.selected = this.filteredRows.map(rowId);
+
         if (this.selected.length === 1) {
-          const selectedRow = this.rows.find(row => String(row.code) === this.selected[0]);
+          const selectedRow = this.rows.find(r => rowId(r) === this.selected[0]);
           this.$emit('row-selected', selectedRow || null);
         } else {
           this.$emit('row-selected', null);
