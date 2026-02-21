@@ -1,5 +1,4 @@
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
 
 // Estado global de autenticación
 const isAuthenticated = ref(false);
@@ -93,7 +92,6 @@ const redirectIfAuthenticated = (to, from, next) => {
 };
 
 export function useAuth() {
-  const router = useRouter();
   
   return {
     // Estado

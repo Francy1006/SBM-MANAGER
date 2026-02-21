@@ -24,19 +24,11 @@
       </div>
     </div>
 
-    <StatsGeneralComponent
-      v-if="statsEndpoint && statsEndpoint.trim() !== ''"
-      :endpoint="statsEndpoint"
-      :title="statsTitle"
-    />
+    <StatsGeneralComponent v-if="statsEndpoint && statsEndpoint.trim() !== ''" :endpoint="statsEndpoint"
+      :title="statsTitle" />
 
-    <ConfigListComponent
-      v-if="showConfigList && configListFranchiseId"
-      :franchiseId="configListFranchiseId"
-      :endpointType="configListEndpointType"
-      :title="configListTitle"
-      :endpointBase="endpointBase"
-    />
+    <ConfigListComponent v-if="showConfigList && configListFranchiseId" :franchiseId="configListFranchiseId"
+      :endpointType="configListEndpointType" :title="configListTitle" :endpointBase="endpointBase" />
 
     <br>
 
@@ -63,68 +55,30 @@
       </div>
     </div>
 
-    <SimpleFormComponent
-      v-if="(!showConfigForm || !showConfigFormComponent) && !showProperties"
-      :show="showForm"
-      :is-edit="isEdit"
-      :fields="fields"
-      :values="editingData"
-      :loading="loading"
-      v-bind="states ? { states } : {}"
-      @close="onClose"
-      @save="onSave"
-    />
+    <SimpleFormComponent v-if="showForm && (!showConfigForm || !showConfigFormComponent) && !showProperties"
+      :show="showForm" :is-edit="isEdit" :fields="formFields" :values="editingData" :loading="loading"
+      v-bind="states ? { states } : {}" @close="onClose" @save="onSave" />
 
-    <ConfigFormComponent
-      v-if="showConfigForm && showConfigFormComponent && selectedRow"
-      :catalog="selectedRow"
-      :configurationName="configFormName"
-      :publicPivotField="configFormPivotField"
-      :resourcePath="props.configFormResourcePath"
-      :lookupField="props.configFormLookupField"
-      @close="onConfigFormClose"
-      @updated="onConfigFormUpdated"
-    />
+    <ConfigFormComponent v-if="showConfigForm && showConfigFormComponent && selectedRow" :catalog="selectedRow"
+      :configurationName="configFormName" :publicPivotField="configFormPivotField"
+      :resourcePath="props.configFormResourcePath" :lookupField="props.configFormLookupField" @close="onConfigFormClose"
+      @updated="onConfigFormUpdated" />
 
-    <CRUDGridComponent
-      v-if="!showProperties"
-      ref="crudGridRef"
-      :resourceName="resourceName"
-      :endpoint="finalGetEndpoint"
-      :iconClass="iconClass"
-      :showPropertiesButton="showPropertiesButton"
-      v-bind="states ? { states } : {}"
-      :fields="fields"
-      :optionsProps="optionsProps"
-      @configure="onConfigure"
-      @row-selected="onRowSelected"
-      @show-properties="onShowProperties"
-      @import="handleImport"
-      @export="handleExport"
-      @counts-updated="onCountsUpdated"
-    />
+    <CRUDGridComponent v-if="!showProperties" ref="crudGridRef" :resourceName="resourceName"
+      :endpoint="finalGetEndpoint" :iconClass="iconClass" :showPropertiesButton="showPropertiesButton"
+      v-bind="states ? { states } : {}" :fields="fields" :optionsProps="optionsProps" @configure="onConfigure"
+      @row-selected="onRowSelected" @show-properties="onShowProperties" @import="handleImport" @export="handleExport"
+      @counts-updated="onCountsUpdated" />
 
-    <PropertiesComponent
-      v-if="showProperties"
-      :product="selectedRow"
-      :propertiesTitle="propertiesTitle"
-      :fields="props.propertiesFields"
-      :verboseNames="props.propertiesVerboseNames"
-      :systemFields="props.systemFields"
-      :systemVerboseNames="props.systemVerboseNames"
-      :configComponent="props.configComponent"
-      :configProps="props.configProps"
-      :showCalculationComponent="props.showCalculationComponent"
-      :calculationCode="props.calculationCode"
-      :baseNetAmount="props.baseNetAmount"
-      :netAmount="props.netAmount"
-      :grossAmount="props.grossAmount"
-      :ivaAmount="props.ivaAmount"
-      :additionalTaxAmount="props.additionalTaxAmount"
-      :retentionAmount="props.retentionAmount"
-      :selectedProductSku="props.selectedProductSku"
-      @close="onPropertiesClose"
-    >
+    <PropertiesComponent v-if="showProperties" :product="selectedRow" :propertiesTitle="propertiesTitle"
+      :fields="fields" :verboseNames="props.propertiesVerboseNames" :systemFields="props.systemFields"
+      :systemVerboseNames="props.systemVerboseNames" :configComponent="props.configComponent"
+      :configProps="props.configProps" :showCalculationComponent="props.showCalculationComponent"
+      :calculationCode="props.calculationCode" :baseNetAmount="props.baseNetAmount" :netAmount="props.netAmount"
+      :grossAmount="props.grossAmount" :ivaAmount="props.ivaAmount" :additionalTaxAmount="props.additionalTaxAmount"
+      :retentionAmount="props.retentionAmount" :selectedProductSku="props.selectedProductSku"
+      :advancedData="advancedData" :advancedVerbose="advancedVerbose" @close="onPropertiesClose"
+      @load-advanced="loadAdvanced">
       <slot name="properties"></slot>
     </PropertiesComponent>
 
@@ -203,15 +157,18 @@ const isEdit = ref(false);
 const editingData = ref({});
 const loading = ref(false);
 const showForm = ref(false);
+const formFields = ref([]);
 const crudGridRef = ref(null);
 const selectedRow = ref(null);
 const showConfigFormComponent = ref(false);
 const showProperties = ref(false);
+const advancedData = ref(null);
+const advancedVerbose = ref(null);
 
 const totalList = ref(0);
 const totalDeleted = ref(0);
 
-watch(() => props.propertiesProduct, () => {});
+watch(() => props.propertiesProduct, () => { });
 
 const finalGetEndpoint = computed(() => props.getEndpoint || props.endpoint);
 const finalCreateEndpoint = computed(() => props.createEndpoint || props.endpoint);
@@ -262,6 +219,7 @@ function updateFieldsState() {
 function showCreateForm() {
   isEdit.value = false;
   editingData.value = {};
+  formFields.value = props.fields.map(f => ({ ...f, options: [], loading: false }));
   showForm.value = true;
   updateFieldsState();
 }
@@ -391,6 +349,7 @@ function onConfigure(row) {
 
   editingData.value = mappedRow;
   isEdit.value = true;
+  formFields.value = props.fields.map(f => ({ ...f, options: [], loading: false }));
   showForm.value = true;
   updateFieldsState();
 }
@@ -427,6 +386,22 @@ function onConfigFormUpdated() {
 function onShowProperties(row) {
   showProperties.value = true;
   selectedRow.value = row;
+}
+
+async function loadAdvanced() {
+  if (!selectedRow.value?.sku) return;
+
+  try {
+    const res = await axios.get(
+      `/catalogs/adv/${selectedRow.value.sku}/`
+    );
+
+    advancedData.value = res.data.results;
+    advancedVerbose.value = res.data.verbose_names;
+
+  } catch (error) {
+    console.error('Error cargando avanzado:', error);
+  }
 }
 
 function onPropertiesClose() {

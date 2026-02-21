@@ -1,22 +1,14 @@
 <template>
   <div v-if="show" class="p-4 bg-white rounded-4 shadow-sm border mb-4">
     <form @submit.prevent="onSave">
-      <div
-        v-for="field in fields.filter(f => !f.omitInForm)"
-        :key="field.key"
-        class="mb-4"
-      >
-        <label
-          class="form-label fw-semibold"
-          :class="{ 'checkbox-label': field.type === 'checkbox' }"
-        >
+      <div v-for="field in fields.filter(f => !f.omitInForm)" :key="field.key" class="mb-4">
+        <label class="form-label fw-semibold" :class="{ 'checkbox-label': field.type === 'checkbox' }">
           {{ field.label }}
           <span v-if="field.required" class="text-danger">*</span>
         </label>
 
-        <!-- Text / Email / URL -->
         <input
-          v-if="['text','email','url'].includes(field.type)"
+          v-if="['text', 'email', 'url'].includes(field.type)"
           :type="field.type"
           class="form-control form-control-lg rounded-3"
           :value="form[field.key]"
@@ -26,7 +18,6 @@
           :disabled="field.disabled"
         />
 
-        <!-- Number with suffix -->
         <div v-else-if="field.type === 'number' && field.suffix" class="input-group input-group-lg">
           <input
             type="number"
@@ -41,7 +32,6 @@
           <span class="input-group-text">{{ field.suffix }}</span>
         </div>
 
-        <!-- Number -->
         <input
           v-else-if="field.type === 'number'"
           type="number"
@@ -54,7 +44,6 @@
           :disabled="field.disabled"
         />
 
-        <!-- Textarea -->
         <textarea
           v-else-if="field.type === 'textarea'"
           class="form-control form-control-lg rounded-3"
@@ -65,7 +54,6 @@
           :disabled="field.disabled"
         />
 
-        <!-- Select -->
         <select
           v-else-if="field.type === 'select'"
           class="form-select form-select-lg rounded-3"
@@ -73,27 +61,26 @@
           :required="field.required"
           :disabled="field.disabled"
         >
-          <option
-            v-for="option in getOptions(field)"
-            :key="option.id"
-            :value="option.id"
-          >
+          <option v-for="option in getOptions(field)" :key="option.id" :value="option.id">
             {{ option.state || option.label || option.name }}
           </option>
         </select>
 
-        <!-- Dynamic Select -->
         <select
-          v-else-if="field.type === 'dynamic-select' && !field.disabled"
+          v-else-if="field.type === 'dynamic-select'"
           class="form-select form-select-lg rounded-3"
           v-model="form[field.key]"
           :required="field.required"
-          :disabled="field.loading"
+          :disabled="field.disabled || field.loading"
         >
+          <option :value="null" disabled>Selecciona...</option>
+
           <option
-            v-for="option in field.options"
+            v-for="option in (field.options || [])"
             :key="option[field.valueKey || 'id']"
-            :value="option[field.valueKey || 'id']"
+            :value="(field.valueKey || 'id') === 'id'
+              ? Number(option[field.valueKey || 'id'])
+              : String(option[field.valueKey || 'id'])"
           >
             {{ option[field.labelKey || 'name'] }}
           </option>
@@ -108,7 +95,6 @@
           </span>
         </div>
 
-        <!-- Checkbox -->
         <input
           v-else-if="field.type === 'checkbox'"
           type="checkbox"
@@ -118,7 +104,6 @@
           style="transform: scale(1.3); margin-top: 0.4em;"
         />
 
-        <!-- Rating -->
         <div v-else-if="field.type === 'rating'" class="rating-input">
           <span
             v-for="star in 5"
@@ -138,7 +123,6 @@
           <span v-else class="ms-2 text-secondary">Sin calificación</span>
         </div>
 
-        <!-- Price -->
         <input
           v-else-if="field.type === 'price'"
           type="text"
@@ -152,25 +136,16 @@
         />
       </div>
 
-      <!-- Actions -->
       <div class="row mt-4">
         <div class="col-12">
           <div class="row justify-content-end">
             <div class="col-12 col-md-auto mb-2 mb-md-0">
-              <button
-                type="button"
-                class="btn btn-outline-secondary rounded-pill px-4 w-100 w-md-auto"
-                @click="close"
-              >
+              <button type="button" class="btn btn-outline-secondary rounded-pill px-4 w-100 w-md-auto" @click="close">
                 <i class="fa-solid fa-times me-2"></i> Cancelar
               </button>
             </div>
             <div class="col-12 col-md-auto">
-              <button
-                type="submit"
-                class="btn btn-primary rounded-pill px-4 w-100 w-md-auto"
-                :disabled="loading"
-              >
+              <button type="submit" class="btn btn-primary rounded-pill px-4 w-100 w-md-auto" :disabled="loading">
                 <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
                 <i :class="['fa-solid', isEdit ? 'fa-sync-alt' : 'fa-save', 'me-2']"></i>
                 {{ isEdit ? 'Actualizar' : 'Crear' }}
@@ -182,7 +157,6 @@
     </form>
   </div>
 </template>
-
 
 <script>
 import axios from '../api/axios';
@@ -196,38 +170,46 @@ export default {
     values: Object,
     states: { type: [Array, Object], default: null },
     loading: Boolean,
-    uppercase: { type: Boolean, default: false }, // NUEVO PROP
+    uppercase: { type: Boolean, default: false },
   },
   data() {
-    return {
-      form: {},
-    };
+    return { form: {} };
+  },
+  mounted() {
+    this.loadDynamicSelects(this.fields);
   },
   watch: {
     values: {
       handler(newVal) {
-        // Inicializa el form vacío
         this.form = {};
-        // Primero, descompón los campos agrupados
+
         this.fields.forEach(field => {
           if (field.formGroup) {
-            this.form[field.key] = (newVal && newVal[field.formGroup]) ? newVal[field.formGroup][field.key] ?? '' : '';
+            this.form[field.key] = (newVal && newVal[field.formGroup])
+              ? (newVal[field.formGroup][field.key] ?? '')
+              : '';
           } else {
-            this.form[field.key] = newVal && newVal[field.key] !== undefined ? newVal[field.key] : '';
+            this.form[field.key] = (newVal && newVal[field.key] !== undefined)
+              ? newVal[field.key]
+              : '';
           }
+
           if (field.type === 'checkbox' && this.form[field.key] === undefined) {
             this.form[field.key] = false;
           }
-          // Formatear visualmente los campos de tipo price
+
           if (field.type === 'price' && this.form[field.key] !== '') {
             this.form[field.key] = '$' + Number(this.form[field.key]).toLocaleString('es-CL');
           }
-          // Asegurar que los dynamic-select tengan valor string o null
+
           if (field.type === 'dynamic-select') {
-            if (this.form[field.key] === '' || this.form[field.key] === undefined) {
+            const vk = field.valueKey || 'id';
+            const raw = this.form[field.key];
+
+            if (raw === '' || raw === undefined) {
               this.form[field.key] = null;
-            } else if (this.form[field.key] !== null) {
-              this.form[field.key] = String(this.form[field.key]);
+            } else if (raw !== null) {
+              this.form[field.key] = (vk === 'id') ? Number(raw) : String(raw);
             }
           }
         });
@@ -236,20 +218,9 @@ export default {
       deep: true,
     },
     show(val) {
-      if (val) {
-        this.loadDynamicSelects(this.fields);
-      } else {
-        this.resetForm();
-      }
+      if (val) this.loadDynamicSelects(this.fields);
+      else this.resetForm();
     },
-    // Eliminar watcher profundo sobre fields
-    // fields: {
-    //   handler(newFields) {
-    //     this.loadDynamicSelects(newFields);
-    //   },
-    //   immediate: true,
-    //   deep: true,
-    // },
     'fields.*.disabled': {
       handler() {
         this.loadDynamicSelects(this.fields);
@@ -259,18 +230,22 @@ export default {
   },
   methods: {
     async loadDynamicSelects(fields) {
+
       for (const field of fields) {
         if (field.type === 'dynamic-select' && field.endpoint && !field.disabled) {
+          const url = String(field.endpoint).replace(/^\/+/, '');
+
           field.loading = true;
           try {
-            const response = await axios.get(field.endpoint);
-            field.options = response.data.results || response.data;
-            // Forzar la actualización del valor si ya existe en el form
-            if (this.form[field.key]) {
-              this.form[field.key] = String(this.form[field.key]);
+            const response = await axios.get(url);
+            field.options = Array.isArray(response.data) ? response.data : (response.data?.results || []);
+            const vk = field.valueKey || 'id';
+            const v = this.form[field.key];
+            if (v !== null && v !== undefined && v !== '') {
+              this.form[field.key] = (vk === 'id') ? Number(v) : String(v);
             }
           } catch (error) {
-            console.error(`Error loading options for ${field.key}:`, error);
+            console.error('[SimpleForm] Error loading options for', field.key, error);
             field.options = [];
           } finally {
             field.loading = false;
@@ -279,27 +254,30 @@ export default {
       }
     },
     resetForm() {
-      // Limpiar todos los campos del formulario
       this.form = {};
       this.fields.forEach(field => {
-        if (field.formGroup) {
-          this.form[field.key] = '';
-        } else if (field.type === 'checkbox') {
-          this.form[field.key] = false;
-        } else {
-          this.form[field.key] = '';
-        }
+        if (field.formGroup) this.form[field.key] = '';
+        else if (field.type === 'checkbox') this.form[field.key] = false;
+        else if (field.type === 'dynamic-select') this.form[field.key] = null;
+        else this.form[field.key] = '';
       });
     },
     onSave() {
-      // Agrupar campos por formGroup
       const payload = {};
+
       this.fields.forEach(field => {
         let value = this.form[field.key];
-        // Si es price, limpiar el formato y guardar como int plain text
+
         if (field.type === 'price') {
           value = value ? parseInt(value.toString().replace(/\D/g, ''), 10) : null;
         }
+
+        if (field.type === 'dynamic-select') {
+          const vk = field.valueKey || 'id';
+          if (value === '' || value === undefined) value = null;
+          else if (value !== null) value = (vk === 'id') ? Number(value) : String(value);
+        }
+
         if (field.formGroup) {
           if (!payload[field.formGroup]) payload[field.formGroup] = {};
           payload[field.formGroup][field.key] = value;
@@ -307,36 +285,24 @@ export default {
           payload[field.key] = value;
         }
       });
+
       this.$emit('save', payload);
     },
     close() {
-      // Limpiar el formulario completamente
       this.resetForm();
-      
-      // Emitir evento de cierre
       this.$emit('close');
-      
-      // Mostrar mensaje de confirmación (opcional)
-      console.log('Formulario cancelado y limpiado');
     },
     getOptions(field) {
       let options = [];
-      if (field.options) {
-        options = field.options;
-      } else if (field.optionsKey && this[field.optionsKey]) {
-        // Handle both regular arrays and Vue 3 refs
+      if (field.options) options = field.options;
+      else if (field.optionsKey && this[field.optionsKey]) {
         const optionsData = this[field.optionsKey];
         options = Array.isArray(optionsData) ? optionsData : (optionsData?.value || []);
       }
-      // Asegura que options sea un array
-      if (!Array.isArray(options)) {
-        options = [];
-      }
-      // Filtra elementos null o sin id
+      if (!Array.isArray(options)) options = [];
       return options.filter(option => option && option.id !== undefined && option.id !== null);
     },
     handleInputUppercase(field, $event) {
-      // Si el prop global uppercase está activo o el campo tiene uppercase: true
       const shouldUppercase = this.uppercase || field.uppercase;
       if (shouldUppercase && ['text', 'email', 'url', 'textarea'].includes(field.type)) {
         this.form[field.key] = $event.target.value.toUpperCase();
@@ -345,15 +311,9 @@ export default {
       }
     },
     onPriceInput(field) {
-      // Obtener solo los dígitos
       let raw = this.form[field.key] ? this.form[field.key].toString().replace(/\D/g, '') : '';
-      if (raw) {
-        // Formatear con separador de miles y anteponer $
-        const formatted = '$' + Number(raw).toLocaleString('es-CL');
-        this.form[field.key] = formatted;
-      } else {
-        this.form[field.key] = '';
-      }
+      if (raw) this.form[field.key] = '$' + Number(raw).toLocaleString('es-CL');
+      else this.form[field.key] = '';
     },
   },
 };

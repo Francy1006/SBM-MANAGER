@@ -407,15 +407,22 @@ export default {
         }
       }
     },
-    showProperties() {
-      if (this.selected.length === 1) {
-        const selectedRow = this.rows.find(row => String(row.code) === this.selected[0]);
-        if (selectedRow) {
-          this.$emit('show-properties', selectedRow);
-          this.selected = [];
-        }
-      } else {
-        this.$emit('show-properties', null);
+    async showProperties() {
+      if (this.selected.length !== 1) return;
+
+      const selectedCode = this.selected[0];
+
+      try {
+        const base = this.endpoint.split('?')[0].split('/').filter(Boolean)[0];
+
+        const res = await api.get(`/${base}/${selectedCode}/`);
+
+        this.$emit('show-properties', res.data);
+        this.selected = [];
+
+      } catch (error) {
+        console.error('Error cargando detalle:', error);
+        alert('Error cargando propiedades');
       }
     },
     resetEditingState() {
