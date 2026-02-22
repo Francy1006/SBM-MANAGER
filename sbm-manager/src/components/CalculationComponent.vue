@@ -1,78 +1,86 @@
 <template>
-  <h6 v-if="titleToShow" class="fw-bold border-bottom pb-2 mb-2 text-secondary">
-    {{ titleToShow }}
-  </h6>
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
 
-  <p v-if="descriptionToShow" class="text-muted small mb-3">
-    <span>{{ descriptionToShow }}</span>
-  </p>
-
-  <button
-    class="btn btn-danger btn-lg w-100 mt-2 mb-4 ps-3"
-    @click="calculateFormula"
-    :disabled="loading"
-  >
-    <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="me-2"></i>
-    {{ loading ? 'Calculando...' : 'Recalcular' }}
-  </button>
-
-  <div class="row mt-4">
-    <div class="col-md-3 mb-3" v-for="field in fields" :key="field.key">
-      <div :class="['card h-100', field.color === 'primary' ? 'bg-primary border-primary text-white' : '', field.color === 'secondary' ? 'bg-secondary border-secondary text-white' : '']">
-        <div class="card-body">
-          <label :for="field.key" class="form-label text-white">{{ field.label }}</label>
-          <input
-            :id="field.key"
-            type="text"
-            class="form-control"
-            :value="formatCurrencyInput(field)"
-            @input="onCurrencyInput($event, field)"
-            disabled
-          />
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h6 v-if="titleToShow" class="fw-bold mb-1 d-flex align-items-center gap-2">
+            <span>{{ titleToShow }}</span>
+          </h6>
+          <p v-if="descriptionToShow" class="text-muted small mb-0">
+            {{ descriptionToShow }}
+          </p>
         </div>
+
+        <button class="btn btn-outline-danger btn-sm" @click="calculateFormula" :disabled="loading">
+          <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-sync-alt'" class="me-2"></i>
+          {{ loading ? 'Calculando...' : 'Recalcular' }}
+        </button>
       </div>
-    </div>
-  </div>
 
-  <h6><strong>Resultados</strong></h6>
-
-  <div class="row mt-4">
-    <div class="col-md-2 mb-3" v-for="field in resultFields" :key="field.key">
-      <div class="card h-100 bg-danger border-danger text-white">
-        <div class="card-body">
-          <label :for="field.key" class="form-label text-white">{{ field.label }}</label>
-          <input
-            :id="field.key"
-            type="text"
-            class="form-control"
-            :value="formatCurrencyInput(field, 'danger')"
-            @input="onCurrencyInput($event, field)"
-            disabled
-          />
-        </div>
+      <!-- VARIABLES -->
+      <div class="table-responsive mb-4">
+        <table class="table table-sm table-bordered align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Variable</th>
+              <th class="text-end">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="field in fields" :key="field.key">
+              <td class="fw-semibold">{{ field.label }}</td>
+              <td class="text-end">{{ formatValueByType(field) }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+
+      <!-- RESULTADOS -->
+      <h6 class="fw-bold border-bottom pb-2 mb-3 text-secondary">
+        Resultados
+      </h6>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Concepto</th>
+              <th class="text-end">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="field in resultFields" :key="field.key">
+              <td class="fw-semibold">{{ field.label }}</td>
+              <td class="text-end">{{ formatCurrency(field.value) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ALERTAS -->
+      <div v-if="calculationResult" class="alert alert-success mt-3 small mb-0">
+        <i class="fas fa-check-circle me-2"></i>
+        Cálculo completado exitosamente
+      </div>
+
+      <div v-if="calculationError" class="alert alert-danger mt-3 small mb-0">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {{ calculationError }}
+      </div>
+
     </div>
-  </div>
-
-  <div v-if="calculationResult" class="alert alert-success mt-3" role="alert">
-    <i class="fas fa-check-circle me-2"></i>
-    Cálculo completado exitosamente
-  </div>
-
-  <div v-if="calculationError" class="alert alert-danger mt-3" role="alert">
-    <i class="fas fa-exclamation-triangle me-2"></i>
-    {{ calculationError }}
   </div>
 </template>
 
 <script setup>
-import { reactive, onMounted, watch, ref, computed } from 'vue';
-import api from '../api/axios';
+import { reactive, onMounted, watch, ref, computed } from 'vue'
+import api from '../api/axios'
 
 const props = defineProps({
   title: { type: String, default: '' },
   description: { type: String, default: '' },
-
   code: { type: String, required: true },
   baseNetAmount: { type: [Number, String], default: null },
   netAmount: { type: [Number, String], default: null },
@@ -81,46 +89,43 @@ const props = defineProps({
   additionalTaxAmount: { type: [Number, String], default: null },
   retentionAmount: { type: [Number, String], default: null },
   selectedProductSku: { type: String, default: null }
-});
+})
 
-const titleToShow = computed(() => ((props.title ?? '') + '').trim());
-const descriptionToShow = computed(() => ((props.description ?? '') + '').trim());
+const emit = defineEmits(['calculated'])
 
-const loading = ref(false);
-const calculationResult = ref(null);
-const calculationError = ref(null);
+const titleToShow = computed(() => ((props.title ?? '') + '').trim())
+const descriptionToShow = computed(() => ((props.description ?? '') + '').trim())
+
+const loading = ref(false)
+const calculationResult = ref(null)
+const calculationError = ref(null)
 
 function formatCurrency(val) {
-  if (val === null || val === undefined || isNaN(val)) return '';
-  return '$' + Number(val).toLocaleString('es-CL', { maximumFractionDigits: 0 });
+  if (val === null || val === undefined || isNaN(val)) return '-'
+  return '$' + Number(val).toLocaleString('es-CL')
 }
 
-function formatDouble(val) {
-  if (val === null || val === undefined || isNaN(val)) return '';
-  return Number(val).toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function formatPercentage(val) {
+  if (val === null || val === undefined || isNaN(val)) return '-'
+  return (Number(val) * 100).toLocaleString('es-CL') + '%'
 }
 
-function formatCurrencyInput(field, forceType = null) {
-  if (forceType === 'danger' || field.color === 'primary') {
-    return formatCurrency(field.value);
-  } else if (field.color === 'secondary') {
-    return formatDouble(field.value);
+function formatValueByType(field) {
+  if (field.value === null || field.value === undefined || isNaN(field.value)) {
+    return '-'
   }
-  return field.value;
-}
 
-function parseCurrencyInput(str) {
-  const clean = str.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(/,/g, '.');
-  return clean ? parseFloat(clean) : null;
-}
+  // Si es menor a 1 asumimos que es tasa (ej: 0.19 → 19%)
+  if (Number(field.value) > 0 && Number(field.value) < 1) {
+    return (Number(field.value) * 100).toLocaleString('es-CL') + '%'
+  }
 
-function onCurrencyInput(event, field) {
-  field.value = parseCurrencyInput(event.target.value);
+  return '$' + Number(field.value).toLocaleString('es-CL')
 }
 
 const fields = reactive([
-  { key: 'base_neto', label: 'VALOR BASE NETO', value: null, color: 'primary' }
-]);
+  { key: 'base_neto', label: 'Valor Base Neto', value: null }
+])
 
 const resultFields = reactive([
   { key: 'neto', label: 'Neto', value: null },
@@ -128,111 +133,83 @@ const resultFields = reactive([
   { key: 'impuesto_adicional', label: 'Impuesto Adicional', value: null },
   { key: 'retencion', label: 'Retención', value: null },
   { key: 'bruto', label: 'Bruto', value: null },
-]);
+])
 
 function setBaseNetAmount(val) {
-  fields[0].value = val;
+  fields[0].value = val
 }
 
 function setResultAmounts() {
-  if (props.netAmount !== null) {
-    const netField = resultFields.find(field => field.key === 'neto');
-    if (netField) netField.value = props.netAmount;
-  }
-  if (props.ivaAmount !== null) {
-    const ivaField = resultFields.find(field => field.key === 'iva');
-    if (ivaField) ivaField.value = props.ivaAmount;
-  }
-  if (props.additionalTaxAmount !== null) {
-    const taxField = resultFields.find(field => field.key === 'impuesto_adicional');
-    if (taxField) taxField.value = props.additionalTaxAmount;
-  }
-  if (props.retentionAmount !== null) {
-    const retentionField = resultFields.find(field => field.key === 'retencion');
-    if (retentionField) retentionField.value = props.retentionAmount;
-  }
-  if (props.grossAmount !== null) {
-    const grossField = resultFields.find(field => field.key === 'bruto');
-    if (grossField) grossField.value = props.grossAmount;
-  }
+  resultFields.find(f => f.key === 'neto').value = props.netAmount
+  resultFields.find(f => f.key === 'iva').value = props.ivaAmount
+  resultFields.find(f => f.key === 'impuesto_adicional').value = props.additionalTaxAmount
+  resultFields.find(f => f.key === 'retencion').value = props.retentionAmount
+  resultFields.find(f => f.key === 'bruto').value = props.grossAmount
 }
 
 async function fetchFields(code) {
-  if (!code) return;
+  if (!code) return
   try {
-    const response = await api.get(`/formula-variables/?code=${code}`);
+    const response = await api.get(`/formula-variables/?code=${code}`)
+
     const dynamicFields = response.data
       .filter(item => item.var !== 'base_neto')
       .map(item => ({
         key: item.var,
-        label: `${item.var} (${item.variable_type})`,
+        label: item.variable_type === 'percentage'
+          ? `${item.var} (%)`
+          : item.var,
         value: item.value ?? null,
-        color: 'secondary'
-      }));
-    fields.splice(1, fields.length - 1, ...dynamicFields);
-  } catch (e) {
-    fields.splice(1, fields.length - 1);
+        variable_type: item.variable_type ?? null
+      }))
+
+    fields.splice(1, fields.length - 1, ...dynamicFields)
+  } catch {
+    fields.splice(1)
   }
 }
 
 async function calculateFormula() {
-  if (!props.code) {
-    calculationError.value = 'No se ha proporcionado un código SKU válido';
-    return;
-  }
+  if (!props.code) return
 
-  loading.value = true;
-  calculationError.value = null;
-  calculationResult.value = null;
-  let response = null;
+  loading.value = true
+  calculationError.value = null
+  calculationResult.value = null
 
   try {
-    const payload = { sku: props.selectedProductSku };
-    response = await api.post('/product-price-calculation/', payload);
+    const response = await api.post('/product-price-calculation/', {
+      sku: props.selectedProductSku
+    })
 
-    if (response.data && typeof response.data === 'object') {
+    if (response.data) {
       Object.keys(response.data).forEach(key => {
-        const resultField = resultFields.find(field => field.key === key);
-        if (resultField) resultField.value = response.data[key];
-      });
+        const field = resultFields.find(f => f.key === key)
+        if (field) field.value = response.data[key]
+      })
     }
 
-    calculationResult.value = 'Cálculo completado exitosamente';
-    setTimeout(() => { calculationResult.value = null; }, 3000);
+    calculationResult.value = 'ok'
+    emit('calculated')
+    setTimeout(() => calculationResult.value = null, 3000)
 
   } catch (error) {
-    console.error('Error en el cálculo:', error);
-    if (error.response?.data?.detail) {
-      calculationError.value = error.response.data.detail;
-    } else if (error.response?.data?.message) {
-      calculationError.value = error.response.data.message;
-    } else if (error.message) {
-      calculationError.value = `Error de conexión: ${error.message}`;
-      console.log(response);
-    } else {
-      calculationError.value = 'Error desconocido al realizar el cálculo';
-    }
-    setTimeout(() => { calculationError.value = null; }, 5000);
+    calculationError.value = error.response?.data?.detail || 'Error al realizar el cálculo'
+    setTimeout(() => calculationError.value = null, 5000)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 onMounted(() => {
-  setBaseNetAmount(props.baseNetAmount);
-  setResultAmounts();
-  fetchFields(props.code);
-});
+  setBaseNetAmount(props.baseNetAmount)
+  setResultAmounts()
+  fetchFields(props.code)
+})
 
-watch(() => props.code, (newCode) => {
-  fetchFields(newCode);
-});
-
-watch(() => props.baseNetAmount, (newVal) => {
-  setBaseNetAmount(newVal);
-});
-
-watch(() => [props.netAmount, props.grossAmount, props.ivaAmount, props.additionalTaxAmount, props.retentionAmount], () => {
-  setResultAmounts();
-});
+watch(() => props.code, fetchFields)
+watch(() => props.baseNetAmount, setBaseNetAmount)
+watch(
+  () => [props.netAmount, props.grossAmount, props.ivaAmount, props.additionalTaxAmount, props.retentionAmount],
+  setResultAmounts
+)
 </script>

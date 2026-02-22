@@ -57,7 +57,7 @@
       </div>
 
       <transition name="slide-fade">
-        <div v-if="showAdvanced">
+        <div v-if="showAdvanced" class="border border-1 rounded p-3">
           <div class="row g-3">
             <div v-for="(value, key) in safeAdvancedData" :key="key" class="col-12 col-md-6">
               <label class="form-label fw-semibold">
@@ -71,110 +71,118 @@
     </div>
 
     <!-- 3️⃣ CONFIGURACIÓN -->
-    <div class="mb-5">
-      <h5 class="fw-bold border-bottom pb-2 mb-3 text-primary">
-        <i class="fas fa-cog me-2"></i>
-        Configuración
-      </h5>
-
-      <div v-if="configLoading" class="text-center py-4">
-        <div class="spinner-border text-success"></div>
+    <div class="mb-4">
+      <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-primary"
+        style="cursor:pointer;" @click="toggleConfiguration">
+        <h5 class="fw-bold mb-0 d-flex align-items-center">
+          <i class="fas fa-cog me-2"></i>
+          Configuración
+        </h5>
+        <i class="fas transition-icon" :class="showConfiguration ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
       </div>
 
-      <div v-else-if="configError" class="alert alert-danger">
-        {{ configError }}
-      </div>
+      <transition name="slide-fade">
+        <div v-if="showConfiguration" class="border border-1 rounded p-3">
+          <div class="ps-4">
 
-      <div v-else-if="!configData" class="alert alert-secondary">
-        No hay configuración disponible.
-      </div>
+            <div v-if="configLoading" class="text-center py-4">
+              <div class="spinner-border text-success"></div>
+            </div>
 
-      <div v-else>
+            <div v-else-if="configError" class="alert alert-danger">
+              {{ configError }}
+            </div>
 
-        <!-- INFORMATIVE -->
-        <div class="mb-4 border-bottom">
-          <h6 class="fw-bold pb-2 mb-3 text-secondary d-flex align-items-center">
-            <i class="fas fa-info-circle me-2 text-secondary"></i>
-            Informativa
-          </h6>
+            <div v-else-if="!configData" class="alert alert-secondary">
+              No hay configuración disponible.
+            </div>
 
-          <div class="row g-3">
-            <div v-for="f in informativaFields" :key="f.key" class="col-12 col-md-6">
-              <label class="form-label fw-semibold">
-                {{ f.label || formatLabel(f.key) }}
-              </label>
-              <input type="text" class="form-control bg-light" :value="formatValue(f.value)" disabled />
+            <div v-else>
+
+              <!-- INFORMATIVE -->
+              <div class="mb-4 border-bottom">
+                <h6 class="fw-bold pb-2 mb-3 text-secondary d-flex align-items-center">
+                  <i class="fas fa-info-circle me-2 text-secondary"></i>
+                  Informativa
+                </h6>
+
+                <div class="row g-3">
+                  <div v-for="f in informativaFields" :key="f.key" class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">
+                      {{ f.label || formatLabel(f.key) }}
+                    </label>
+                    <input type="text" class="form-control bg-light" :value="formatValue(f.value)" disabled />
+                  </div>
+                </div>
+              </div>
+
+              <!-- CÁLCULO -->
+              <div class="mb-4 border-bottom">
+                <h6 class="fw-bold pb-2 mb-3 text-secondary">
+                  <i class="fas fa-calculator me-2 text-secondary"></i>
+                  Cálculo
+                </h6>
+
+                <CalculationComponent v-if="safeCalculationProps" :title="props.calculationTitle"
+                  :description="props.calculationDescription" v-bind="safeCalculationProps"
+                  @calculated="onRecalculate" />
+              </div>
+
+              <!-- VINCULACIÓN -->
+              <div class="mb-4 border-bottom">
+                <h6 class="fw-bold pb-2 mb-3 text-secondary">
+                  Vinculación
+                </h6>
+
+                <div class="row g-3 mb-4">
+                  <div class="col-md-6" v-if="safeLinking?.header">
+                    <div class="border rounded p-3 bg-light">
+                      <div class="small text-muted">
+                        Código:
+                        <strong>{{ safeLinking.header.item_configuration_code }}</strong>
+                      </div>
+                      <div class="small text-muted">
+                        Base:
+                        <strong>{{ formatPrice(safeLinking.header.base_net_amount) }}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6" v-if="safeLinking?.totals">
+                    <div class="border rounded p-3 bg-light">
+                      <div class="small text-muted">
+                        Subtotal:
+                        <strong>{{ formatPrice(safeLinking.totals.sub_total_net) }}</strong>
+                      </div>
+                      <div class="small text-muted">
+                        IVA:
+                        <strong>{{ formatPrice(safeLinking.totals.sub_total_iva) }}</strong>
+                      </div>
+                      <div class="small text-muted">
+                        Total:
+                        <strong>{{ formatPrice(safeLinking.totals.sub_total_gross) }}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <ConfigLinkTableComponent title="Productos" icon="fas fa-dolly" itemType="product" searchBaseUrl=""
+                  :rows="productLinks" @rows-changed="onRowsChanged('product', $event)" />
+
+                <ConfigLinkTableComponent title="Materiales" icon="fas fa-spoon" itemType="material" searchBaseUrl=""
+                  :rows="materialLinks" @rows-changed="onRowsChanged('material', $event)" />
+
+                <ConfigLinkTableComponent title="Servicios" icon="fas fa-people-carry-box" itemType="service"
+                  searchBaseUrl="" :rows="serviceLinks" @rows-changed="onRowsChanged('service', $event)" />
+
+              </div>
             </div>
           </div>
         </div>
-
-        <!-- CÁLCULO -->
-        <div class="mb-4 border-bottom">
-          <h6 class="fw-bold pb-2 mb-3 text-secondary">
-            <i class="fas fa-calculator me-2 text-secondary"></i>
-            Cálculo
-          </h6>
-
-          <CalculationComponent v-if="safeCalculationProps" :title="props.calculationTitle"
-            :description="props.calculationDescription" v-bind="safeCalculationProps" />
-        </div>
-
-        <!-- VINCULACIÓN -->
-        <div class="mb-4 border-bottom">
-          <h6 class="fw-bold pb-2 mb-3 text-secondary">
-            Vinculación
-          </h6>
-
-          <!-- Cabecera + Totales -->
-          <div class="row g-3 mb-4">
-
-            <div class="col-md-6" v-if="safeLinking?.header">
-              <div class="border rounded p-3 bg-light">
-                <div class="small text-muted">
-                  Código:
-                  <strong>{{ safeLinking.header.item_configuration_code }}</strong>
-                </div>
-                <div class="small text-muted">
-                  Base:
-                  <strong>{{ formatPrice(safeLinking.header.base_net_amount) }}</strong>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-6" v-if="safeLinking?.totals">
-              <div class="border rounded p-3 bg-light">
-                <div class="small text-muted">
-                  Subtotal:
-                  <strong>{{ formatPrice(safeLinking.totals.sub_total_net) }}</strong>
-                </div>
-                <div class="small text-muted">
-                  IVA:
-                  <strong>{{ formatPrice(safeLinking.totals.sub_total_iva) }}</strong>
-                </div>
-                <div class="small text-muted">
-                  Total:
-                  <strong>{{ formatPrice(safeLinking.totals.sub_total_gross) }}</strong>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Tablas -->
-          <ConfigLinkTableComponent title="Productos" itemType="product" searchBaseUrl="" :rows="productLinks"
-            @rows-changed="onRowsChanged('product', $event)" />
-
-          <ConfigLinkTableComponent title="Materiales" itemType="material" searchBaseUrl="" :rows="materialLinks"
-            @rows-changed="onRowsChanged('material', $event)" />
-
-          <ConfigLinkTableComponent title="Servicios" itemType="service" searchBaseUrl="" :rows="serviceLinks"
-            @rows-changed="onRowsChanged('service', $event)" />
-
-        </div>
-      </div>
+      </transition>
     </div>
 
-    <!-- ✅ BOTONES SUBMIT GENERALES -->
+    <!-- ✅ BOTONES SUBMIT GENERALES (siempre visibles, fuera de Configuración) -->
     <div v-if="configData && safeLinking" class="mt-4 pt-3">
       <div class="d-flex justify-content-end align-items-center gap-3">
 
@@ -220,6 +228,8 @@ const emit = defineEmits(['close', 'load-advanced']);
 const showAdvanced = ref(false);
 const advancedLoaded = ref(false);
 
+const showConfiguration = ref(false);
+
 const configData = ref(null);
 const configLoading = ref(false);
 const configError = ref(null);
@@ -244,6 +254,10 @@ function toggleAdvanced() {
     advancedLoaded.value = true;
     emit('load-advanced');
   }
+}
+
+function toggleConfiguration() {
+  showConfiguration.value = !showConfiguration.value;
 }
 
 const safeAdvancedData = computed(() => {
@@ -434,4 +448,9 @@ async function saveConfiguration() {
     saving.value = false;
   }
 }
+async function onRecalculate() {
+  await loadConfiguration()
+}
+
+
 </script>
