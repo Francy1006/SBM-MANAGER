@@ -82,7 +82,7 @@
       </div>
 
       <transition name="slide-fade">
-        <div v-if="showConfiguration" class="border border-1 rounded p-3">
+        <div v-show="showConfiguration" class="border border-1 rounded p-3">
           <div class="ps-4">
 
             <div v-if="configLoading" class="text-center py-4">
@@ -166,14 +166,21 @@
                   </div>
                 </div>
 
-                <ConfigLinkTableComponent title="Productos" icon="fas fa-dolly" itemType="product" searchBaseUrl=""
-                  :rows="productLinks" @rows-changed="onRowsChanged('product', $event)" />
+                <!-- <ConfigLinkTableComponent title="Productos" icon="fas fa-dolly" itemType="product" searchBaseUrl=""
+                  :rows="productLinks" @rows-changed="onRowsChanged('product', $event)" header-bg-class="bg-dark"
+                  header-text-class="text-white" /> -->
+
+                <ConfigLinkTableComponent v-model="productLinks" title="Productos" icon="fas fa-dolly text-white"
+                  item-type="product" header-bg-class="bg-dark" header-text-class="text-white" />
+
 
                 <ConfigLinkTableComponent title="Materiales" icon="fas fa-spoon" itemType="material" searchBaseUrl=""
-                  :rows="materialLinks" @rows-changed="onRowsChanged('material', $event)" />
+                  :rows="materialLinks" @rows-changed="onRowsChanged('material', $event)" header-bg-class="bg-warning-subtle"
+                  header-text-class="text-dark" />
 
                 <ConfigLinkTableComponent title="Servicios" icon="fas fa-people-carry-box" itemType="service"
-                  searchBaseUrl="" :rows="serviceLinks" @rows-changed="onRowsChanged('service', $event)" />
+                  searchBaseUrl="" :rows="serviceLinks" @rows-changed="onRowsChanged('service', $event)"
+                  header-bg-class="bg-success-subtle" header-text-class="text-dark" />
 
               </div>
             </div>

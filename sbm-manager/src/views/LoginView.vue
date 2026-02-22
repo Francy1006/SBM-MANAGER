@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-card">
       <div class="login-header text-center mb-4">
-        <img src="../assets/img/logo.jpg" alt="Logo" class="login-logo mb-3" />
+        <!-- <img src="../assets/img/logo.jpg" alt="Logo" class="login-logo mb-3" /> -->
         <h2 class="login-title text-primary">SBM Manager</h2>
         <p class="login-subtitle text-muted">Sistema de Gestión de Negocios</p>
       </div>
