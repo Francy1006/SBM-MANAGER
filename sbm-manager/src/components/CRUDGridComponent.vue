@@ -10,8 +10,12 @@
     </div>
 
     <!-- OPTIONS -->
-    <OptionsComponent v-bind="optionsProps" @toggle-secret-fields="showSecretFields = $event" @import="handleImport"
-      @export="handleExport" />
+    <OptionsComponent
+      v-bind="optionsProps"
+      @toggle-secret-fields="showSecretFields = $event"
+      @import="handleImport"
+      @export="handleExport"
+    />
 
     <!-- LOADING -->
     <div v-if="loading" class="text-center py-5">
@@ -29,9 +33,14 @@
               <span class="input-group-text bg-light border-end-0">
                 <i class="fas fa-search text-muted"></i>
               </span>
-              <input type="text" class="form-control border-start-0"
-                :placeholder="`Buscar ${resourceName.toLowerCase()}...`" v-model="searchTerm" @input="debouncedSearch"
-                :disabled="loading" />
+              <input
+                type="text"
+                class="form-control border-start-0"
+                :placeholder="`Buscar ${resourceName.toLowerCase()}...`"
+                v-model="searchTerm"
+                @input="debouncedSearch"
+                :disabled="loading"
+              />
               <span v-if="loading" class="input-group-text bg-light border-start-0">
                 <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
               </span>
@@ -40,27 +49,22 @@
         </div>
       </div>
 
-      <!-- GRID OPTIONS (checkboxes debajo de la búsqueda) -->
+      <!-- GRID OPTIONS -->
       <div class="mb-4 p-4">
         <div class="d-flex flex-column gap-2">
-
-          <!-- Ocultar eliminados -->
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="hideDeleted" v-model="hideDeleted"
-              @change="fetchData" />
+            <input class="form-check-input" type="checkbox" id="hideDeleted" v-model="hideDeleted" @change="fetchData" />
             <label class="form-check-label" for="hideDeleted">
               Ocultar eliminados
             </label>
           </div>
 
-          <!-- Bloquear eliminar en grupo -->
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="blockGroupDelete" v-model="blockGroupDelete" />
             <label class="form-check-label" for="blockGroupDelete">
               Bloquear eliminar en grupo
             </label>
           </div>
-
         </div>
       </div>
 
@@ -77,22 +81,31 @@
 
           <div class="col-auto d-flex gap-2">
             <div v-if="showPropertiesButton">
-              <button class="btn btn-warning btn-sm rounded-pill px-3" @click="showProperties"
-                :disabled="selectedCount !== 1">
+              <button
+                class="btn btn-warning btn-sm rounded-pill px-3"
+                @click="showProperties"
+                :disabled="selectedCount !== 1"
+              >
                 <i class="fas fa-cog me-1"></i> Propiedades
               </button>
             </div>
 
             <div>
-              <button class="btn btn-outline-primary btn-sm rounded-pill px-3" @click="configureSelected"
-                :disabled="selectedCount !== 1">
+              <button
+                class="btn btn-outline-primary btn-sm rounded-pill px-3"
+                @click="configureSelected"
+                :disabled="selectedCount !== 1"
+              >
                 <i class="fas fa-cog me-1"></i> Configurar
               </button>
             </div>
 
             <div>
-              <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="deleteSelected"
-                :disabled="blockGroupDelete ? selectedCount > 1 : false">
+              <button
+                class="btn btn-outline-secondary btn-sm rounded-pill px-3"
+                @click="deleteSelected"
+                :disabled="blockGroupDelete ? selectedCount > 1 : false"
+              >
                 <i class="fas fa-trash me-1"></i> Eliminar
               </button>
             </div>
@@ -111,24 +124,21 @@
               <th v-if="filteredRows.length > 0" style="width:60px!important;" class="align-middle">
                 <input type="checkbox" :checked="allSelected" @change.stop="toggleAllSelection" />
               </th>
-              <th v-for="col in visibleColumns" :key="col" style="min-width:200px!important; cursor:pointer;"
-                class="align-middle" @click="toggleSort(col)">
+              <th
+                v-for="col in visibleColumns"
+                :key="col"
+                style="min-width:200px!important; cursor:pointer;"
+                class="align-middle"
+                @click="toggleSort(col)"
+              >
                 <div class="d-flex justify-content-between align-items-center">
+                  <span>{{ getColumnLabel(col) }}</span>
 
-                  <span>
-                    {{ getColumnLabel(col) }}
-                  </span>
-
-                  <!-- 🔥 SORT ICON FIX (REF: SORT_ICON_FIX_002) -->
                   <span>
                     <i v-if="sortKey === col && sortDirection === 'asc'" class="fas fa-arrow-up text-warning"></i>
-
-                    <i v-else-if="sortKey === col && sortDirection === 'desc'"
-                      class="fas fa-arrow-down text-warning"></i>
-
+                    <i v-else-if="sortKey === col && sortDirection === 'desc'" class="fas fa-arrow-down text-warning"></i>
                     <i v-else class="fas fa-arrow-up text-secondary opacity-50"></i>
                   </span>
-
                 </div>
               </th>
             </tr>
@@ -136,7 +146,6 @@
 
           <!-- BODY -->
           <tbody>
-            <!-- EMPTY STATE -->
             <tr v-if="filteredRows.length === 0">
               <td :colspan="visibleColumns.length" class="text-center text-muted py-4">
                 <i class="fas fa-info-circle me-2"></i>
@@ -144,64 +153,70 @@
               </td>
             </tr>
 
-            <!-- ROWS -->
-            <tr v-for="row in filteredRows" :key="'row-' + row.code" :class="{
-              'table-primary fw-bold': selected.includes(String(row.code ?? row.id ?? row.sku)) || row.code === editingRowId,
-              'text-white': row.code === editingRowId
-            }">
+            <tr
+              v-for="row in filteredRows"
+              :key="'row-' + (row.code ?? row.id ?? row.sku)"
+              :class="{
+                'table-primary fw-bold': selected.includes(String(row.code ?? row.id ?? row.sku)) || rowId(row) === editingRowId,
+                'text-white': rowId(row) === editingRowId
+              }"
+            >
 
               <!-- SELECTION CHECKBOX -->
               <td v-if="rows.length > 0" class="text-center">
-                <input type="checkbox" :key="'checkbox-' + row.code" :value="String(row.code ?? row.id ?? row.sku)"
-                  v-model="selected" @change.stop="toggleRowSelection(row.code)" />
+                <input
+                  type="checkbox"
+                  :key="'checkbox-' + (row.code ?? row.id ?? row.sku)"
+                  :value="String(row.code ?? row.id ?? row.sku)"
+                  v-model="selected"
+                  @change.stop="toggleRowSelection"
+                />
               </td>
 
               <!-- CELLS -->
               <td v-for="col in visibleColumns" :key="col">
-
-                <!-- STATE -->
                 <span v-if="col === 'state' && states">
                   {{ getStateName(row[col]) }}
                 </span>
 
-                <!-- BOOLEAN -->
                 <span v-else-if="typeof row[col] === 'boolean'">
                   <i v-if="row[col]" class="fas fa-check text-success" style="font-size: x-large;"></i>
                   <i v-else class="fas fa-times text-danger" style="font-size: x-large;"></i>
                 </span>
 
-                <!-- CLOUDINARY IMAGE -->
                 <span
-                  v-else-if="typeof row[col] === 'string' && row[col] && row[col].startsWith('https://res.cloudinary.com')">
-                  <img :src="row[col]" alt="Imagen Cloudinary"
-                    style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px #0001;" />
+                  v-else-if="typeof row[col] === 'string' && row[col] && row[col].startsWith('https://res.cloudinary.com')"
+                >
+                  <img
+                    :src="row[col]"
+                    alt="Imagen Cloudinary"
+                    style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px #0001;"
+                  />
                 </span>
 
-                <!-- URL (solo si no es Cloudinary) -->
                 <span
-                  v-else-if="col.toLowerCase().includes('url') && row[col] && !(typeof row[col] === 'string' && row[col].startsWith('https://res.cloudinary.com'))">
+                  v-else-if="col.toLowerCase().includes('url') && row[col] && !(typeof row[col] === 'string' && row[col].startsWith('https://res.cloudinary.com'))"
+                >
                   <a :href="row[col]" target="_blank" rel="noopener noreferrer">{{ row[col] }}</a>
                 </span>
 
-                <!-- RATING -->
                 <span v-else-if="col === 'rating'">
                   <span class="crudgrid-rating">
                     <span v-for="star in 5" :key="star">
-                      <i class="fa-star fa-solid"
-                        :style="{ color: row[col] >= star ? '#ffd700' : '#ccc', fontSize: '1.3em', marginRight: '2px' }">
-                      </i>
+                      <i
+                        class="fa-star fa-solid"
+                        :style="{ color: row[col] >= star ? '#ffd700' : '#ccc', fontSize: '1.3em', marginRight: '2px' }"
+                      ></i>
                     </span>
                   </span>
                 </span>
 
-                <!-- PILL NAME -->
                 <span v-else-if="fields.find(f => f.key === col && f.type === 'pill_name') && row[col]">
                   <span class="badge rounded-pill text-white" :class="getPillClass(col, row[col])">
                     {{ String(row[col]).toUpperCase() }}
                   </span>
                 </span>
 
-                <!-- DEFAULT / SECRET FIELDS -->
                 <span v-else :class="{ 'price-bold': fields.find(f => f.key === col && f.type === 'price') }">
                   {{
                     fields.find(f => f.key === col && f.secretField) && !showSecretFields
@@ -211,7 +226,6 @@
                       : formatValue(row[col], col)
                   }}
                 </span>
-
               </td>
             </tr>
           </tbody>
@@ -289,11 +303,8 @@ export default {
       totalPages: 0,
       tableKey: '',
       showSecretFields: false,
-
-      // ✅ NUEVO: checkboxes debajo de búsqueda
       hideDeleted: true,
       blockGroupDelete: true,
-      // 🔥 SORT STATE (REF: SORT_STATE_001)
       sortKey: 'created_at',
       sortDirection: 'desc',
     };
@@ -310,11 +321,7 @@ export default {
     },
     allSelected() {
       if (!this.filteredRows.length) return false;
-
-      const rowValues = this.filteredRows.map(r =>
-        String(r.code ?? r.id ?? r.sku)
-      );
-
+      const rowValues = this.filteredRows.map(r => this.rowId(r));
       return rowValues.every(val => this.selected.includes(val));
     },
     selectedCount() {
@@ -365,8 +372,8 @@ export default {
       if (!this.sumFieldKey || this.selected.length === 0) return 0;
 
       let sum = 0;
-      for (const selectedCode of this.selected) {
-        const row = this.filteredRows.find(r => String(r.code) === selectedCode);
+      for (const selectedId of this.selected) {
+        const row = this.filteredRows.find(r => this.rowId(r) === selectedId);
         if (row && row[this.sumFieldKey] !== undefined && row[this.sumFieldKey] !== null) {
           const value = parseFloat(row[this.sumFieldKey]);
           if (!isNaN(value)) sum += value;
@@ -382,73 +389,79 @@ export default {
   methods: {
     ...mapActions([]),
 
-    toggleAllSelection() {
-      const rowId = (row) => String(row?.code ?? row?.id ?? row?.sku);
+    rowId(row) {
+      return String(row?.code ?? row?.id ?? row?.sku ?? '');
+    },
 
+    toggleAllSelection() {
       if (this.allSelected) {
         this.selected = [];
         this.$emit('row-selected', null);
       } else {
-        this.selected = this.filteredRows.map(rowId);
+        this.selected = this.filteredRows.map(r => this.rowId(r));
 
         if (this.selected.length === 1) {
-          const selectedRow = this.rows.find(r => rowId(r) === this.selected[0]);
+          const selectedRow = this.rows.find(r => this.rowId(r) === this.selected[0]);
           this.$emit('row-selected', selectedRow || null);
         } else {
           this.$emit('row-selected', null);
         }
       }
     },
+
     toggleRowSelection() {
       if (this.selected.length === 1) {
-        const selectedRow = this.rows.find(row => String(row.code) === this.selected[0]);
+        const selectedRow = this.rows.find(r => this.rowId(r) === this.selected[0]);
         this.$emit('row-selected', selectedRow || null);
       } else {
         this.$emit('row-selected', null);
       }
     },
+
     configureSelected() {
-      if (this.selected.length === 1) {
-        const selectedRow = this.rows.find(row => String(row.code) === this.selected[0]);
-        if (selectedRow) {
-          this.editingRowId = selectedRow.code;
-          this.$emit('configure', selectedRow);
-          this.selected = [];
-        }
-      }
+      if (this.selected.length !== 1) return;
+
+      const selectedRow = this.rows.find(r => this.rowId(r) === this.selected[0]);
+      if (!selectedRow) return;
+
+      this.editingRowId = this.rowId(selectedRow);
+      this.$emit('configure', selectedRow);
+      this.selected = [];
     },
+
     async showProperties() {
       if (this.selected.length !== 1) return;
 
-      const selectedCode = this.selected[0];
+      const selectedId = this.selected[0];
 
       try {
         const base = this.endpoint.split('?')[0].split('/').filter(Boolean)[0];
-
-        const res = await api.get(`/${base}/${selectedCode}/`);
-
+        const res = await api.get(`/${base}/${selectedId}/`);
         this.$emit('show-properties', res.data);
         this.selected = [];
-
       } catch (error) {
         console.error('Error cargando detalle:', error);
         alert('Error cargando propiedades');
       }
     },
+
     resetEditingState() {
       this.editingRowId = null;
     },
+
     debouncedSearch() {
       if (this.searchTimeout) clearTimeout(this.searchTimeout);
       this.searchTimeout = setTimeout(() => {
         this.searchData();
       }, 500);
     },
+
     async goToPage(page) {
       if (page < 1 || page > this.totalPages || page === this.currentPage) return;
       this.currentPage = page;
       await this.fetchData();
     },
+
     async searchData() {
       this.currentPage = 1;
       await this.fetchData();
@@ -473,7 +486,6 @@ export default {
       if (!confirm(confirmMessage)) return;
 
       try {
-        // Soporta 1 o múltiples (si blockGroupDelete está en false)
         const base = this.endpoint.split('?')[0].split('/').filter(Boolean)[0];
 
         await api.post(`/${base}/soft_delete/`, {
@@ -483,7 +495,6 @@ export default {
         alert('Item(s) eliminado(s) exitosamente');
         this.selected = [];
         await this.fetchData();
-
       } catch (error) {
         console.error('Error al eliminar item:', error);
         console.error('Status:', error.response?.status);
@@ -500,7 +511,7 @@ export default {
 
         params.append('page', this.currentPage.toString());
         params.append('page_size', this.pageSize.toString());
-        // 🔥 SEND ORDERING (REF: SORT_BACKEND_001)
+
         const orderingValue =
           this.sortDirection === 'desc'
             ? `-${this.sortKey}`
@@ -512,7 +523,6 @@ export default {
           params.append('search', this.searchTerm);
         }
 
-        // ✅ Solo filtra por visibles si hideDeleted está activo
         if (this.hideDeleted) {
           params.append('is_visible', 'true');
         }
@@ -553,6 +563,7 @@ export default {
           : [];
 
         this.filteredRows = [...this.rows];
+
         this.$emit('counts-updated', {
           total: Number(this.totalItems || 0),
           deleted: Number(this.deletedCount || 0),
@@ -560,7 +571,7 @@ export default {
 
         this.selected = this.selected
           .map(code => String(code))
-          .filter(code => this.filteredRows.some(row => String(row.code) === code));
+          .filter(code => this.filteredRows.some(row => this.rowId(row) === code));
 
         this.tableKey = this.getTableKey();
 
@@ -586,6 +597,7 @@ export default {
       const state = statesArray.find(s => s.id === stateId);
       return state ? state.state : stateId;
     },
+
     formatValue(val, col) {
       const field = this.fields.find(f => f.key === col);
       if (field && field.type === 'price') {
@@ -596,13 +608,16 @@ export default {
       if (typeof val === 'string' && val.length > 100) return val.slice(0, 100) + '...';
       return val;
     },
+
     capitalize(val) {
       if (!val) return '';
       return val.charAt(0).toUpperCase() + val.slice(1);
     },
+
     getTableKey() {
-      return this.filteredRows.map(r => String(r.code)).join('-');
+      return this.filteredRows.map(r => this.rowId(r)).join('-');
     },
+
     getPillClass(col, value) {
       const field = this.fields.find(f => f.key === col && f.type === 'pill_name');
       if (!field || !field.pillMap || !value) return 'bg-secondary';
@@ -613,13 +628,16 @@ export default {
 
       return 'bg-dark';
     },
+
     formatSumValue(value) {
       if (value === null || value === undefined || isNaN(value)) return '$0';
       return '$' + Number(value).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     },
+
     handleImport() {
       this.$emit('import');
     },
+
     handleExport(payload) {
       const format = (payload?.format || 'XLSX').toUpperCase();
 
@@ -638,15 +656,14 @@ export default {
         return;
       }
     },
+
     exportToXlsx() {
       if (!this.filteredRows.length) {
         alert('No hay datos para exportar.');
         return;
       }
 
-      const headers = this.visibleColumns.map(
-        col => this.verboseNames?.[col] || col
-      );
+      const headers = this.visibleColumns.map(col => this.verboseNames?.[col] || col);
 
       const data = this.filteredRows.map(row =>
         this.visibleColumns.map(col => {
@@ -654,13 +671,10 @@ export default {
 
           if (value === null || value === undefined) return '';
 
-          if (typeof value === 'boolean') {
-            return value ? 'SI' : 'NO';
-          }
+          if (typeof value === 'boolean') return value ? 'SI' : 'NO';
 
           const field = this.fields.find(f => f.key === col);
 
-          // Si es campo secreto y está oculto
           if (field?.secretField && !this.showSecretFields) {
             return '●●●●●';
           }
@@ -677,11 +691,7 @@ export default {
       const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
       const workbook = XLSX.utils.book_new();
 
-      XLSX.utils.book_append_sheet(
-        workbook,
-        worksheet,
-        this.resourceName.substring(0, 31)
-      );
+      XLSX.utils.book_append_sheet(workbook, worksheet, this.resourceName.substring(0, 31));
 
       const fileName = `${this.resourceName.replace(/\s+/g, '_')}_${new Date()
         .toISOString()
@@ -690,11 +700,10 @@ export default {
 
       XLSX.writeFile(workbook, fileName);
     },
-    // 🔥 TOGGLE SORT (REF: SORT_METHOD_001)
+
     async toggleSort(col) {
       if (this.sortKey === col) {
-        this.sortDirection =
-          this.sortDirection === 'asc' ? 'desc' : 'asc';
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
       } else {
         this.sortKey = col;
         this.sortDirection = 'asc';
@@ -703,20 +712,11 @@ export default {
       this.currentPage = 1;
       await this.fetchData();
     },
-    // 🔥 COLUMN LABEL RESOLVER (REF: COLUMN_LABEL_FIX_001)
+
     getColumnLabel(col) {
-      // 1️⃣ Buscar en fields
       const field = this.fields.find(f => f.key === col);
-      if (field && field.label) {
-        return field.label;
-      }
-
-      // 2️⃣ Buscar en verboseNames del backend
-      if (this.verboseNames && this.verboseNames[col]) {
-        return this.verboseNames[col];
-      }
-
-      // 3️⃣ Fallback
+      if (field && field.label) return field.label;
+      if (this.verboseNames && this.verboseNames[col]) return this.verboseNames[col];
       return col;
     },
   },

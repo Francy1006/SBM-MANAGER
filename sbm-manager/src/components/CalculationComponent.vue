@@ -1,13 +1,21 @@
 <template>
-  <h5><strong>Cálculo</strong></h5>
-  <button 
-    class="btn btn-danger btn-lg w-100 mt-2 mb-4 ps-3" 
+  <h6 v-if="titleToShow" class="fw-bold border-bottom pb-2 mb-2 text-secondary">
+    {{ titleToShow }}
+  </h6>
+
+  <p v-if="descriptionToShow" class="text-muted small mb-3">
+    <span>{{ descriptionToShow }}</span>
+  </p>
+
+  <button
+    class="btn btn-danger btn-lg w-100 mt-2 mb-4 ps-3"
     @click="calculateFormula"
     :disabled="loading"
   >
-    <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="me-2"></i> 
+    <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="me-2"></i>
     {{ loading ? 'Calculando...' : 'Recalcular' }}
   </button>
+
   <div class="row mt-4">
     <div class="col-md-3 mb-3" v-for="field in fields" :key="field.key">
       <div :class="['card h-100', field.color === 'primary' ? 'bg-primary border-primary text-white' : '', field.color === 'secondary' ? 'bg-secondary border-secondary text-white' : '']">
@@ -25,7 +33,9 @@
       </div>
     </div>
   </div>
-  <h5><strong>Resultados</strong></h5>
+
+  <h6><strong>Resultados</strong></h6>
+
   <div class="row mt-4">
     <div class="col-md-2 mb-3" v-for="field in resultFields" :key="field.key">
       <div class="card h-100 bg-danger border-danger text-white">
@@ -43,13 +53,12 @@
       </div>
     </div>
   </div>
-  
-  <!-- Alertas para mostrar resultados o errores -->
+
   <div v-if="calculationResult" class="alert alert-success mt-3" role="alert">
     <i class="fas fa-check-circle me-2"></i>
     Cálculo completado exitosamente
   </div>
-  
+
   <div v-if="calculationError" class="alert alert-danger mt-3" role="alert">
     <i class="fas fa-exclamation-triangle me-2"></i>
     {{ calculationError }}
@@ -57,45 +66,26 @@
 </template>
 
 <script setup>
-import { reactive, onMounted, watch, ref } from 'vue';
+import { reactive, onMounted, watch, ref, computed } from 'vue';
 import api from '../api/axios';
 
 const props = defineProps({
-  code: {
-    type: String,
-    required: true
-  },
-  baseNetAmount: {
-    type: [Number, String],
-    default: null
-  },
-  netAmount: {
-    type: [Number, String],
-    default: null
-  },
-  grossAmount: {
-    type: [Number, String],
-    default: null
-  },
-  ivaAmount: {
-    type: [Number, String],
-    default: null
-  },
-  additionalTaxAmount: {
-    type: [Number, String],
-    default: null
-  },
-  retentionAmount: {
-    type: [Number, String],
-    default: null
-  },
-  selectedProductSku: {
-    type: String,
-    default: null
-  }
+  title: { type: String, default: '' },
+  description: { type: String, default: '' },
+
+  code: { type: String, required: true },
+  baseNetAmount: { type: [Number, String], default: null },
+  netAmount: { type: [Number, String], default: null },
+  grossAmount: { type: [Number, String], default: null },
+  ivaAmount: { type: [Number, String], default: null },
+  additionalTaxAmount: { type: [Number, String], default: null },
+  retentionAmount: { type: [Number, String], default: null },
+  selectedProductSku: { type: String, default: null }
 });
 
-// Estados para el cálculo
+const titleToShow = computed(() => ((props.title ?? '') + '').trim());
+const descriptionToShow = computed(() => ((props.description ?? '') + '').trim());
+
 const loading = ref(false);
 const calculationResult = ref(null);
 const calculationError = ref(null);
@@ -107,7 +97,6 @@ function formatCurrency(val) {
 
 function formatDouble(val) {
   if (val === null || val === undefined || isNaN(val)) return '';
-  // Formato: xxx.xxx,xx
   return Number(val).toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -121,7 +110,6 @@ function formatCurrencyInput(field, forceType = null) {
 }
 
 function parseCurrencyInput(str) {
-  // Elimina todo lo que no sea número o coma o punto
   const clean = str.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(/,/g, '.');
   return clean ? parseFloat(clean) : null;
 }
@@ -130,7 +118,6 @@ function onCurrencyInput(event, field) {
   field.value = parseCurrencyInput(event.target.value);
 }
 
-// base_neto es fijo y primary
 const fields = reactive([
   { key: 'base_neto', label: 'VALOR BASE NETO', value: null, color: 'primary' }
 ]);
@@ -174,19 +161,20 @@ async function fetchFields(code) {
   if (!code) return;
   try {
     const response = await api.get(`/formula-variables/?code=${code}`);
-    const dynamicFields = response.data.filter(item => item.var !== 'base_neto').map(item => ({
-      key: item.var,
-      label: `${item.var} (${item.variable_type})`,
-      value: item.value ?? null,
-      color: 'secondary'
-    }));
+    const dynamicFields = response.data
+      .filter(item => item.var !== 'base_neto')
+      .map(item => ({
+        key: item.var,
+        label: `${item.var} (${item.variable_type})`,
+        value: item.value ?? null,
+        color: 'secondary'
+      }));
     fields.splice(1, fields.length - 1, ...dynamicFields);
   } catch (e) {
     fields.splice(1, fields.length - 1);
   }
 }
 
-// Función principal para calcular la fórmula
 async function calculateFormula() {
   if (!props.code) {
     calculationError.value = 'No se ha proporcionado un código SKU válido';
@@ -199,18 +187,13 @@ async function calculateFormula() {
   let response = null;
 
   try {
-    // Enviar el SKU del producto seleccionado
     const payload = { sku: props.selectedProductSku };
     response = await api.post('/product-price-calculation/', payload);
 
-
-    // Actualizar los campos de resultado con los datos recibidos
     if (response.data && typeof response.data === 'object') {
       Object.keys(response.data).forEach(key => {
         const resultField = resultFields.find(field => field.key === key);
-        if (resultField) {
-          resultField.value = response.data[key];
-        }
+        if (resultField) resultField.value = response.data[key];
       });
     }
 
@@ -252,4 +235,4 @@ watch(() => props.baseNetAmount, (newVal) => {
 watch(() => [props.netAmount, props.grossAmount, props.ivaAmount, props.additionalTaxAmount, props.retentionAmount], () => {
   setResultAmounts();
 });
-</script> 
+</script>

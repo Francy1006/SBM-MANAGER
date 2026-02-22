@@ -1,5 +1,6 @@
 <template>
   <div class="properties-container">
+
     <!-- HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h3 class="properties-title mb-0">
@@ -33,45 +34,25 @@
             </span>
           </div>
 
-          <input
-            v-else-if="field.type === 'price'"
-            type="text"
-            class="form-control bg-light"
-            :value="formatPrice(product?.[field.key])"
-            disabled
-          />
+          <input v-else-if="field.type === 'price'" type="text" class="form-control bg-light"
+            :value="formatPrice(product?.[field.key])" disabled />
 
-          <textarea
-            v-else-if="field.type === 'textarea'"
-            class="form-control bg-light"
-            :value="product?.[field.key] || '-'"
-            rows="3"
-            disabled
-          />
+          <textarea v-else-if="field.type === 'textarea'" class="form-control bg-light"
+            :value="product?.[field.key] || '-'" rows="3" disabled />
 
-          <input
-            v-else
-            type="text"
-            class="form-control bg-light"
-            :value="formatValue(product?.[field.key])"
-            disabled
-          />
+          <input v-else type="text" class="form-control bg-light" :value="formatValue(product?.[field.key])" disabled />
         </div>
       </div>
     </div>
 
     <!-- 2️⃣ AVANZADO -->
     <div class="mb-5">
-      <div
-        class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-secondary"
-        style="cursor:pointer;"
-        @click="toggleAdvanced"
-      >
+      <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-primary"
+        style="cursor:pointer;" @click="toggleAdvanced">
         <h5 class="fw-bold mb-0 d-flex align-items-center">
-          <i class="fas fa-cog me-2"></i>
+          <i class="fas fa-sliders me-2"></i>
           Avanzado
         </h5>
-
         <i class="fas transition-icon" :class="showAdvanced ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
       </div>
 
@@ -82,7 +63,6 @@
               <label class="form-label fw-semibold">
                 {{ formatLabel(key) }}
               </label>
-
               <input type="text" class="form-control bg-light" :value="formatValue(value)" disabled />
             </div>
           </div>
@@ -92,17 +72,16 @@
 
     <!-- 3️⃣ CONFIGURACIÓN -->
     <div class="mb-5">
-      <h5 class="fw-bold border-bottom pb-2 mb-3 text-success">
+      <h5 class="fw-bold border-bottom pb-2 mb-3 text-primary">
+        <i class="fas fa-cog me-2"></i>
         Configuración
       </h5>
 
-      <!-- LOADING / ERROR -->
       <div v-if="configLoading" class="text-center py-4">
-        <div class="spinner-border text-success" role="status"></div>
+        <div class="spinner-border text-success"></div>
       </div>
 
       <div v-else-if="configError" class="alert alert-danger">
-        <i class="fas fa-exclamation-triangle me-2"></i>
         {{ configError }}
       </div>
 
@@ -111,189 +90,113 @@
       </div>
 
       <div v-else>
-        <!-- 3.1 INFORMATIVE -->
-        <div class="mb-4">
-          <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-secondary">
-            <h6 class="fw-bold mb-0 d-flex align-items-center">
-              <i class="fas fa-info-circle me-2"></i>
-              Informativa
-            </h6>
-          </div>
+
+        <!-- INFORMATIVE -->
+        <div class="mb-4 border-bottom">
+          <h6 class="fw-bold pb-2 mb-3 text-secondary d-flex align-items-center">
+            <i class="fas fa-info-circle me-2 text-secondary"></i>
+            Informativa
+          </h6>
 
           <div class="row g-3">
             <div v-for="f in informativaFields" :key="f.key" class="col-12 col-md-6">
               <label class="form-label fw-semibold">
                 {{ f.label || formatLabel(f.key) }}
               </label>
-
-              <div v-if="typeof f.value === 'boolean'" class="form-control bg-light d-flex align-items-center">
-                <i v-if="f.value" class="fas fa-check text-success"></i>
-                <i v-else class="fas fa-times text-danger"></i>
-              </div>
-
-              <input
-                v-else-if="f.type === 'price'"
-                type="text"
-                class="form-control bg-light"
-                :value="formatPrice(f.value)"
-                disabled
-              />
-
-              <input
-                v-else
-                type="text"
-                class="form-control bg-light"
-                :value="formatValue(f.value)"
-                disabled
-              />
+              <input type="text" class="form-control bg-light" :value="formatValue(f.value)" disabled />
             </div>
           </div>
         </div>
 
-        <!-- 3.2 CALCULATION -->
-        <div class="mb-4">
-          <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-secondary">
-            <h6 class="fw-bold mb-0 d-flex align-items-center">
-              <i class="fas fa-calculator me-2"></i>
-              Cálculo
-            </h6>
-          </div>
+        <!-- CÁLCULO -->
+        <div class="mb-4 border-bottom">
+          <h6 class="fw-bold pb-2 mb-3 text-secondary">
+            <i class="fas fa-calculator me-2 text-secondary"></i>
+            Cálculo
+          </h6>
 
-          <div v-if="safeCalculationProps">
-            <CalculationComponent v-bind="safeCalculationProps" />
-          </div>
-
-          <div v-else class="alert alert-secondary">
-            No hay configuración de cálculo disponible.
-          </div>
+          <CalculationComponent v-if="safeCalculationProps" :title="props.calculationTitle"
+            :description="props.calculationDescription" v-bind="safeCalculationProps" />
         </div>
 
-        <!-- 3.3 LINKING -->
-        <div class="mb-2">
-          <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-secondary">
-            <h6 class="fw-bold mb-0 d-flex align-items-center">
-              <i class="fas fa-link me-2"></i>
-              Vinculación
-            </h6>
-          </div>
+        <!-- VINCULACIÓN -->
+        <div class="mb-4 border-bottom">
+          <h6 class="fw-bold pb-2 mb-3 text-secondary">
+            Vinculación
+          </h6>
 
-          <div class="alert alert-secondary" v-if="!safeLinking">
-            No hay datos de vinculación.
-          </div>
+          <!-- Cabecera + Totales -->
+          <div class="row g-3 mb-4">
 
-          <div v-else>
-            <!-- CABECERA + TOTALES + ACCIONES -->
-            <div class="mb-3">
-              <div class="row g-2">
-                <div class="col-12 col-md-4" v-if="safeLinking?.header">
-                  <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body">
-                      <div class="fw-semibold text-muted mb-2">Cabecera</div>
-
-                      <div class="small text-muted">
-                        Item Configuration (code):
-                        <strong>{{ safeLinking.header.item_configuration_code || '-' }}</strong>
-                      </div>
-                      <div class="small text-muted">
-                        Item Configuration (configuration):
-                        <strong>{{ safeLinking.header.item_configuration_name || '-' }}</strong>
-                      </div>
-                      <div class="small text-muted">
-                        Valor Neto Base:
-                        <strong>{{ formatPrice(safeLinking.header.base_net_amount) }}</strong>
-                      </div>
-                    </div>
-                  </div>
+            <div class="col-md-6" v-if="safeLinking?.header">
+              <div class="border rounded p-3 bg-light">
+                <div class="small text-muted">
+                  Código:
+                  <strong>{{ safeLinking.header.item_configuration_code }}</strong>
                 </div>
-
-                <div class="col-12 col-md-4" v-if="safeLinking?.totals">
-                  <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body">
-                      <div class="fw-semibold text-muted mb-2">Totales</div>
-                      <div class="small text-muted">
-                        Count: <strong>{{ safeLinking.totals.count ?? 0 }}</strong>
-                      </div>
-                      <div class="small text-muted">
-                        Subtotal Neto: <strong>{{ formatPrice(safeLinking.totals.sub_total_net) }}</strong>
-                      </div>
-                      <div class="small text-muted">
-                        IVA: <strong>{{ formatPrice(safeLinking.totals.sub_total_iva) }}</strong>
-                      </div>
-                      <div class="small text-muted">
-                        Subtotal Bruto: <strong>{{ formatPrice(safeLinking.totals.sub_total_gross) }}</strong>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-12 col-md-4 d-flex">
-                  <div class="card h-100 border-0 shadow-sm w-100">
-                    <div class="card-body d-flex flex-column justify-content-between">
-                      <div class="fw-semibold text-muted mb-2">Acciones</div>
-
-                      <div class="d-flex justify-content-end gap-2 mt-auto">
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary btn-sm rounded-pill px-4"
-                          @click="resetLinkingEdits"
-                          :disabled="saving || !linkDirty"
-                        >
-                          Cancelar
-                        </button>
-
-                        <button
-                          type="button"
-                          class="btn btn-success btn-sm rounded-pill px-4"
-                          @click="saveConfiguration"
-                          :disabled="saving || !linkDirty"
-                        >
-                          <i :class="saving ? 'fas fa-spinner fa-spin' : 'fas fa-save'" class="me-2"></i>
-                          {{ saving ? 'Guardando...' : 'Guardar información' }}
-                        </button>
-                      </div>
-                      <div v-if="linkDirty" class="small text-warning mt-2">
-                        <i class="fas fa-exclamation-circle me-1"></i> Cambios pendientes
-                      </div>
-                    </div>
-                  </div>
+                <div class="small text-muted">
+                  Base:
+                  <strong>{{ formatPrice(safeLinking.header.base_net_amount) }}</strong>
                 </div>
               </div>
             </div>
 
-            <!-- TABLAS (si vienen vacías, igual se muestran para agregar el primer item) -->
-            <ConfigLinkTableComponent
-              title="Productos"
-              itemType="product"
-              lookupEndpoint="/products/lookup/"
-              searchBaseUrl=""
-              :rows="productLinks"
-              :totals="safeLinking?.products?.totals || null"
-              @rows-changed="onRowsChanged('product', $event)"
-            />
+            <div class="col-md-6" v-if="safeLinking?.totals">
+              <div class="border rounded p-3 bg-light">
+                <div class="small text-muted">
+                  Subtotal:
+                  <strong>{{ formatPrice(safeLinking.totals.sub_total_net) }}</strong>
+                </div>
+                <div class="small text-muted">
+                  IVA:
+                  <strong>{{ formatPrice(safeLinking.totals.sub_total_iva) }}</strong>
+                </div>
+                <div class="small text-muted">
+                  Total:
+                  <strong>{{ formatPrice(safeLinking.totals.sub_total_gross) }}</strong>
+                </div>
+              </div>
+            </div>
 
-            <ConfigLinkTableComponent
-              title="Materiales"
-              itemType="material"
-              lookupEndpoint="/materials/lookup/"
-              searchBaseUrl=""
-              :rows="materialLinks"
-              :totals="safeLinking?.materials?.totals || null"
-              @rows-changed="onRowsChanged('material', $event)"
-            />
-
-            <ConfigLinkTableComponent
-              title="Servicios"
-              itemType="service"
-              lookupEndpoint="/services/lookup/"
-              searchBaseUrl=""
-              :rows="serviceLinks"
-              :totals="safeLinking?.services?.totals || null"
-              @rows-changed="onRowsChanged('service', $event)"
-            />
           </div>
+
+          <!-- Tablas -->
+          <ConfigLinkTableComponent title="Productos" itemType="product" searchBaseUrl="" :rows="productLinks"
+            @rows-changed="onRowsChanged('product', $event)" />
+
+          <ConfigLinkTableComponent title="Materiales" itemType="material" searchBaseUrl="" :rows="materialLinks"
+            @rows-changed="onRowsChanged('material', $event)" />
+
+          <ConfigLinkTableComponent title="Servicios" itemType="service" searchBaseUrl="" :rows="serviceLinks"
+            @rows-changed="onRowsChanged('service', $event)" />
+
         </div>
       </div>
     </div>
+
+    <!-- ✅ BOTONES SUBMIT GENERALES -->
+    <div v-if="configData && safeLinking" class="mt-4 pt-3">
+      <div class="d-flex justify-content-end align-items-center gap-3">
+
+        <div v-if="linkDirty" class="small text-warning me-auto">
+          <i class="fas fa-exclamation-circle me-1"></i>
+          Cambios pendientes
+        </div>
+
+        <button type="button" class="btn btn-outline-secondary btn-lg rounded-pill px-5" @click="resetLinkingEdits"
+          :disabled="saving || !linkDirty">
+          Cancelar
+        </button>
+
+        <button type="button" class="btn btn-success btn-lg rounded-pill px-5" @click="saveConfiguration"
+          :disabled="saving || !linkDirty">
+          <i :class="saving ? 'fas fa-spinner fa-spin' : 'fas fa-save'" class="me-2"></i>
+          {{ saving ? 'Guardando...' : 'Guardar información' }}
+        </button>
+
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -307,6 +210,8 @@ const props = defineProps({
   product: { type: Object, default: null },
   advancedData: { type: Object, default: null },
   configurationData: { type: Object, default: null },
+  calculationTitle: { type: String, default: '' },
+  calculationDescription: { type: String, default: '' },
   fields: { type: Array, default: () => [] }
 });
 

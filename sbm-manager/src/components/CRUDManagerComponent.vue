@@ -74,6 +74,7 @@
       :fields="fields" :verboseNames="props.propertiesVerboseNames" :systemFields="props.systemFields"
       :systemVerboseNames="props.systemVerboseNames" :configComponent="props.configComponent"
       :configProps="props.configProps" :showCalculationComponent="props.showCalculationComponent"
+      :calculationTitle="props.calculationTitle" :calculationDescription="props.calculationDescription"
       :calculationCode="props.calculationCode" :baseNetAmount="props.baseNetAmount" :netAmount="props.netAmount"
       :grossAmount="props.grossAmount" :ivaAmount="props.ivaAmount" :additionalTaxAmount="props.additionalTaxAmount"
       :retentionAmount="props.retentionAmount" :selectedProductSku="props.selectedProductSku"
@@ -104,7 +105,8 @@ const props = defineProps({
   createEndpoint: { type: String, default: null },
   postEndpoint: { type: String, default: null },
   iconClass: { type: String, default: 'fa-solid fa-list-alt text-secondary' },
-
+  calculationTitle: { type: String, default: '' },
+  calculationDescription: { type: String, default: '' },
   statsEndpoint: { type: String, default: null },
   statsTitle: { type: String, default: 'Estadísticas' },
 

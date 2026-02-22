@@ -21,7 +21,8 @@
       get-endpoint="catalogs/list/" post-endpoint="catalogs/" iconClass="" :componentTitle="componentTitle"
       :fields="fields" :showConfigForm="true" configFormName="Catálogo" configFormResourcePath="catalogs"
       configFormPivotField="sku" configFormLookupField="sku" :showPropertiesButton="true" :showConfigList="false"
-      :configListFranchiseId="selectedFranchise" configListEndpointType="id" configListTitle=""
+      calculationTitle="" :configListFranchiseId="selectedFranchise" configListEndpointType="id"
+      configListTitle="" calculationDescription="Permite calcular automáticamente los costos base, valores finales e información contable asociada al ítem de catálogo."
       :endpointBase="`franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
       :optionsProps="optionsProps" @refresh="handleRefresh" @created="handleCreated" @updated="handleUpdated"
       @row-selected="handleCatalogSelected" @import="handleImport" @export="handleExport">
