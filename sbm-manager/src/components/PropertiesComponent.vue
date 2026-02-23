@@ -171,16 +171,13 @@
                   header-text-class="text-white" /> -->
 
                 <ConfigLinkTableComponent v-model="productLinks" title="Productos" icon="fas fa-dolly text-white"
-                  item-type="product" header-bg-class="bg-dark" header-text-class="text-white" />
+                  itemType="product" searchBaseUrl="/products/" headerBgClass="bg-dark" headerTextClass="text-white" />
 
+                <ConfigLinkTableComponent v-model="materialLinks" title="Materiales" icon="fas fa-spoon"
+                  itemType="material" searchBaseUrl="" headerBgClass="bg-warning-subtle" headerTextClass="text-dark" />
 
-                <ConfigLinkTableComponent title="Materiales" icon="fas fa-spoon" itemType="material" searchBaseUrl=""
-                  :rows="materialLinks" @rows-changed="onRowsChanged('material', $event)" header-bg-class="bg-warning-subtle"
-                  header-text-class="text-dark" />
-
-                <ConfigLinkTableComponent title="Servicios" icon="fas fa-people-carry-box" itemType="service"
-                  searchBaseUrl="" :rows="serviceLinks" @rows-changed="onRowsChanged('service', $event)"
-                  header-bg-class="bg-success-subtle" header-text-class="text-dark" />
+                <ConfigLinkTableComponent v-model="serviceLinks" title="Servicios" icon="fas fa-people-carry-box"
+                  itemType="service" searchBaseUrl="" headerBgClass="bg-success-subtle" headerTextClass="text-dark" />
 
               </div>
             </div>
@@ -190,7 +187,7 @@
     </div>
 
     <!-- ✅ BOTONES SUBMIT GENERALES (siempre visibles, fuera de Configuración) -->
-    <div v-if="configData && safeLinking" class="mt-4 pt-3">
+    <div v-if="configData" class="mt-4 pt-3">
       <div class="d-flex justify-content-end align-items-center gap-3">
 
         <div v-if="linkDirty" class="small text-warning me-auto">
@@ -234,7 +231,6 @@ const emit = defineEmits(['close', 'load-advanced']);
 
 const showAdvanced = ref(false);
 const advancedLoaded = ref(false);
-
 const showConfiguration = ref(false);
 
 const configData = ref(null);
@@ -256,7 +252,6 @@ const linkDirty = ref(false);
 
 function toggleAdvanced() {
   showAdvanced.value = !showAdvanced.value;
-
   if (showAdvanced.value && !advancedLoaded.value) {
     advancedLoaded.value = true;
     emit('load-advanced');
@@ -298,10 +293,8 @@ function resolveLabel(key) {
 }
 
 function formatLabel(key) {
-  const k = key === null || key === undefined ? '' : String(key);
-  if (!k) return '-';
-
-  return k
+  if (!key) return '-';
+  return String(key)
     .replace(/_/g, ' ')
     .replace(/\b\w/g, l => l.toUpperCase());
 }
@@ -324,10 +317,8 @@ function isCloudinary(val) {
 
 function getPillClass(field, value) {
   if (!field?.pillMap || !value) return 'bg-secondary';
-
   const valueStr = String(value).toLowerCase();
   const mappedKey = Object.keys(field.pillMap).find(k => k.toLowerCase() === valueStr);
-
   return mappedKey ? field.pillMap[mappedKey] : 'bg-dark';
 }
 
@@ -341,13 +332,13 @@ async function loadConfiguration() {
     const res = await axios.get(`/catalogs/${props.product.sku}/config/`);
     configData.value = res.data;
 
-    const pl = res.data?.linking?.products?.rows || [];
-    const ml = res.data?.linking?.materials?.rows || [];
-    const sl = res.data?.linking?.services?.rows || [];
+    const pl = res.data?.linking?.products?.links || [];
+    const ml = res.data?.linking?.materials?.links || [];
+    const sl = res.data?.linking?.services?.links || [];
 
-    productLinks.value = Array.isArray(pl) ? pl.map(normalizeRow) : [];
-    materialLinks.value = Array.isArray(ml) ? ml.map(normalizeRow) : [];
-    serviceLinks.value = Array.isArray(sl) ? sl.map(normalizeRow) : [];
+    productLinks.value = pl.map(normalizeRow);
+    materialLinks.value = ml.map(normalizeRow);
+    serviceLinks.value = sl.map(normalizeRow);
 
     takeSnapshot();
     linkDirty.value = false;
@@ -376,9 +367,9 @@ function normalizeRow(r) {
 
 function takeSnapshot() {
   originalLinkingSnapshot.value = {
-    productLinks: productLinks.value.map(r => ({ ...r })),
-    materialLinks: materialLinks.value.map(r => ({ ...r })),
-    serviceLinks: serviceLinks.value.map(r => ({ ...r })),
+    productLinks: JSON.parse(JSON.stringify(productLinks.value)),
+    materialLinks: JSON.parse(JSON.stringify(materialLinks.value)),
+    serviceLinks: JSON.parse(JSON.stringify(serviceLinks.value)),
   };
 }
 
@@ -391,73 +382,55 @@ watch(
   { immediate: true }
 );
 
-const informativaFields = computed(() => {
-  const fields = configData.value?.informativa?.fields;
-  if (!Array.isArray(fields)) return [];
-  return fields;
-});
+/* 🔥 DETECCIÓN REAL DE CAMBIOS */
+watch(
+  [productLinks, materialLinks, serviceLinks],
+  () => {
+    const changed =
+      JSON.stringify(productLinks.value) !== JSON.stringify(originalLinkingSnapshot.value.productLinks) ||
+      JSON.stringify(materialLinks.value) !== JSON.stringify(originalLinkingSnapshot.value.materialLinks) ||
+      JSON.stringify(serviceLinks.value) !== JSON.stringify(originalLinkingSnapshot.value.serviceLinks);
 
-const safeCalculationProps = computed(() => {
-  const p = configData.value?.calculation?.props;
-  if (!p || typeof p !== 'object') return null;
-  return p;
-});
-
-const safeLinking = computed(() => {
-  const l = configData.value?.linking;
-  if (!l || typeof l !== 'object') return null;
-  return l;
-});
-
-function onRowsChanged(type, rows) {
-  const clean = Array.isArray(rows) ? rows.map(normalizeRow) : [];
-  if (type === 'product') productLinks.value = clean;
-  if (type === 'material') materialLinks.value = clean;
-  if (type === 'service') serviceLinks.value = clean;
-  linkDirty.value = true;
-}
+    linkDirty.value = changed;
+  },
+  { deep: true }
+);
 
 function resetLinkingEdits() {
-  productLinks.value = (originalLinkingSnapshot.value.productLinks || []).map(r => ({ ...r }));
-  materialLinks.value = (originalLinkingSnapshot.value.materialLinks || []).map(r => ({ ...r }));
-  serviceLinks.value = (originalLinkingSnapshot.value.serviceLinks || []).map(r => ({ ...r }));
-  linkDirty.value = false;
+  productLinks.value = JSON.parse(JSON.stringify(originalLinkingSnapshot.value.productLinks));
+  materialLinks.value = JSON.parse(JSON.stringify(originalLinkingSnapshot.value.materialLinks));
+  serviceLinks.value = JSON.parse(JSON.stringify(originalLinkingSnapshot.value.serviceLinks));
 }
 
 async function saveConfiguration() {
+  console.log("SAVE CONFIGURATION DISPARADO");
+
   if (!props.product?.sku) return;
 
   saving.value = true;
+
   try {
     const links = [
-      ...productLinks.value,
-      ...materialLinks.value,
-      ...serviceLinks.value,
-    ]
-      .filter(r => r?.item_sku && r?.item_type)
-      .map(r => ({
-        item_type: (r.item_type || '').toString().trim().toLowerCase(),
-        item_sku: (r.item_sku || '').toString().trim(),
-        quantity: r.quantity ?? 1,
-        net_amount: r.net_amount ?? 0,
-        gross_amount: r.gross_amount ?? 0,
-        iva_amount: r.iva_amount ?? 0,
-      }));
+      ...productLinks.value.map(r => ({ ...r, item_kind: "product" })),
+      ...materialLinks.value.map(r => ({ ...r, item_kind: "material" })),
+      ...serviceLinks.value.map(r => ({ ...r, item_kind: "service" }))
+    ];
+
+    console.log("ENVIANDO LINKS:", links);
 
     await axios.post(`/catalogs/${props.product.sku}/config/`, { links });
 
-    await loadConfiguration();
+    takeSnapshot();
     linkDirty.value = false;
 
   } catch (e) {
-    alert(e.response?.data?.detail || 'Error guardando configuración');
+    console.error("ERROR POST", e);
   } finally {
     saving.value = false;
   }
 }
+
 async function onRecalculate() {
-  await loadConfiguration()
+  await loadConfiguration();
 }
-
-
 </script>
