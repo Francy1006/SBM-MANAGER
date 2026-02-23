@@ -174,10 +174,10 @@
                   itemType="product" searchBaseUrl="/products/" headerBgClass="bg-dark" headerTextClass="text-white" />
 
                 <ConfigLinkTableComponent v-model="materialLinks" title="Materiales" icon="fas fa-spoon"
-                  itemType="material" searchBaseUrl="" headerBgClass="bg-warning-subtle" headerTextClass="text-dark" />
+                  itemType="material" searchBaseUrl="/materials/" headerBgClass="bg-warning-subtle" headerTextClass="text-dark" />
 
                 <ConfigLinkTableComponent v-model="serviceLinks" title="Servicios" icon="fas fa-people-carry-box"
-                  itemType="service" searchBaseUrl="" headerBgClass="bg-success-subtle" headerTextClass="text-dark" />
+                  itemType="service" searchBaseUrl="/services/" headerBgClass="bg-success-subtle" headerTextClass="text-dark" />
 
               </div>
             </div>
@@ -433,4 +433,8 @@ async function saveConfiguration() {
 async function onRecalculate() {
   await loadConfiguration();
 }
+
+const safeCalculationProps = computed(() => {
+  return configData.value?.calculation?.props || null
+})
 </script>
