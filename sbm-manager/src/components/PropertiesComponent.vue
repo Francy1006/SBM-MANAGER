@@ -103,16 +103,28 @@
               <div class="mb-4 border-bottom">
                 <h6 class="fw-bold pb-2 mb-3 text-secondary d-flex align-items-center">
                   <i class="fas fa-info-circle me-2 text-secondary"></i>
-                  Informativa
+                  Básico
                 </h6>
 
                 <div class="row g-3">
-                  <div v-for="f in informativaFields" :key="f.key" class="col-12 col-md-6">
+
+                  <!-- 🔥 BASE NETO SIEMPRE PRESENTE -->
+                  <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">
+                      Valor Base Neto
+                    </label>
+                    <input type="number" class="form-control" v-model.number="baseNetAmount" />
+                  </div>
+
+                  <!-- RESTO CAMPOS INFORMATIVOS (EXCLUYE base_net_amount) -->
+                  <div v-for="f in informativaFields.filter(x => x.key !== 'base_net_amount')" :key="f.key"
+                    class="col-12 col-md-6">
                     <label class="form-label fw-semibold">
                       {{ f.label || formatLabel(f.key) }}
                     </label>
                     <input type="text" class="form-control bg-light" :value="formatValue(f.value)" disabled />
                   </div>
+
                 </div>
               </div>
 
@@ -215,10 +227,14 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
-import axios from '../api/axios';
-import ConfigLinkTableComponent from './ConfigLinkTableComponent.vue';
-import CalculationComponent from './CalculationComponent.vue';
+import { computed, ref, watch } from 'vue'
+import axios from '../api/axios'
+import ConfigLinkTableComponent from './ConfigLinkTableComponent.vue'
+import CalculationComponent from './CalculationComponent.vue'
+
+/* =========================
+   PROPS / EMITS
+========================= */
 
 const props = defineProps({
   product: { type: Object, default: null },
@@ -227,128 +243,185 @@ const props = defineProps({
   calculationTitle: { type: String, default: '' },
   calculationDescription: { type: String, default: '' },
   fields: { type: Array, default: () => [] }
-});
+})
 
-const emit = defineEmits(['close', 'load-advanced']);
+const emit = defineEmits(['close', 'load-advanced'])
 
-const showAdvanced = ref(false);
-const advancedLoaded = ref(false);
-const showConfiguration = ref(false);
+/* =========================
+   UI STATE
+========================= */
 
-const configData = ref(null);
-const configLoading = ref(false);
-const configError = ref(null);
+const showAdvanced = ref(false)
+const advancedLoaded = ref(false)
+const showConfiguration = ref(false)
 
-const productLinks = ref([]);
-const materialLinks = ref([]);
-const serviceLinks = ref([]);
+/* =========================
+   CONFIG STATE
+========================= */
 
-const originalLinkingSnapshot = ref({
-  productLinks: [],
-  materialLinks: [],
-  serviceLinks: [],
-});
+const configData = ref(null)
+const configLoading = ref(false)
+const configError = ref(null)
 
-const saving = ref(false);
-const linkDirty = ref(false);
+/* 🔥 BASE NETO EDITABLE */
+const baseNetAmount = ref(0)
+const calculationResults = ref({})
+
+
+/* =========================
+   LINKING STATE
+========================= */
+
+const productLinks = ref([])
+const materialLinks = ref([])
+const serviceLinks = ref([])
+
+const originalLinkingSnapshot = ref(null)
+
+const saving = ref(false)
+const linkDirty = ref(false)
+
+/* =========================
+   TOGGLES
+========================= */
 
 function toggleAdvanced() {
-  showAdvanced.value = !showAdvanced.value;
+  showAdvanced.value = !showAdvanced.value
   if (showAdvanced.value && !advancedLoaded.value) {
-    advancedLoaded.value = true;
-    emit('load-advanced');
+    advancedLoaded.value = true
+    emit('load-advanced')
   }
 }
 
 function toggleConfiguration() {
-  showConfiguration.value = !showConfiguration.value;
+  showConfiguration.value = !showConfiguration.value
 }
 
+/* =========================
+   COMPUTEDS
+========================= */
+
 const safeAdvancedData = computed(() => {
-  if (!props.advancedData || typeof props.advancedData !== 'object') return {};
-  return props.advancedData;
-});
+  if (!props.advancedData || typeof props.advancedData !== 'object') return {}
+  return props.advancedData
+})
 
 const computedTitle = computed(() => {
-  if (!props.product) return '';
+  if (!props.product) return ''
   if (props.product?.sku) {
     return props.product.description
       ? `${props.product.sku} - ${props.product.description}`
-      : props.product.sku;
+      : props.product.sku
   }
-  return '';
-});
+  return ''
+})
 
 const visibleFields = computed(() => {
-  if (!props.fields || !props.product) return [];
+  if (!props.fields || !props.product) return []
   return props.fields.filter(f =>
     props.product.hasOwnProperty(f.key) &&
     props.product[f.key] !== undefined &&
     !f.hideInGrid
-  );
-});
+  )
+})
+
+const safeCalculationProps = computed(() => {
+  return configData.value?.calculation?.props || null
+})
+
+const safeLinking = computed(() => {
+  return configData.value?.linking || {
+    header: null,
+    totals: null,
+    products: { links: [] },
+    materials: { links: [] },
+    services: { links: [] }
+  }
+})
+
+const informativaFields = computed(() => {
+  return configData.value?.informative?.fields || []
+})
+
+/* =========================
+   FORMAT HELPERS
+========================= */
 
 function resolveLabel(key) {
-  const field = props.fields?.find(f => f.key === key);
-  if (field?.label) return field.label;
-  return formatLabel(key);
+  const field = props.fields?.find(f => f.key === key)
+  if (field?.label) return field.label
+  return formatLabel(key)
 }
 
 function formatLabel(key) {
-  if (!key) return '-';
+  if (!key) return '-'
   return String(key)
     .replace(/_/g, ' ')
-    .replace(/\b\w/g, l => l.toUpperCase());
+    .replace(/\b\w/g, l => l.toUpperCase())
 }
 
 function formatValue(val) {
-  if (val === null || val === undefined) return '-';
-  if (typeof val === 'boolean') return val ? 'SI' : 'NO';
-  if (typeof val === 'number') return val.toLocaleString('es-CL');
-  return val;
+  if (val === null || val === undefined) return '-'
+  if (typeof val === 'boolean') return val ? 'SI' : 'NO'
+  if (typeof val === 'number') return val.toLocaleString('es-CL')
+  return val
 }
 
 function formatPrice(val) {
-  if (val === null || val === undefined || isNaN(val)) return '-';
-  return '$' + Number(val).toLocaleString('es-CL');
+  if (val === null || val === undefined || isNaN(val)) return '-'
+  return '$' + Number(val).toLocaleString('es-CL')
 }
 
 function isCloudinary(val) {
-  return typeof val === 'string' && val.startsWith('https://res.cloudinary.com');
+  return typeof val === 'string' &&
+    val.startsWith('https://res.cloudinary.com')
 }
 
 function getPillClass(field, value) {
-  if (!field?.pillMap || !value) return 'bg-secondary';
-  const valueStr = String(value).toLowerCase();
-  const mappedKey = Object.keys(field.pillMap).find(k => k.toLowerCase() === valueStr);
-  return mappedKey ? field.pillMap[mappedKey] : 'bg-dark';
+  if (!field?.pillMap || !value) return 'bg-secondary'
+  const valueStr = String(value).toLowerCase()
+  const mappedKey = Object.keys(field.pillMap)
+    .find(k => k.toLowerCase() === valueStr)
+  return mappedKey ? field.pillMap[mappedKey] : 'bg-dark'
 }
 
-async function loadConfiguration() {
-  if (!props.product?.sku) return;
+/* =========================
+   LOAD CONFIG
+========================= */
 
-  configLoading.value = true;
-  configError.value = null;
+async function loadConfiguration() {
+  if (!props.product?.sku) return
+
+  configLoading.value = true
+  configError.value = null
+  linkDirty.value = false
+  originalLinkingSnapshot.value = null
 
   try {
-    const res = await axios.get(`/catalogs/${props.product.sku}/config/`);
-    configData.value = res.data;
+    const res = await axios.get(`/catalogs/${props.product.sku}/config/`)
+    configData.value = res.data
 
-    const pl = res.data?.linking?.products?.links || [];
-    const ml = res.data?.linking?.materials?.links || [];
-    const sl = res.data?.linking?.services?.links || [];
+    // 🔥 SETEAR BASE NETO ANTES DEL SNAPSHOT
+    baseNetAmount.value =
+      Number(res.data?.linking?.header?.base_net_amount || 0)
 
-    productLinks.value = pl.map(normalizeRow);
-    materialLinks.value = ml.map(normalizeRow);
-    serviceLinks.value = sl.map(normalizeRow);
+    const pl = res.data?.linking?.products?.links || []
+    const ml = res.data?.linking?.materials?.links || []
+    const sl = res.data?.linking?.services?.links || []
 
-    takeSnapshot();
-    linkDirty.value = false;
+    productLinks.value = pl.map(normalizeRow)
+    materialLinks.value = ml.map(normalizeRow)
+    serviceLinks.value = sl.map(normalizeRow)
+
+    // 🔥 SNAPSHOT FINAL YA SINCRONIZADO
+    takeSnapshot()
+    linkDirty.value = false
 
   } catch (e) {
-    configError.value = e.response?.data?.detail || 'Error cargando configuración';
+    configError.value =
+      e.response?.data?.detail || 'Error cargando configuración'
   } finally {
-    configLoading.value = false;
+    configLoading.value = false
   }
 }
 
@@ -363,8 +436,8 @@ function normalizeRow(r) {
     iva_amount: r?.iva_amount ?? 0,
     description: r?.description ?? null,
     obs: r?.obs ?? null,
-    is_deleted: r?.is_deleted ?? false,
-  };
+    is_deleted: r?.is_deleted ?? false
+  }
 }
 
 function takeSnapshot() {
@@ -372,73 +445,94 @@ function takeSnapshot() {
     productLinks: JSON.parse(JSON.stringify(productLinks.value)),
     materialLinks: JSON.parse(JSON.stringify(materialLinks.value)),
     serviceLinks: JSON.parse(JSON.stringify(serviceLinks.value)),
-  };
+    baseNetAmount: baseNetAmount.value
+  }
 }
+
+/* =========================
+   WATCHERS
+========================= */
 
 watch(
   () => props.product?.sku,
   (newSku) => {
-    if (newSku) loadConfiguration();
-    else configData.value = null;
+    if (newSku) loadConfiguration()
+    else configData.value = null
   },
   { immediate: true }
-);
+)
 
-/* 🔥 DETECCIÓN REAL DE CAMBIOS */
 watch(
-  [productLinks, materialLinks, serviceLinks],
+  [productLinks, materialLinks, serviceLinks, baseNetAmount],
   () => {
+
+    if (!originalLinkingSnapshot.value) {
+      linkDirty.value = false
+      return
+    }
+
     const changed =
       JSON.stringify(productLinks.value) !== JSON.stringify(originalLinkingSnapshot.value.productLinks) ||
       JSON.stringify(materialLinks.value) !== JSON.stringify(originalLinkingSnapshot.value.materialLinks) ||
-      JSON.stringify(serviceLinks.value) !== JSON.stringify(originalLinkingSnapshot.value.serviceLinks);
+      JSON.stringify(serviceLinks.value) !== JSON.stringify(originalLinkingSnapshot.value.serviceLinks) ||
+      baseNetAmount.value !== originalLinkingSnapshot.value.baseNetAmount
 
-    linkDirty.value = changed;
+    linkDirty.value = changed
   },
   { deep: true }
-);
+)
+
+/* =========================
+   ACTIONS
+========================= */
 
 function resetLinkingEdits() {
-  productLinks.value = JSON.parse(JSON.stringify(originalLinkingSnapshot.value.productLinks));
-  materialLinks.value = JSON.parse(JSON.stringify(originalLinkingSnapshot.value.materialLinks));
-  serviceLinks.value = JSON.parse(JSON.stringify(originalLinkingSnapshot.value.serviceLinks));
+  productLinks.value =
+    JSON.parse(JSON.stringify(originalLinkingSnapshot.value.productLinks))
+  materialLinks.value =
+    JSON.parse(JSON.stringify(originalLinkingSnapshot.value.materialLinks))
+  serviceLinks.value =
+    JSON.parse(JSON.stringify(originalLinkingSnapshot.value.serviceLinks))
 }
 
 async function saveConfiguration() {
-  console.log("SAVE CONFIGURATION DISPARADO");
+  if (!props.product?.sku) return
 
-  if (!props.product?.sku) return;
+  const priceConfigCode =
+    configData.value?.calculation?.props?.code
 
-  saving.value = true;
+  if (!priceConfigCode) {
+    console.error('price_configuration no viene desde config')
+    return
+  }
+
+  saving.value = true
 
   try {
-    const links = [
-      ...productLinks.value.map(r => ({ ...r, item_kind: "product" })),
-      ...materialLinks.value.map(r => ({ ...r, item_kind: "material" })),
-      ...serviceLinks.value.map(r => ({ ...r, item_kind: "service" }))
-    ];
+    await axios.patch(`/catalogs/${props.product.sku}/`, {
+      price_data: {
+        base_net_amount: Number(baseNetAmount.value) || 0,
+        price_configuration: priceConfigCode
+      }
+    })
 
-    console.log("ENVIANDO LINKS:", links);
-
-    await axios.post(`/catalogs/${props.product.sku}/config/`, { links });
-
-    takeSnapshot();
-    linkDirty.value = false;
+    takeSnapshot()
+    linkDirty.value = false
 
   } catch (e) {
-    console.error("ERROR POST", e);
+    console.error('ERROR ACTUALIZANDO CATALOGO', e.response?.data || e)
   } finally {
-    saving.value = false;
+    saving.value = false
   }
 }
 
-async function onRecalculate() {
-  await loadConfiguration();
+function onRecalculate(results) {
+  calculationResults.value = results
 }
 
-const safeCalculationProps = computed(() => {
-  return configData.value?.calculation?.props || null
-})
+/* =========================
+   CALCULATION VARIABLES
+========================= */
 
 function sumField(rows, field) {
   let total = 0
@@ -459,6 +553,8 @@ const calculationExtraVariables = computed(() => {
   const servicesIva = sumField(serviceLinks.value, 'iva_amount')
 
   return {
+    base_net_amount: baseNetAmount.value,
+
     total_neto_productos: productsNet,
     total_neto_materiales: materialsNet,
     total_neto_servicios: servicesNet,

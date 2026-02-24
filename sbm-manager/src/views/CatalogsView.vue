@@ -22,7 +22,8 @@
       :fields="fields" :showConfigForm="true" configFormName="Catálogo" configFormResourcePath="catalogs"
       configFormPivotField="sku" configFormLookupField="sku" :showPropertiesButton="true" :showConfigList="false"
       calculationTitle="Precio de venta" :configListFranchiseId="selectedFranchise" configListEndpointType="id"
-      configListTitle="" calculationDescription="Permite calcular el precio de venta del ítem a partir del valor base neto y las variables contables asociadas (IVA, impuestos adicionales y retenciones), aplicando la fórmula fiscal configurada."
+      configListTitle=""
+      calculationDescription="Permite calcular el precio de venta del ítem a partir del valor base neto y las variables contables asociadas (IVA, impuestos adicionales y retenciones), aplicando la fórmula fiscal configurada."
       :endpointBase="`franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
       :optionsProps="optionsProps" @refresh="handleRefresh" @created="handleCreated" @updated="handleUpdated"
       @row-selected="handleCatalogSelected" @import="handleImport" @export="handleExport">
@@ -105,7 +106,14 @@ const fields = ref([
   // 🔵 VENTA (VISIBLE EN GRID PERO ENMASCARADA)
   // ==========================
 
-  { key: 'base_net_amount', label: 'Venta Base NETO', type: 'price', secretField: false, omitInForm: false },
+  {
+    key: 'base_net_amount',
+    label: 'Venta Base NETO',
+    type: 'price',
+    secretField: false,
+    omitInForm: false,
+    formGroup: 'price_data'   // 🔥 FALTA ESTO
+  },
   { key: 'net_amount', label: 'Venta NETO', type: 'price', secretField: false, omitInForm: true },
   { key: 'iva_amount', label: 'IVA Venta', type: 'price', secretField: false, omitInForm: true },
   { key: 'gross_amount', label: 'Venta BRUTO', type: 'price', secretField: false, omitInForm: true },
@@ -123,11 +131,20 @@ const fields = ref([
   // 🟢 UTILIDAD (OCULTA EN GRID)
   // ==========================
 
-  
+
 
   // ==========================
 
-  { key: 'price_configuration', label: 'Configuración de Precio', type: 'dynamic-select', endpoint: '/price-configurations/', labelKey: 'price_configuration', valueKey: 'code', hideInGrid: true },
+  {
+    key: 'price_configuration',
+    label: 'Configuración de Precio',
+    type: 'dynamic-select',
+    endpoint: '/price-configurations/',
+    labelKey: 'price_configuration',
+    valueKey: 'code',
+    formGroup: 'price_data',   // 🔥 ESTO ES LA CLAVE
+    hideInGrid: true
+  },
 
   { key: 'min_quantity_purchase', label: 'Cantidad Mínima de Compra', type: 'number', min: 1 },
   { key: 'rations_quantity', label: 'Cantidad de Raciones', type: 'number', min: 1 },

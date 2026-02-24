@@ -74,6 +74,11 @@
         </div>
 
         <div class="mb-3 col-12 col-md-4">
+          <label class="form-label fw-semibold">Base Neto</label>
+          <input type="number" v-model.number="form.base_net_amount" class="form-control" min="0" />
+        </div>
+
+        <div class="mb-3 col-12 col-md-4">
           <div class="form-check mt-4">
             <input type="checkbox" id="is_visible" v-model="form.is_visible" class="form-check-input" />
             <label class="form-check-label fw-semibold" for="is_visible">Visible</label>
@@ -137,10 +142,11 @@ const form = reactive({
   cover_image: '',
   chef_recommendation: false,
   min_quantity_purchase: 1,
+  base_net_amount: 0,
   rations_quantity: 1,
   is_visible: false,
   is_deleted: false,
-  is_confirmed: false
+  is_confirmed: false,
 });
 
 const coverPreviewError = ref(false);
@@ -164,6 +170,7 @@ function assignValues() {
   form.chef_recommendation = props.catalog.chef_recommendation || false;
   form.min_quantity_purchase = props.catalog.min_quantity_purchase || 1;
   form.rations_quantity = props.catalog.rations_quantity || 1;
+  form.base_net_amount = props.catalog.base_net_amount || 0;
   form.is_visible = props.catalog.is_visible || false;
   form.is_deleted = props.catalog.is_deleted || false;
   form.is_confirmed = props.catalog.is_confirmed || false;
@@ -177,6 +184,7 @@ function assignValues() {
     chef_recommendation: form.chef_recommendation,
     min_quantity_purchase: form.min_quantity_purchase,
     rations_quantity: form.rations_quantity,
+    base_net_amount: form.base_net_amount,
     is_visible: form.is_visible,
     is_deleted: form.is_deleted,
     is_confirmed: form.is_confirmed
@@ -208,7 +216,18 @@ async function onSubmit() {
   if (form.rations_quantity !== originalValues.value.rations_quantity) changes.rations_quantity = form.rations_quantity;
   if (form.is_visible !== originalValues.value.is_visible) changes.is_visible = form.is_visible;
   if (form.is_deleted !== originalValues.value.is_deleted) changes.is_deleted = form.is_deleted;
-  if (form.is_confirmed !== originalValues.value.is_confirmed) changes.is_confirmed = form.is_confirmed;
+  // 🔵 Base net ahora via price_data
+  if (form.base_net_amount !== originalValues.value.base_net_amount) {
+    changes.price_data = {
+      base_net_amount: form.base_net_amount,
+      price_configuration: props.catalog.price_configuration
+    };
+  }
+
+  // 🔵 is_confirmed independiente
+  if (form.is_confirmed !== originalValues.value.is_confirmed) {
+    changes.is_confirmed = form.is_confirmed;
+  }
 
   if (Object.keys(changes).length === 0) {
     alert('No hay cambios para guardar.');
@@ -221,8 +240,22 @@ async function onSubmit() {
     const response = await axios.patch(url, changes, { headers: { 'Content-Type': 'application/json' } });
 
     Object.keys(changes).forEach((key) => {
-      if (Object.prototype.hasOwnProperty.call(originalValues.value, key)) originalValues.value[key] = form[key];
-      if (Object.prototype.hasOwnProperty.call(props.catalog, key)) props.catalog[key] = form[key];
+
+      // 🔵 Si fue cambio de precio
+      if (key === 'price_data') {
+        originalValues.value.base_net_amount = form.base_net_amount;
+        props.catalog.base_net_amount = form.base_net_amount;
+        return;
+      }
+
+      // 🔵 Resto de campos normales
+      if (Object.prototype.hasOwnProperty.call(originalValues.value, key)) {
+        originalValues.value[key] = form[key];
+      }
+
+      if (Object.prototype.hasOwnProperty.call(props.catalog, key)) {
+        props.catalog[key] = form[key];
+      }
     });
 
     alert('Configuración actualizada correctamente');
