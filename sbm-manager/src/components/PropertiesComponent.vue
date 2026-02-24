@@ -125,7 +125,7 @@
 
                 <CalculationComponent v-if="safeCalculationProps" :title="props.calculationTitle"
                   :description="props.calculationDescription" v-bind="safeCalculationProps"
-                  @calculated="onRecalculate" />
+                  :extraVariables="calculationExtraVariables" @calculated="onRecalculate" />
               </div>
 
               <!-- VINCULACIÓN -->
@@ -174,10 +174,12 @@
                   itemType="product" searchBaseUrl="/products/" headerBgClass="bg-dark" headerTextClass="text-white" />
 
                 <ConfigLinkTableComponent v-model="materialLinks" title="Materiales" icon="fas fa-spoon"
-                  itemType="material" searchBaseUrl="/materials/" headerBgClass="bg-warning-subtle" headerTextClass="text-dark" />
+                  itemType="material" searchBaseUrl="/materials/" headerBgClass="bg-warning-subtle"
+                  headerTextClass="text-dark" />
 
                 <ConfigLinkTableComponent v-model="serviceLinks" title="Servicios" icon="fas fa-people-carry-box"
-                  itemType="service" searchBaseUrl="/services/" headerBgClass="bg-success-subtle" headerTextClass="text-dark" />
+                  itemType="service" searchBaseUrl="/services/" headerBgClass="bg-success-subtle"
+                  headerTextClass="text-dark" />
 
               </div>
             </div>
@@ -436,5 +438,33 @@ async function onRecalculate() {
 
 const safeCalculationProps = computed(() => {
   return configData.value?.calculation?.props || null
+})
+
+function sumField(rows, field) {
+  let total = 0
+  for (const r of (rows || [])) {
+    total += Number(r?.[field] || 0)
+  }
+  return total
+}
+
+const calculationExtraVariables = computed(() => {
+
+  const productsNet = sumField(productLinks.value, 'net_amount')
+  const materialsNet = sumField(materialLinks.value, 'net_amount')
+  const servicesNet = sumField(serviceLinks.value, 'net_amount')
+
+  const productsIva = sumField(productLinks.value, 'iva_amount')
+  const materialsIva = sumField(materialLinks.value, 'iva_amount')
+  const servicesIva = sumField(serviceLinks.value, 'iva_amount')
+
+  return {
+    total_neto_productos: productsNet,
+    total_neto_materiales: materialsNet,
+    total_neto_servicios: servicesNet,
+
+    costo_neto: productsNet + materialsNet + servicesNet,
+    iva_costo: productsIva + materialsIva + servicesIva
+  }
 })
 </script>

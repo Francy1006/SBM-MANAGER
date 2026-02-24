@@ -10,12 +10,8 @@
     </div>
 
     <!-- OPTIONS -->
-    <OptionsComponent
-      v-bind="optionsProps"
-      @toggle-secret-fields="showSecretFields = $event"
-      @import="handleImport"
-      @export="handleExport"
-    />
+    <OptionsComponent v-bind="optionsProps" @toggle-secret-fields="showSecretFields = $event" @import="handleImport"
+      @export="handleExport" />
 
     <!-- LOADING -->
     <div v-if="loading" class="text-center py-5">
@@ -33,14 +29,9 @@
               <span class="input-group-text bg-light border-end-0">
                 <i class="fas fa-search text-muted"></i>
               </span>
-              <input
-                type="text"
-                class="form-control border-start-0"
-                :placeholder="`Buscar ${resourceName.toLowerCase()}...`"
-                v-model="searchTerm"
-                @input="debouncedSearch"
-                :disabled="loading"
-              />
+              <input type="text" class="form-control border-start-0"
+                :placeholder="`Buscar ${resourceName.toLowerCase()}...`" v-model="searchTerm" @input="debouncedSearch"
+                :disabled="loading" />
               <span v-if="loading" class="input-group-text bg-light border-start-0">
                 <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
               </span>
@@ -53,7 +44,8 @@
       <div class="mb-4 p-4">
         <div class="d-flex flex-column gap-2">
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="hideDeleted" v-model="hideDeleted" @change="fetchData" />
+            <input class="form-check-input" type="checkbox" id="hideDeleted" v-model="hideDeleted"
+              @change="fetchData" />
             <label class="form-check-label" for="hideDeleted">
               Ocultar eliminados
             </label>
@@ -81,31 +73,22 @@
 
           <div class="col-auto d-flex gap-2">
             <div v-if="showPropertiesButton">
-              <button
-                class="btn btn-warning btn-sm rounded-pill px-3"
-                @click="showProperties"
-                :disabled="selectedCount !== 1"
-              >
+              <button class="btn btn-warning btn-sm rounded-pill px-3" @click="showProperties"
+                :disabled="selectedCount !== 1">
                 <i class="fas fa-cog me-1"></i> Propiedades
               </button>
             </div>
 
             <div>
-              <button
-                class="btn btn-outline-primary btn-sm rounded-pill px-3"
-                @click="configureSelected"
-                :disabled="selectedCount !== 1"
-              >
+              <button class="btn btn-outline-primary btn-sm rounded-pill px-3" @click="configureSelected"
+                :disabled="selectedCount !== 1">
                 <i class="fas fa-cog me-1"></i> Configurar
               </button>
             </div>
 
             <div>
-              <button
-                class="btn btn-outline-secondary btn-sm rounded-pill px-3"
-                @click="deleteSelected"
-                :disabled="blockGroupDelete ? selectedCount > 1 : false"
-              >
+              <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="deleteSelected"
+                :disabled="blockGroupDelete ? selectedCount > 1 : false">
                 <i class="fas fa-trash me-1"></i> Eliminar
               </button>
             </div>
@@ -124,19 +107,15 @@
               <th v-if="filteredRows.length > 0" style="width:60px!important;" class="align-middle">
                 <input type="checkbox" :checked="allSelected" @change.stop="toggleAllSelection" />
               </th>
-              <th
-                v-for="col in visibleColumns"
-                :key="col"
-                style="min-width:200px!important; cursor:pointer;"
-                class="align-middle"
-                @click="toggleSort(col)"
-              >
+              <th v-for="col in visibleColumns" :key="col" style="min-width:200px!important; cursor:pointer;"
+                class="align-middle" @click="toggleSort(col)">
                 <div class="d-flex justify-content-between align-items-center">
                   <span>{{ getColumnLabel(col) }}</span>
 
                   <span>
                     <i v-if="sortKey === col && sortDirection === 'asc'" class="fas fa-arrow-up text-warning"></i>
-                    <i v-else-if="sortKey === col && sortDirection === 'desc'" class="fas fa-arrow-down text-warning"></i>
+                    <i v-else-if="sortKey === col && sortDirection === 'desc'"
+                      class="fas fa-arrow-down text-warning"></i>
                     <i v-else class="fas fa-arrow-up text-secondary opacity-50"></i>
                   </span>
                 </div>
@@ -153,24 +132,15 @@
               </td>
             </tr>
 
-            <tr
-              v-for="row in filteredRows"
-              :key="'row-' + (row.code ?? row.id ?? row.sku)"
-              :class="{
-                'table-primary fw-bold': selected.includes(String(row.code ?? row.id ?? row.sku)) || rowId(row) === editingRowId,
-                'text-white': rowId(row) === editingRowId
-              }"
-            >
+            <tr v-for="row in filteredRows" :key="'row-' + (row.code ?? row.id ?? row.sku)" :class="{
+              'table-primary fw-bold': selected.includes(String(row.code ?? row.id ?? row.sku)) || rowId(row) === editingRowId,
+              'text-white': rowId(row) === editingRowId
+            }">
 
               <!-- SELECTION CHECKBOX -->
               <td v-if="rows.length > 0" class="text-center">
-                <input
-                  type="checkbox"
-                  :key="'checkbox-' + (row.code ?? row.id ?? row.sku)"
-                  :value="String(row.code ?? row.id ?? row.sku)"
-                  v-model="selected"
-                  @change.stop="toggleRowSelection"
-                />
+                <input type="checkbox" :key="'checkbox-' + (row.code ?? row.id ?? row.sku)"
+                  :value="String(row.code ?? row.id ?? row.sku)" v-model="selected" @change.stop="toggleRowSelection" />
               </td>
 
               <!-- CELLS -->
@@ -185,28 +155,21 @@
                 </span>
 
                 <span
-                  v-else-if="typeof row[col] === 'string' && row[col] && row[col].startsWith('https://res.cloudinary.com')"
-                >
-                  <img
-                    :src="row[col]"
-                    alt="Imagen Cloudinary"
-                    style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px #0001;"
-                  />
+                  v-else-if="typeof row[col] === 'string' && row[col] && row[col].startsWith('https://res.cloudinary.com')">
+                  <img :src="row[col]" alt="Imagen Cloudinary"
+                    style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px #0001;" />
                 </span>
 
                 <span
-                  v-else-if="col.toLowerCase().includes('url') && row[col] && !(typeof row[col] === 'string' && row[col].startsWith('https://res.cloudinary.com'))"
-                >
+                  v-else-if="col.toLowerCase().includes('url') && row[col] && !(typeof row[col] === 'string' && row[col].startsWith('https://res.cloudinary.com'))">
                   <a :href="row[col]" target="_blank" rel="noopener noreferrer">{{ row[col] }}</a>
                 </span>
 
                 <span v-else-if="col === 'rating'">
                   <span class="crudgrid-rating">
                     <span v-for="star in 5" :key="star">
-                      <i
-                        class="fa-star fa-solid"
-                        :style="{ color: row[col] >= star ? '#ffd700' : '#ccc', fontSize: '1.3em', marginRight: '2px' }"
-                      ></i>
+                      <i class="fa-star fa-solid"
+                        :style="{ color: row[col] >= star ? '#ffd700' : '#ccc', fontSize: '1.3em', marginRight: '2px' }"></i>
                     </span>
                   </span>
                 </span>
@@ -217,14 +180,25 @@
                   </span>
                 </span>
 
-                <span v-else :class="{ 'price-bold': fields.find(f => f.key === col && f.type === 'price') }">
-                  {{
-                    fields.find(f => f.key === col && f.secretField) && !showSecretFields
-                      ? (typeof row[col] === 'string' || typeof row[col] === 'number'
-                        ? '●'.repeat(String(row[col]).length)
-                        : '●●●●●')
-                      : formatValue(row[col], col)
-                  }}
+                <span v-else>
+                  <template v-if="isPercentField(col) && !(isSecretHidden(col))">
+                    <span :class="getPercentColorClass(row[col])">
+                      <i :class="getPercentIconClass(row[col])" class="me-1"></i>
+                      {{ formatValue(row[col], col) }}
+                    </span>
+                  </template>
+
+                  <template v-else>
+                    <span :class="getCellClass(col, row[col])">
+                      {{
+                        fields.find(f => f.key === col && f.secretField) && !showSecretFields
+                          ? (typeof row[col] === 'string' || typeof row[col] === 'number'
+                            ? '●'.repeat(String(row[col]).length)
+                            : '●●●●●')
+                          : formatValue(row[col], col)
+                      }}
+                    </span>
+                  </template>
                 </span>
               </td>
             </tr>
@@ -284,6 +258,21 @@ export default {
     fields: { type: Array, default: () => [] },
     optionsProps: { type: Object, default: () => ({}) },
     refreshKey: { type: [Number, String], default: 0 },
+    percentColorThresholds: {
+      type: Array,
+      default: () => [20, 40, 60, 80, 100]
+    },
+    percentColorClasses: {
+      type: Array,
+      default: () => [
+        'text-danger',      // <= 20
+        'text-warning',     // <= 40
+        'text-orange',      // <= 60 (puedes crear clase)
+        'text-info',        // <= 80
+        'text-primary',     // <= 100
+        'text-primary fw-bold' // > 100
+      ]
+    },
   },
   data() {
     return {
@@ -600,12 +589,28 @@ export default {
 
     formatValue(val, col) {
       const field = this.fields.find(f => f.key === col);
+
+      // 💰 PRICE
       if (field && field.type === 'price') {
         if (val === null || val === undefined || isNaN(val)) return '-';
         return '$' + Number(val).toLocaleString('es-CL');
       }
+
+      // 📊 PERCENT
+      if (field && field.type === 'percent') {
+        if (val === null || val === undefined || isNaN(val)) return '0 %';
+        return Number(val).toLocaleString('es-CL', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }) + ' %';
+      }
+
       if (val === null || val === undefined) return '-';
-      if (typeof val === 'string' && val.length > 100) return val.slice(0, 100) + '...';
+
+      if (typeof val === 'string' && val.length > 100) {
+        return val.slice(0, 100) + '...';
+      }
+
       return val;
     },
 
@@ -719,6 +724,84 @@ export default {
       if (this.verboseNames && this.verboseNames[col]) return this.verboseNames[col];
       return col;
     },
+
+    getPercentColorClass(value) {
+      if (value === null || value === undefined || isNaN(value)) return '';
+
+      const val = Number(value);
+      const thresholds = this.percentColorThresholds;
+      const classes = this.percentColorClasses;
+
+      for (let i = 0; i < thresholds.length; i++) {
+        if (val <= thresholds[i]) {
+          return classes[i] || '';
+        }
+      }
+
+      return classes[classes.length - 1] || '';
+    },
+
+    getCellClass(col, value) {
+      const field = this.fields.find(f => f.key === col);
+
+      if (!field) return '';
+
+      // 🔒 Si es secreto y oculto → negro siempre
+      if (field.secretField && !this.showSecretFields) {
+        return '';
+      }
+
+      // 💰 Price
+      if (field.type === 'price') {
+        return 'price-bold';
+      }
+
+      // 📊 Percent con escala fija
+      if (field.type === 'percent') {
+        const val = Number(value);
+
+        if (isNaN(val)) return '';
+
+        if (val <= 20) return 'text-danger';      // rojo
+        if (val <= 40) return 'text-warning';     // naranja (bootstrap approx)
+        if (val <= 60) return 'text-warning fw-bold'; // amarillo fuerte
+        if (val <= 100) return 'text-success';    // verde
+        return 'text-primary fw-bold';            // azul
+      }
+
+      return '';
+    },
+    isPercentField(col) {
+      const field = this.fields.find(f => f.key === col);
+      return field?.type === 'percent';
+    },
+
+    isSecretHidden(col) {
+      const field = this.fields.find(f => f.key === col);
+      return field?.secretField && !this.showSecretFields;
+    },
+
+    getPercentColorClass(value) {
+      const val = Number(value);
+      if (isNaN(val)) return '';
+
+      if (val <= 20) return 'text-danger';
+      if (val <= 40) return 'text-warning';
+      if (val <= 60) return 'text-warning fw-bold';
+      if (val <= 100) return 'text-success';
+      return 'text-primary fw-bold';
+    },
+
+    getPercentIconClass(value) {
+      const val = Number(value);
+      if (isNaN(val)) return '';
+
+      if (val <= 20) return 'fas fa-arrow-down';
+      if (val <= 40) return 'fas fa-arrow-trend-down';
+      if (val <= 60) return 'fas fa-minus';
+      if (val <= 100) return 'fas fa-arrow-up';
+      return 'fas fa-crown';
+    }
   },
   watch: {
     endpoint: 'fetchData',

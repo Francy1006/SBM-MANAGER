@@ -1,3 +1,4 @@
+<!-- CalculationComponent.vue (COMPLETO, actualizado) -->
 <template>
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
@@ -5,24 +6,19 @@
       <!-- HEADER -->
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h6 v-if="titleToShow" class="fw-bold mb-1 d-flex align-items-center gap-2">
-            <span>{{ titleToShow }}</span>
+          <h6 v-if="titleToShow" class="fw-bold mb-1">
+            {{ titleToShow }}
           </h6>
           <p v-if="descriptionToShow" class="text-muted small mb-0">
             {{ descriptionToShow }}
           </p>
         </div>
-
-        <button class="btn btn-outline-danger btn-sm" @click="calculateFormula" :disabled="loading">
-          <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-sync-alt'" class="me-2"></i>
-          {{ loading ? 'Calculando...' : 'Recalcular' }}
-        </button>
       </div>
 
       <!-- VARIABLES -->
       <div class="table-responsive mb-4">
-        <table class="table table-sm table-bordered align-middle mb-0">
-          <thead class="table-light">
+        <table class="table table-sm table-bordered">
+          <thead class="table-secondary">
             <tr>
               <th>Variable</th>
               <th class="text-end">Valor</th>
@@ -31,43 +27,32 @@
           <tbody>
             <tr v-for="field in fields" :key="field.key">
               <td class="fw-semibold">{{ field.label }}</td>
-              <td class="text-end">{{ formatValueByType(field) }}</td>
+              <td class="text-end">{{ formatValue(field.value) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- RESULTADOS -->
+      <!-- RESULTADOS DINÁMICOS -->
       <h6 class="fw-bold border-bottom pb-2 mb-3 text-secondary">
         Resultados
       </h6>
 
       <div class="table-responsive">
-        <table class="table table-sm table-bordered align-middle mb-0">
-          <thead class="table-light">
+        <table class="table table-sm table-bordered">
+          <thead class="table-dark">
             <tr>
               <th>Concepto</th>
               <th class="text-end">Monto</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="field in resultFields" :key="field.key">
-              <td class="fw-semibold">{{ field.label }}</td>
-              <td class="text-end">{{ formatCurrency(field.value) }}</td>
+            <tr v-for="r in results" :key="r.label">
+              <td class="fw-semibold">{{ r.label }}</td>
+              <td class="text-end">{{ formatByType(r.value, r.format) }}</td>
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <!-- ALERTAS -->
-      <div v-if="calculationResult" class="alert alert-success mt-3 small mb-0">
-        <i class="fas fa-check-circle me-2"></i>
-        Cálculo completado exitosamente
-      </div>
-
-      <div v-if="calculationError" class="alert alert-danger mt-3 small mb-0">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        {{ calculationError }}
       </div>
 
     </div>
@@ -75,141 +60,183 @@
 </template>
 
 <script setup>
-import { reactive, onMounted, watch, ref, computed } from 'vue'
+import { ref, reactive, onMounted, watch, computed } from 'vue'
 import api from '../api/axios'
 
 const props = defineProps({
-  title: { type: String, default: '' },
-  description: { type: String, default: '' },
-  code: { type: String, required: true },
-  baseNetAmount: { type: [Number, String], default: null },
-  netAmount: { type: [Number, String], default: null },
-  grossAmount: { type: [Number, String], default: null },
-  ivaAmount: { type: [Number, String], default: null },
-  additionalTaxAmount: { type: [Number, String], default: null },
-  retentionAmount: { type: [Number, String], default: null },
-  selectedProductSku: { type: String, default: null }
+  title: String,
+  description: String,
+  code: { type: String, required: true },              // price_configuration
+  baseNetAmount: { type: [Number, String], required: true },
+
+  // ✅ OPCIONAL: variables extra (costos desde ConfigLinkTable, etc.)
+  // NO pueden colisionar con: base_net_amount, iva, etc.
+  extraVariables: { type: Object, default: null }      // { cost_products_net: 123, ... }
 })
 
-const emit = defineEmits(['calculated'])
-
-const titleToShow = computed(() => ((props.title ?? '') + '').trim())
-const descriptionToShow = computed(() => ((props.description ?? '') + '').trim())
+const titleToShow = computed(() => (props.title ?? '').trim())
+const descriptionToShow = computed(() => (props.description ?? '').trim())
 
 const loading = ref(false)
-const calculationResult = ref(null)
-const calculationError = ref(null)
-
-function formatCurrency(val) {
-  if (val === null || val === undefined || isNaN(val)) return '-'
-  return '$' + Number(val).toLocaleString('es-CL')
-}
-
-function formatPercentage(val) {
-  if (val === null || val === undefined || isNaN(val)) return '-'
-  return (Number(val) * 100).toLocaleString('es-CL') + '%'
-}
-
-function formatValueByType(field) {
-  if (field.value === null || field.value === undefined || isNaN(field.value)) {
-    return '-'
-  }
-
-  // Si es menor a 1 asumimos que es tasa (ej: 0.19 → 19%)
-  if (Number(field.value) > 0 && Number(field.value) < 1) {
-    return (Number(field.value) * 100).toLocaleString('es-CL') + '%'
-  }
-
-  return '$' + Number(field.value).toLocaleString('es-CL')
-}
+const formulaTemplate = ref(null)
 
 const fields = reactive([
-  { key: 'base_neto', label: 'Valor Base Neto', value: null }
+  { key: 'base_net_amount', label: 'Valor Base Neto', value: Number(props.baseNetAmount) }
 ])
 
-const resultFields = reactive([
-  { key: 'neto', label: 'Neto', value: null },
-  { key: 'iva', label: 'IVA', value: null },
-  { key: 'impuesto_adicional', label: 'Impuesto Adicional', value: null },
-  { key: 'retencion', label: 'Retención', value: null },
-  { key: 'bruto', label: 'Bruto', value: null },
-])
+const results = ref([])
 
-function setBaseNetAmount(val) {
-  fields[0].value = val
-}
+/* ================================
+   FORMAT
+================================ */
 
-function setResultAmounts() {
-  resultFields.find(f => f.key === 'neto').value = props.netAmount
-  resultFields.find(f => f.key === 'iva').value = props.ivaAmount
-  resultFields.find(f => f.key === 'impuesto_adicional').value = props.additionalTaxAmount
-  resultFields.find(f => f.key === 'retencion').value = props.retentionAmount
-  resultFields.find(f => f.key === 'bruto').value = props.grossAmount
-}
+function formatByType(value, format) {
+  if (value == null || isNaN(value)) return '-'
 
-async function fetchFields(code) {
-  if (!code) return
-  try {
-    const response = await api.get(`/formula-variables/?code=${code}`)
-
-    const dynamicFields = response.data
-      .filter(item => item.var !== 'base_neto')
-      .map(item => ({
-        key: item.var,
-        label: item.variable_type === 'percentage'
-          ? `${item.var} (%)`
-          : item.var,
-        value: item.value ?? null,
-        variable_type: item.variable_type ?? null
-      }))
-
-    fields.splice(1, fields.length - 1, ...dynamicFields)
-  } catch {
-    fields.splice(1)
+  switch (format) {
+    case 'currency_int':
+      return '$' + Number(value).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+    case 'currency_2':
+      return '$' + Number(value).toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    case 'percentage':
+      return Number(value * 100).toLocaleString('es-CL') + '%'
+    default:
+      return '$' + Number(value).toLocaleString('es-CL')
   }
 }
 
-async function calculateFormula() {
-  if (!props.code) return
+function formatValue(val, decimals = 0) {
+  if (val == null || isNaN(val)) return '-'
+  if (val > 0 && val < 1) return Number(val * 100).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + '%'
+  return '$' + Number(val).toLocaleString('es-CL', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+}
+
+/* ================================
+   FETCH FORMULA
+================================ */
+
+async function fetchFormula() {
+  const response = await api.get(`/price-configuration-formula/?code=${props.code}`)
+  formulaTemplate.value = response.data?.[0]?.formula_template || null
+}
+
+/* ================================
+   FETCH VARIABLES (iva etc)
+================================ */
+
+async function fetchVariables() {
+  const response = await api.get(`/formula-variables/?code=${props.code}`)
+
+  // limpia dinámicas (deja base_net_amount + extras)
+  const keepKeys = new Set(['base_net_amount'])
+  if (props.extraVariables && typeof props.extraVariables === 'object') {
+    Object.keys(props.extraVariables).forEach(k => keepKeys.add(k))
+  }
+
+  for (let i = fields.length - 1; i >= 0; i--) {
+    if (!keepKeys.has(fields[i].key)) fields.splice(i, 1)
+  }
+
+  // agrega fiscales
+  ;(response.data || []).forEach(v => {
+    const k = String(v.var || '').trim()
+    if (!k || k === 'base_net_amount') return
+    if (!fields.find(f => f.key === k)) {
+      fields.push({ key: k, label: k, value: Number(v.value) })
+    } else {
+      fields.find(f => f.key === k).value = Number(v.value)
+    }
+  })
+
+  // agrega extras (costos, etc.)
+  if (props.extraVariables && typeof props.extraVariables === 'object') {
+    Object.entries(props.extraVariables).forEach(([k, v]) => {
+      const key = String(k).trim()
+      if (!key) return
+      if (!fields.find(f => f.key === key)) {
+        fields.push({ key, label: key, value: Number(v) })
+      } else {
+        fields.find(f => f.key === key).value = Number(v)
+      }
+    })
+  }
+}
+
+/* ================================
+   CALCULATION ENGINE (FRONT)
+================================ */
+
+function calculateFormula() {
+  if (!formulaTemplate.value) return
 
   loading.value = true
-  calculationError.value = null
-  calculationResult.value = null
+  results.value = []
 
-  try {
-    const response = await api.post('/product-price-calculation/', {
-      sku: props.selectedProductSku
-    })
+  const context = {}
+  fields.forEach(f => (context[f.key] = Number(f.value)))
 
-    if (response.data) {
-      Object.keys(response.data).forEach(key => {
-        const field = resultFields.find(f => f.key === key)
-        if (field) field.value = response.data[key]
-      })
+  const cleanFormula = String(formulaTemplate.value).replace(/\|/g, '')
+  const parts = cleanFormula.split(';')
+
+  parts.forEach(p => {
+    if (!p.trim()) return
+
+    let [rawLabel, expr] = p.split('=')
+    if (!rawLabel || !expr) return
+
+    rawLabel = rawLabel.trim()
+    expr = expr.trim()
+
+    let label = rawLabel
+    let format = 'currency_int'
+
+    if (rawLabel.includes(':')) {
+      const x = rawLabel.split(':')
+      label = (x[0] || '').trim()
+      format = (x[1] || '').trim()
     }
 
-    calculationResult.value = 'ok'
-    emit('calculated')
-    setTimeout(() => calculationResult.value = null, 3000)
+    Object.keys(context).forEach(v => {
+      expr = expr.replaceAll(`\${${v}}`, String(context[v]))
+    })
 
-  } catch (error) {
-    calculationError.value = error.response?.data?.detail || 'Error al realizar el cálculo'
-    setTimeout(() => calculationError.value = null, 5000)
-  } finally {
-    loading.value = false
-  }
+    let value = null
+    try {
+      value = eval(expr)
+    } catch {
+      value = null
+    }
+
+    results.value.push({ label, value, format })
+  })
+
+  loading.value = false
 }
 
-onMounted(() => {
-  setBaseNetAmount(props.baseNetAmount)
-  setResultAmounts()
-  fetchFields(props.code)
+/* ================================
+   INIT / REACTIVE
+================================ */
+
+onMounted(async () => {
+  await fetchFormula()
+  await fetchVariables()
+  calculateFormula()
 })
 
-watch(() => props.code, fetchFields)
-watch(() => props.baseNetAmount, setBaseNetAmount)
-watch(
-  () => [props.netAmount, props.grossAmount, props.ivaAmount, props.additionalTaxAmount, props.retentionAmount],
-  setResultAmounts
-)
+watch(() => props.baseNetAmount, async (v) => {
+  const f = fields.find(x => x.key === 'base_net_amount')
+  if (f) f.value = Number(v)
+  calculateFormula()
+})
+
+watch(() => props.code, async () => {
+  await fetchFormula()
+  await fetchVariables()
+  calculateFormula()
+})
+
+watch(() => props.extraVariables, async () => {
+  await fetchVariables()
+  calculateFormula()
+}, { deep: true })
 </script>

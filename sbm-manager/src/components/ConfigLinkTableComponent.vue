@@ -59,6 +59,7 @@
                             </th>
 
                             <th style="width: 110px;">Cantidad</th>
+                            <th style="width: 150px;">Neto Unitario</th>
                             <th style="width: 150px;">Neto</th>
                             <th style="width: 150px;">IVA</th>
                             <th style="width: 150px;">Bruto</th>
@@ -68,7 +69,7 @@
 
                     <tbody>
                         <tr v-if="safeRows.length === 0">
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 No hay registros. Agrega el primero usando el buscador.
                             </td>
                         </tr>
@@ -88,22 +89,29 @@
 
                             <td class="text-center">
                                 <input type="number" min="1" class="form-control form-control-sm text-center"
-                                    v-model.number="row.quantity" @input="emitChange" />
+                                    v-model.number="row.quantity" @input="recalculateRow(row)" />
                             </td>
 
                             <td class="text-center">
-                                <input type="number" class="form-control form-control-sm text-center"
-                                    v-model.number="row.net_amount" @input="emitChange" />
+                                <input type="text" class="form-control form-control-sm text-center"
+                                    :value="formatPrice(row.unit_net)" readonly disabled />
+
                             </td>
 
                             <td class="text-center">
-                                <input type="number" class="form-control form-control-sm text-center"
-                                    v-model.number="row.iva_amount" @input="emitChange" />
+                                <input type="text" class="form-control form-control-sm text-center"
+                                    :value="formatPrice(row.net_amount)" readonly disabled />
                             </td>
 
                             <td class="text-center">
-                                <input type="number" class="form-control form-control-sm text-center"
-                                    v-model.number="row.gross_amount" @input="emitChange" />
+                                <input type="text" class="form-control form-control-sm text-center"
+                                    :value="formatPrice(row.iva_amount)" readonly disabled />
+
+                            </td>
+
+                            <td class="text-center">
+                                <input type="text" class="form-control form-control-sm text-center"
+                                    :value="formatPrice(row.gross_amount)" readonly disabled />
                             </td>
 
                             <td class="text-center">
@@ -141,23 +149,50 @@ const localRows = ref([])
 /* NORMALIZACIÓN */
 watch(
     () => props.modelValue,
-    (v) => {
-        if (!Array.isArray(v)) {
+    (rows) => {
+        if (!Array.isArray(rows)) {
             localRows.value = []
             return
         }
 
-        localRows.value = v.map((r, idx) => ({
-            __key: r?.__key ?? r?.id ?? `row-${idx}`,
-            id: r?.id ?? null,
-            item_sku: r?.item_sku ?? '',
-            quantity: Number(r?.quantity ?? 1),
-            net_amount: Number(r?.net_amount ?? 0),
-            iva_amount: Number(r?.iva_amount ?? 0),
-            gross_amount: Number(r?.gross_amount ?? 0),
-            description: r?.description ?? null,
-            obs: r?.obs ?? null
-        }))
+        localRows.value = rows.map((r, idx) => {
+            const q = Number(r?.quantity ?? 1) || 1
+
+            // si backend ya manda unit_net, lo usamos; si no, lo derivamos desde net_amount / quantity
+            const netSubtotal = Number(r?.net_amount ?? 0) || 0
+            const ivaSubtotal = Number(r?.iva_amount ?? 0) || 0
+            const grossSubtotal = Number(r?.gross_amount ?? 0) || 0
+
+            const unitNet = Number(r?.unit_net ?? 0) || (q ? netSubtotal / q : 0)
+            const unitIva = Number(r?.unit_iva ?? 0) || (q ? ivaSubtotal / q : 0)
+            const unitGross = Number(r?.unit_gross ?? 0) || (q ? grossSubtotal / q : 0)
+
+            const fixedQ = q > 0 ? q : 1
+
+            return {
+                __key: r?.__key ?? r?.detail_code ?? r?.id ?? `row-${idx}`,
+                id: r?.id ?? r?.item_code ?? null,
+                detail_code: r?.detail_code ?? null,
+                item_kind: r?.item_kind ?? props.itemType ?? null,
+                item_code: r?.item_code ?? r?.id_item ?? null,
+                item_sku: r?.item_sku ?? '',
+                detail: r?.detail ?? '',
+                type_id: r?.type_id ?? null,
+
+                quantity: fixedQ,
+
+                unit_net: Number.isFinite(unitNet) ? unitNet : 0,
+                unit_iva: Number.isFinite(unitIva) ? unitIva : 0,
+                unit_gross: Number.isFinite(unitGross) ? unitGross : 0,
+
+                net_amount: (Number.isFinite(unitNet) ? unitNet : 0) * fixedQ,
+                iva_amount: (Number.isFinite(unitIva) ? unitIva : 0) * fixedQ,
+                gross_amount: (Number.isFinite(unitGross) ? unitGross : 0) * fixedQ,
+
+                description: r?.description ?? null,
+                obs: r?.obs ?? null
+            }
+        })
     },
     { immediate: true }
 )
@@ -228,16 +263,31 @@ function selectItem(it, i) {
 function addSelected() {
     if (!selectedItem.value) return
 
+    // desde /products/list/ ya vienen net_amount, iva_amount, gross_amount (unitarios)
+    const unitNet = Number(selectedItem.value.net_amount ?? 0) || 0
+    const unitIva = Number(selectedItem.value.iva_amount ?? 0) || 0
+    const unitGross = Number(selectedItem.value.gross_amount ?? 0) || 0
+
+    const q = 1
+
     localRows.value.push({
         __key: selectedItem.value.code || selectedItem.value.sku,
         id: selectedItem.value.code || null,
+        detail_code: null,
+        item_kind: props.itemType,
+        item_code: selectedItem.value.code || null,
         item_sku: selectedItem.value.sku,
         description: selectedItem.value.description,
         obs: selectedItem.value.obs,
-        quantity: 1,
-        net_amount: Number(selectedItem.value.net_amount ?? 0),
-        iva_amount: 0,
-        gross_amount: Number(selectedItem.value.net_amount ?? 0)
+        quantity: q,
+
+        unit_net: unitNet,
+        unit_iva: unitIva,
+        unit_gross: unitGross,
+
+        net_amount: unitNet * q,
+        iva_amount: unitIva * q,
+        gross_amount: unitGross * q
     })
 
     emitChange()
@@ -268,6 +318,7 @@ function moveActive(step) {
     selectedItem.value = results.value[i]
 }
 
+
 /* ================== TABLE ================== */
 
 function emitChange() {
@@ -279,6 +330,21 @@ function removeRow(key) {
     emitChange()
 }
 
+function recalculateRow(row) {
+    const q = Number(row.quantity || 1)
+    row.quantity = q > 0 ? q : 1
+
+    const unitNet = Number(row.unit_net || 0)
+    const unitIva = Number(row.unit_iva || 0)
+    const unitGross = Number(row.unit_gross || 0)
+
+    row.net_amount = (Number.isFinite(unitNet) ? unitNet : 0) * row.quantity
+    row.iva_amount = (Number.isFinite(unitIva) ? unitIva : 0) * row.quantity
+    row.gross_amount = (Number.isFinite(unitGross) ? unitGross : 0) * row.quantity
+
+    emitChange()
+}
+
 const computedTotals = computed(() => {
     let count = 0
     let net = 0
@@ -287,9 +353,9 @@ const computedTotals = computed(() => {
 
     for (const r of safeRows.value) {
         count++
-        net += r.net_amount * r.quantity
-        iva += r.iva_amount * r.quantity
-        gross += r.gross_amount * r.quantity
+        net += Number(r.net_amount || 0)
+        iva += Number(r.iva_amount || 0)
+        gross += Number(r.gross_amount || 0)
     }
 
     return {
@@ -302,7 +368,7 @@ const computedTotals = computed(() => {
 
 function formatPrice(v) {
     const n = Number(v)
-    if (!Number.isFinite(n)) return '-'
+    if (!Number.isFinite(n)) return '$0'
     return '$' + n.toLocaleString('es-CL')
 }
 </script>
