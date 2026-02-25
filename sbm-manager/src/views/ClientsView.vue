@@ -76,7 +76,7 @@ const fields = ref([
 
   { key: 'id', label: 'ID', type: 'number', omitInForm: true },
 
-  { key: 'client_code', label: 'CLIENTE', type: 'text', omitInForm: true},
+  { key: 'client_code', label: 'CLIENTE', type: 'text', omitInForm: true, hideInGrid: true},
 
   { key: 'brand_name', label: 'Marca', type: 'text', required: true, maxlength: 150 },
 
@@ -84,11 +84,14 @@ const fields = ref([
     key: 'status',
     label: 'Estado',
     type: 'dynamic-select',
-    required: true,
     endpoint: '/status/clients/',
-    labelKey: 'name',
-    valueKey: 'id',
-    cellManual: { labelKey: 'name', valueKey: 'id' },
+    cellManual: {
+      model: 'client',          // 🔥 porque vive en client
+      endpoint: 'clients',      // 🔥 tabla real
+      patchField: 'status',     // 🔥 columna real
+      valueKey: 'id',
+      labelKey: 'name'
+    },
     cellPill: 'clients'
   },
 

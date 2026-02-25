@@ -146,13 +146,32 @@
               <!-- CELLS -->
               <td v-for="col in visibleColumns" :key="col">
 
-                <!-- 🔥 1️⃣ CELL MANUAL -->
-                <template v-if="fields.find(f => f.key === col && f.cellManual)">
+                <!-- 🔥 1️⃣ CELL MANUAL (dynamic-select con pill opcional) -->
+                <template v-if="
+                  (() => {
+                    const field = fields.find(f => f.key === col)
+                    return field && field.cellManual
+                  })()
+                ">
 
-                  <!-- 🔵 SELECT (caso actual status) -->
-                  <select v-if="fields.find(f => f.key === col).cellManual.type !== 'textarea'"
-                    class="form-select form-select-sm" :class="getCellPillClass(col, row)" v-model="row[col]"
-                    @change="handleManualChange(row, col)" @click.stop>
+                  <!-- 🟢 PILL (si tiene _detail y cellPill) -->
+                  <span v-if="
+                    editingCellKey !== rowId(row) + '-' + col &&
+                    fields.find(f => f.key === col)?.cellPill
+                  " :class="getCellPillClass(col, row)" class="pill-status" style="cursor:pointer;"
+                    @click.stop="editingCellKey = rowId(row) + '-' + col">
+                    {{
+                      fields.find(f => f.key === col)?._manualOptions
+                        ?.find(o => String(o.id) === String(row[col]))
+                    ?.name || '-'
+                    }}
+                  </span>
+
+                  <!-- 🔵 SELECT EDITABLE -->
+                  <select v-else-if="fields.find(f => f.key === col)?.type === 'dynamic-select'"
+                    class="form-select form-select-sm" v-model="row[col]"
+                    @change="handleManualChange(row, col); editingCellKey = null" @blur="editingCellKey = null"
+                    @click.stop>
                     <option v-for="opt in fields.find(f => f.key === col)._manualOptions || []"
                       :key="opt[fields.find(f => f.key === col).cellManual.valueKey]"
                       :value="opt[fields.find(f => f.key === col).cellManual.valueKey]">
@@ -160,14 +179,20 @@
                     </option>
                   </select>
 
-                  <!-- 🔥 TEXTAREA INLINE (nuevo) -->
-                  <textarea v-else class="form-control form-control-sm" rows="2" v-model="row[col]"
+                  <!-- 🔵 TEXTAREA INLINE -->
+                  <textarea v-else-if="fields.find(f => f.key === col)?.type === 'textarea'"
+                    class="form-control form-control-sm" rows="2" v-model="row[col]"
                     @blur="handleManualTextarea(row, col)" @click.stop></textarea>
 
                 </template>
 
-                <!-- 🔵 2️⃣ CELL LABEL SIMPLE -->
-                <span v-else-if="fields.find(f => f.key === col && f.cellLabel) && row[`${col}_detail`]">
+                <!-- 🔵 CELL LABEL SIMPLE -->
+                <span v-else-if="
+                  (() => {
+                    const field = fields.find(f => f.key === col)
+                    return field && field.cellLabel && row[`${col}_detail`]
+                  })()
+                ">
                   {{
                     row[`${col}_detail`][
                     fields.find(f => f.key === col).cellLabel
@@ -187,8 +212,11 @@
                 </span>
 
                 <!-- CLOUDINARY -->
-                <span
-                  v-else-if="typeof row[col] === 'string' && row[col] && row[col].startsWith('https://res.cloudinary.com')">
+                <span v-else-if="
+                  typeof row[col] === 'string' &&
+                  row[col] &&
+                  row[col].startsWith('https://res.cloudinary.com')
+                ">
                   <img :src="row[col]" alt="Imagen"
                     style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px;" />
                 </span>
@@ -286,6 +314,7 @@ export default {
       error: '',
       selected: [],
       editingRowId: null,
+      editingCellKey: null,
       searchTerm: '',
       filteredRows: [],
       searchTimeout: null,
@@ -549,7 +578,12 @@ export default {
 
         this.columns = this.rows.length > 0
           ? Object.keys(this.rows[0]).filter(col => {
-            if (col === 'field_verbose_names' || col === 'code' || col === 'type_id') return false;
+            if (
+              col === 'field_verbose_names' ||
+              col === 'code' ||
+              col === 'type_id'
+            ) return false;
+
             return true;
           })
           : [];
@@ -626,15 +660,21 @@ export default {
       return this.filteredRows.map(r => this.rowId(r)).join('-');
     },
 
-    getPillClass(col, value) {
-      const field = this.fields.find(f => f.key === col && f.type === 'pill_name');
-      if (!field || !field.pillMap || !value) return 'bg-secondary';
+    getCellPillClass(col, row) {
 
-      const valueStr = String(value).toLowerCase();
-      const mappedKey = Object.keys(field.pillMap).find(key => key.toLowerCase() === valueStr);
-      if (mappedKey) return field.pillMap[mappedKey];
+      const field = this.fields.find(f => f.key === col)
+      if (!field?.cellPill) return ''
 
-      return 'bg-dark';
+      const option = field._manualOptions?.find(
+        o => String(o[field.cellManual.valueKey]) === String(row[col])
+      )
+
+      if (!option?.code) return ''
+
+      const module = field.cellPill.toLowerCase()
+      const code = option.code.toLowerCase().replace(/_/g, '-')
+
+      return `pill-status pill-${module}-${code}`
     },
 
     formatSumValue(value) {
@@ -728,22 +768,6 @@ export default {
       return col;
     },
 
-    getPercentColorClass(value) {
-      if (value === null || value === undefined || isNaN(value)) return '';
-
-      const val = Number(value);
-      const thresholds = this.percentColorThresholds;
-      const classes = this.percentColorClasses;
-
-      for (let i = 0; i < thresholds.length; i++) {
-        if (val <= thresholds[i]) {
-          return classes[i] || '';
-        }
-      }
-
-      return classes[classes.length - 1] || '';
-    },
-
     getCellClass(col, value) {
       const field = this.fields.find(f => f.key === col);
 
@@ -805,31 +829,6 @@ export default {
       if (val <= 100) return 'fas fa-arrow-up';
       return 'fas fa-crown';
     },
-
-    getCellPillClass(col, row) {
-      const field = this.fields.find(f => f.key === col)
-      if (!field?.cellPill) return 'bg-secondary text-white'
-
-      const label =
-        row[`${col}_detail`]?.[field.cellManual?.labelKey] ||
-        row[col]
-
-      const value = String(label || '').toLowerCase()
-
-      // 🔥 contexto clients
-      if (field.cellPill === 'clients') {
-        switch (value) {
-          case 'activo': return 'bg-success text-white'
-          case 'contactado': return 'bg-warning text-dark'
-          case 'interesado': return 'bg-info text-white'
-          case 'rechazado': return 'bg-danger text-white'
-          case 'descartar': return 'bg-dark text-white'
-          default: return 'bg-secondary text-white'
-        }
-      }
-
-      return 'bg-secondary text-white'
-    },
     async handleManualChange(row, col) {
 
       const field = this.fields.find(f => f.key === col)
@@ -837,19 +836,20 @@ export default {
 
       try {
 
-        const base = this.endpoint.split('?')[0].split('/').filter(Boolean)[0]
+        const endpoint = field.cellManual.endpoint
+        const patchField = field.cellManual.patchField
 
-        await api.patch(`/${base}/${row.id}/`, {
-          [col]: row[col]
-        })
+        let id = row.id
 
-        const option = field._manualOptions?.find(
-          o => String(o[field.cellManual.valueKey]) === String(row[col])
-        )
-
-        if (option) {
-          row[`${col}_detail`] = option
+        // 🔥 si el campo pertenece a client
+        if (field.cellManual.model === 'client') {
+          id = row.client_code
+          if (!id) return
         }
+
+        await api.patch(`/${endpoint}/${id}/`, {
+          [patchField]: row[col]
+        })
 
       } catch (error) {
         console.error('Error PATCH manual:', error)

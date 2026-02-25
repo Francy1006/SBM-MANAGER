@@ -1,0 +1,18 @@
+.pill-status {
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+  }
+  
+  /* CLIENTS */
+  
+  .pill-clients-client-sin-datos { background:#6c757d; color:white; }
+  .pill-clients-client-sin-contacto { background:#adb5bd; color:white; }
+  .pill-clients-client-contactado { background:#0dcaf0; color:white; }
+  .pill-clients-client-interesado { background:#ffc107; color:black; }
+  .pill-clients-client-postulante { background:#6610f2; color:white; }
+  .pill-clients-client-activo { background:#198754; color:white; }
+  .pill-clients-client-rechazado { background:#dc3545; color:white; }
+  .pill-clients-client-descartar { background:#212529; color:white; }
