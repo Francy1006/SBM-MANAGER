@@ -76,6 +76,8 @@ const fields = ref([
 
   { key: 'id', label: 'ID', type: 'number', omitInForm: true },
 
+  { key: 'client_code', label: 'CLIENTE', type: 'text', omitInForm: true},
+
   { key: 'brand_name', label: 'Marca', type: 'text', required: true, maxlength: 150 },
 
   {
