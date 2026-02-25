@@ -75,73 +75,32 @@ const fields = ref([
   // 🔹 ORDEN EXACTO DEL GRID
 
   { key: 'id', label: 'ID', type: 'number', omitInForm: true },
-
-  { key: 'client_code', label: 'CLIENTE', type: 'text', omitInForm: true, hideInGrid: true},
-
+  { key: 'client_code', label: 'CLIENTE', type: 'text', omitInForm: true, hideInGrid: true },
   { key: 'brand_name', label: 'Marca', type: 'text', required: true, maxlength: 150 },
-
-  {
-    key: 'status',
-    label: 'Estado',
-    type: 'dynamic-select',
-    endpoint: '/status/clients/',
-    cellManual: {
-      model: 'client',          // 🔥 porque vive en client
-      endpoint: 'clients',      // 🔥 tabla real
-      patchField: 'status',     // 🔥 columna real
-      valueKey: 'id',
-      labelKey: 'name'
-    },
-    cellPill: 'clients'
-  },
-
-  {
-    key: 'progress',
-    label: 'Avances',
-    type: 'textarea',
-    cellManual: {
-      type: 'textarea',          // 🔥 activa edición inline
-      model: 'client',           // 🔥 el patch va contra client
-      endpoint: 'clients',       // 🔥 endpoint real
-      patchField: 'progress'     // 🔥 campo en ditaly_pasta.client
-    }
-  },
-
+  { key: 'status', label: 'Estado', type: 'dynamic-select', endpoint: '/status/clients/', cellManual: { model: 'client', endpoint: 'clients', patchField: 'status', valueKey: 'id', labelKey: 'name' }, cellPill: 'clients' },
+  { key: 'progress', label: 'Avances', type: 'textarea', cellManual: { type: 'textarea', model: 'client', endpoint: 'clients', patchField: 'progress' } },
   { key: 'exact_address', label: 'Dirección Exacta', type: 'text', required: true },
-
   { key: 'observations', label: 'Observaciones', type: 'textarea' },
-
-  { key: 'district', label: 'Comuna', type: 'dynamic-select', required: true, hideInGrid:true, endpoint: '/district/', labelKey: 'district', valueKey: 'id', cellLabel: 'district'},
-
+  { key: 'district', label: 'Comuna', type: 'dynamic-select', required: true, hideInGrid: true, endpoint: '/district/', labelKey: 'district', valueKey: 'id', cellLabel: 'district' },
   { key: 'district_name', label: 'Comuna', type: 'text', omitInForm: true },
-  
-  { key: 'region', label: 'Región', type: 'dynamic-select', required: true, hideInGrid:true, endpoint: '/region/', labelKey: 'region', valueKey: 'id', cellLabel: 'region'},
-
+  { key: 'region', label: 'Región', type: 'dynamic-select', required: true, hideInGrid: true, endpoint: '/region/', labelKey: 'region', valueKey: 'id', cellLabel: 'region' },
   { key: 'region_name', label: 'Región', type: 'text', omitInForm: true },
-
   { key: 'same_address_detected', label: 'Misma Dirección Detectada', type: 'checkbox' },
-
   { key: 'detection_date', label: 'Fecha Detección', type: 'date', required: true },
-
   { key: 'estimated_type', label: 'Tipo Estimado', type: 'text' },
   { key: 'operation_schedule', label: 'Horario Operación', type: 'text' },
   { key: 'estimated_avg_ticket', label: 'Ticket Promedio Estimado', type: 'number', step: '0.01' },
   { key: 'has_visible_physical_store', label: 'Local Físico Visible', type: 'checkbox' },
-
   { key: 'company_name', label: 'Razón Social', type: 'text' },
   { key: 'company_rut', label: 'RUT Empresa', type: 'text' },
   { key: 'owner_name', label: 'Nombre Dueño/Socio', type: 'text' },
   { key: 'owner_position', label: 'Cargo', type: 'text' },
   { key: 'linkedin_url', label: 'URL LinkedIn', type: 'url' },
-
   { key: 'direct_phone', label: 'Teléfono Directo', type: 'text' },
   { key: 'direct_email', label: 'Email Directo', type: 'email' },
-
   { key: 'contacted', label: 'Contactado', type: 'checkbox' },
   { key: 'contact_date', label: 'Fecha Contacto', type: 'date' },
-
   { key: 'estimated_potential_volume', label: 'Volumen Potencial Estimado', type: 'number', step: '0.01' },
-
   {
     key: 'priority',
     label: 'Prioridad',
