@@ -111,9 +111,13 @@ const fields = ref([
 
   { key: 'observations', label: 'Observaciones', type: 'textarea' },
 
-  { key: 'district', label: 'Comuna', type: 'dynamic-select', required: true, endpoint: '/district/', labelKey: 'district', valueKey: 'id' },
+  { key: 'district', label: 'Comuna', type: 'dynamic-select', required: true, hideInGrid:true, endpoint: '/district/', labelKey: 'district', valueKey: 'id', cellLabel: 'district'},
 
-  { key: 'region', label: 'Región', type: 'dynamic-select', required: true, endpoint: '/region/', labelKey: 'region', valueKey: 'id' },
+  { key: 'district_name', label: 'Comuna', type: 'text', omitInForm: true },
+  
+  { key: 'region', label: 'Región', type: 'dynamic-select', required: true, hideInGrid:true, endpoint: '/region/', labelKey: 'region', valueKey: 'id', cellLabel: 'region'},
+
+  { key: 'region_name', label: 'Región', type: 'text', omitInForm: true },
 
   { key: 'same_address_detected', label: 'Misma Dirección Detectada', type: 'checkbox' },
 
