@@ -498,29 +498,44 @@ function resetLinkingEdits() {
 async function saveConfiguration() {
   if (!props.product?.sku) return
 
-  const priceConfigCode =
-    configData.value?.calculation?.props?.code
-
+  const sku = props.product.sku
+  const priceConfigCode = configData.value?.calculation?.props?.code
   if (!priceConfigCode) {
     console.error('price_configuration no viene desde config')
     return
   }
 
-  saving.value = true
+  const normalize = (rows, kind) =>
+    (rows || []).map(r => ({
+      item_kind: kind,
+      item_sku: String(r?.item_sku || '').trim(),
+      item_code: String(r?.item_code || r?.id || '').trim(),
+      detail: String(r?.detail || '').slice(0, 50),
+      quantity: Number(r?.quantity || 1)
+    }))
 
+  saving.value = true
   try {
-    await axios.patch(`/catalogs/${props.product.sku}/`, {
+    // 1) GUARDAR TABLAS (ItemConfigurationDetail)
+    await axios.post(`/catalogs/${sku}/config/`, {
+      products: normalize(productLinks.value, 'product'),
+      materials: normalize(materialLinks.value, 'material'),
+      services: normalize(serviceLinks.value, 'service'),
+    })
+
+    // 2) GUARDAR PRECIO (Price versionado)
+    await axios.patch(`/catalogs/${sku}/`, {
       price_data: {
         base_net_amount: Number(baseNetAmount.value) || 0,
         price_configuration: priceConfigCode
       }
     })
 
+    await loadConfiguration() // refresca desde backend
     takeSnapshot()
     linkDirty.value = false
-
   } catch (e) {
-    console.error('ERROR ACTUALIZANDO CATALOGO', e.response?.data || e)
+    console.error('ERROR GUARDANDO CONFIG + PRECIO', e.response?.data || e)
   } finally {
     saving.value = false
   }
