@@ -8,6 +8,7 @@ import ServiceView from '../views/ServiceView.vue';
 import ProviderView from '../views/ProviderView.vue';
 import FiscalDirective from '../views/Configuration/FiscalDirective.vue';
 import LoginView from '../views/LoginView.vue';
+import ClientsView from '../views/ClientsView.vue';
 import { useAuth } from '../composables/useAuth';
 
 const routes = [
@@ -57,6 +58,12 @@ const routes = [
     path: '/proveedores', 
     name: 'Proveedores', 
     component: ProviderView,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/clientes', 
+    name: 'Clientes', 
+    component: ClientsView,
     meta: { requiresAuth: true }
   },
   { 

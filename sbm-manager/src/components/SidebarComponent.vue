@@ -48,6 +48,12 @@
         </router-link>
       </li>
       <li>
+        <router-link to="/clientes" class="nav-link" active-class="active">
+          <i class="fa-solid fa-user-tie"></i>
+          <span class="nav-text">Clientes</span>
+        </router-link>
+      </li>
+      <li>
         <a href="#" class="nav-link d-flex align-items-center" @click.prevent="showConfig = !showConfig">
           <i class="fa-solid fa-cog"></i>
           <span class="nav-text">Configuración</span>
@@ -104,4 +110,3 @@ const handleLogout = () => {
   router.push('/login');
 };
 </script>
-

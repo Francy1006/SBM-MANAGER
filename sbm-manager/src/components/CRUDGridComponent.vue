@@ -145,61 +145,64 @@
 
               <!-- CELLS -->
               <td v-for="col in visibleColumns" :key="col">
-                <span v-if="col === 'state' && states">
+
+                <!-- 🔥 1️⃣ CELL MANUAL -->
+                <template v-if="fields.find(f => f.key === col && f.cellManual)">
+
+                  <!-- 🔵 SELECT (caso actual status) -->
+                  <select v-if="fields.find(f => f.key === col).cellManual.type !== 'textarea'"
+                    class="form-select form-select-sm" :class="getCellPillClass(col, row)" v-model="row[col]"
+                    @change="handleManualChange(row, col)" @click.stop>
+                    <option v-for="opt in fields.find(f => f.key === col)._manualOptions || []"
+                      :key="opt[fields.find(f => f.key === col).cellManual.valueKey]"
+                      :value="opt[fields.find(f => f.key === col).cellManual.valueKey]">
+                      {{opt[fields.find(f => f.key === col).cellManual.labelKey]}}
+                    </option>
+                  </select>
+
+                  <!-- 🔥 TEXTAREA INLINE (nuevo) -->
+                  <textarea v-else class="form-control form-control-sm" rows="2" v-model="row[col]"
+                    @blur="handleManualTextarea(row, col)" @click.stop></textarea>
+
+                </template>
+
+                <!-- 🔵 2️⃣ CELL LABEL SIMPLE -->
+                <span v-else-if="fields.find(f => f.key === col && f.cellLabel) && row[`${col}_detail`]">
+                  {{
+                    row[`${col}_detail`][
+                    fields.find(f => f.key === col).cellLabel
+                    ]
+                  }}
+                </span>
+
+                <!-- STATE legacy -->
+                <span v-else-if="col === 'state' && states">
                   {{ getStateName(row[col]) }}
                 </span>
 
+                <!-- BOOLEAN -->
                 <span v-else-if="typeof row[col] === 'boolean'">
                   <i v-if="row[col]" class="fas fa-check text-success" style="font-size: x-large;"></i>
                   <i v-else class="fas fa-times text-danger" style="font-size: x-large;"></i>
                 </span>
 
+                <!-- CLOUDINARY -->
                 <span
                   v-else-if="typeof row[col] === 'string' && row[col] && row[col].startsWith('https://res.cloudinary.com')">
-                  <img :src="row[col]" alt="Imagen Cloudinary"
-                    style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px #0001;" />
+                  <img :src="row[col]" alt="Imagen"
+                    style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px;" />
                 </span>
 
-                <span
-                  v-else-if="col.toLowerCase().includes('url') && row[col] && !(typeof row[col] === 'string' && row[col].startsWith('https://res.cloudinary.com'))">
-                  <a :href="row[col]" target="_blank" rel="noopener noreferrer">{{ row[col] }}</a>
+                <!-- URL -->
+                <span v-else-if="col.toLowerCase().includes('url') && row[col]">
+                  <a :href="row[col]" target="_blank">{{ row[col] }}</a>
                 </span>
 
-                <span v-else-if="col === 'rating'">
-                  <span class="crudgrid-rating">
-                    <span v-for="star in 5" :key="star">
-                      <i class="fa-star fa-solid"
-                        :style="{ color: row[col] >= star ? '#ffd700' : '#ccc', fontSize: '1.3em', marginRight: '2px' }"></i>
-                    </span>
-                  </span>
-                </span>
-
-                <span v-else-if="fields.find(f => f.key === col && f.type === 'pill_name') && row[col]">
-                  <span class="badge rounded-pill text-white" :class="getPillClass(col, row[col])">
-                    {{ String(row[col]).toUpperCase() }}
-                  </span>
-                </span>
-
+                <!-- DEFAULT -->
                 <span v-else>
-                  <template v-if="isPercentField(col) && !(isSecretHidden(col))">
-                    <span :class="getPercentColorClass(row[col])">
-                      <i :class="getPercentIconClass(row[col])" class="me-1"></i>
-                      {{ formatValue(row[col], col) }}
-                    </span>
-                  </template>
-
-                  <template v-else>
-                    <span :class="getCellClass(col, row[col])">
-                      {{
-                        fields.find(f => f.key === col && f.secretField) && !showSecretFields
-                          ? (typeof row[col] === 'string' || typeof row[col] === 'number'
-                            ? '●'.repeat(String(row[col]).length)
-                            : '●●●●●')
-                          : formatValue(row[col], col)
-                      }}
-                    </span>
-                  </template>
+                  {{ formatValue(row[col], col) }}
                 </span>
+
               </td>
             </tr>
           </tbody>
@@ -801,6 +804,102 @@ export default {
       if (val <= 60) return 'fas fa-minus';
       if (val <= 100) return 'fas fa-arrow-up';
       return 'fas fa-crown';
+    },
+
+    getCellPillClass(col, row) {
+      const field = this.fields.find(f => f.key === col)
+      if (!field?.cellPill) return 'bg-secondary text-white'
+
+      const label =
+        row[`${col}_detail`]?.[field.cellManual?.labelKey] ||
+        row[col]
+
+      const value = String(label || '').toLowerCase()
+
+      // 🔥 contexto clients
+      if (field.cellPill === 'clients') {
+        switch (value) {
+          case 'activo': return 'bg-success text-white'
+          case 'contactado': return 'bg-warning text-dark'
+          case 'interesado': return 'bg-info text-white'
+          case 'rechazado': return 'bg-danger text-white'
+          case 'descartar': return 'bg-dark text-white'
+          default: return 'bg-secondary text-white'
+        }
+      }
+
+      return 'bg-secondary text-white'
+    },
+    async handleManualChange(row, col) {
+
+      const field = this.fields.find(f => f.key === col)
+      if (!field?.cellManual) return
+
+      try {
+
+        const base = this.endpoint.split('?')[0].split('/').filter(Boolean)[0]
+
+        await api.patch(`/${base}/${row.id}/`, {
+          [col]: row[col]
+        })
+
+        const option = field._manualOptions?.find(
+          o => String(o[field.cellManual.valueKey]) === String(row[col])
+        )
+
+        if (option) {
+          row[`${col}_detail`] = option
+        }
+
+      } catch (error) {
+        console.error('Error PATCH manual:', error)
+      }
+    },
+    async loadManualFieldOptions() {
+
+      for (const field of this.fields) {
+
+        if (!field.cellManual || !field.endpoint) continue
+
+        try {
+          const res = await api.get(field.endpoint)
+
+          field._manualOptions = Array.isArray(res.data)
+            ? res.data
+            : (res.data.results || [])
+
+        } catch (e) {
+          console.error('Error cargando opciones manual:', e)
+          field._manualOptions = []
+        }
+      }
+    },
+    activateManualCell(row, col) {
+      // Aquí luego puedes abrir dropdown o modal
+      console.log('Editar manual:', row.id, col)
+    },
+    async handleManualTextarea(row, col) {
+
+      const field = this.fields.find(f => f.key === col)
+      if (!field?.cellManual) return
+
+      try {
+
+        // 🔥 PATCH siempre contra CLIENT (no client-brand)
+        const clientCode = row.client_code || row.client?.code
+
+        if (!clientCode) {
+          console.warn('No se encontró client_code en la fila')
+          return
+        }
+
+        await api.patch(`/clients/${clientCode}/`, {
+          [field.cellManual.patchField]: row[col]
+        })
+
+      } catch (error) {
+        console.error('Error PATCH textarea manual:', error)
+      }
     }
   },
   watch: {
@@ -815,6 +914,9 @@ export default {
     },
   },
   mounted() {
+
+    this.loadManualFieldOptions()  // 🔥 carga opciones dinámicas
+
     const sumFields = this.fields.filter(f => f.sumCount === true);
     if (sumFields.length > 1) {
       console.error('Error: Solo puede haber un campo con sumCount: true. Se encontraron:', sumFields.map(f => f.key));
@@ -825,6 +927,7 @@ export default {
         console.warn(`Advertencia: El campo "${sumField.key}" con sumCount: true debería ser de tipo "price" o "number".`);
       }
     }
+
     this.fetchData();
   },
   beforeUnmount() {
