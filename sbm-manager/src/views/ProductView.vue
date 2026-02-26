@@ -11,36 +11,18 @@
       <div class="row">
         <div class="col-1"></div>
         <div class="col-10 w-100 text-center">
-          <FranchiseSelector
-            v-model="selectedFranchise"
-            :franchises="franchises"
-            @change="onFranchiseChange"
-          />
+          <FranchiseSelector v-model="selectedFranchise" :franchises="franchises" @change="onFranchiseChange" />
         </div>
       </div>
       <br />
     </div>
 
-    <CRUDManagerComponent
-      v-if="selectedFranchise"
-      title=""
-      resourceName="Producto"
-      endpoint="products/"
-      get-endpoint="products/"
-      post-endpoint="products/"
-      iconClass="fas fa-dolly"
-      :fields="fields"
-      :showCalculationComponent="true"
-      :calculationCode="selectedPriceConfiguration"
-      :baseNetAmount="selectedBaseNetAmount"
-      :netAmount="selectedNetAmount"
-      :grossAmount="selectedGrossAmount"
-      :ivaAmount="selectedIVAAmount"
-      :additionalTaxAmount="selectedAditionalTaxAmount"
-      :retentionAmount="selectedRetentionAmount"
-      @row-selected="handleProductSelected"
-      @refresh="handleRefresh"
-    />
+    <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="Producto" endpoint="products/"
+      get-endpoint="products/" post-endpoint="products/" iconClass="fas fa-dolly" :fields="fields"
+      :showCalculationComponent="true" :calculationCode="selectedPriceConfiguration"
+      :baseNetAmount="selectedBaseNetAmount" :netAmount="selectedNetAmount" :grossAmount="selectedGrossAmount"
+      :ivaAmount="selectedIVAAmount" :additionalTaxAmount="selectedAditionalTaxAmount"
+      :retentionAmount="selectedRetentionAmount" @row-selected="handleProductSelected" @refresh="handleRefresh" />
   </div>
 </template>
 <script setup>
@@ -62,21 +44,44 @@ const selectedAditionalTaxAmount = ref(null)
 const selectedRetentionAmount = ref(null)
 
 const fields = ref([
+  { key: 'id', hideInGrid: true, omitInForm: true },
   { key: 'sku', label: 'SKU', type: 'text', required: true },
   { key: 'description', label: 'Descripción', type: 'textarea', required: true },
-  { key: 'obs', label: 'Observaciones', type: 'textarea', required: true },
-  { key: 'package_unit', label: 'Unidad Empaque', type: 'number', required: true },
-  { key: 'min_package_purchase', label: 'Mínimo Compra', type: 'number', required: true },
-
-  { key: 'provider', label: 'Proveedor', type: 'dynamic-select', endpoint: '/providers/' },
-  { key: 'type', label: 'Tipo', type: 'dynamic-select', endpoint: '/item-types/' },
-  { key: 'item_group', label: 'Grupo', type: 'dynamic-select', endpoint: '/item-groups/' },
-  { key: 'category', label: 'Categoría', type: 'dynamic-select', endpoint: '/item-categories/' },
-  { key: 'package', label: 'Empaque', type: 'dynamic-select', endpoint: '/packages/' },
-
-  { key: 'price_configuration', label: 'Config Precio', type: 'dynamic-select', endpoint: '/price-configurations/' },
-
-  { key: 'is_active', label: 'Activo', type: 'checkbox' }
+  { key: 'base_net_amount', label: 'Valor Base NETO', type: 'number', hideInGrid: true, omitInForm: false },
+  { key: 'net_amount', label: 'Costo Neto', type: 'price', hideInGrid: false, omitInForm: true },
+  { key: 'obs', label: 'Observaciones', type: 'textarea' },
+  { key: 'package_unit', label: 'Unidades Empaque', type: 'number' },
+  { key: 'min_package_purchase', label: 'Mínimo Compra', type: 'number' },
+  { key: 'provider', label: 'Proveedor', type: 'dynamic-select', labelKey: 'provider', valueKey: 'id', endpoint: '/providers/', hideInGrid: true, omitInForm: false },
+  { key: 'provider_name', label: 'Proveedor', hideInGrid: false, omitInForm: true },
+  { key: 'type', label: 'Tipo', type: 'dynamic-select', labelKey: 'type', valueKey: 'id', endpoint: '/item-types/', hideInGrid: true, omitInForm: false },
+  { key: 'type_name', label: 'Tipo', hideInGrid: false, omitInForm: true },
+  { key: 'item_group', label: 'Grupo', type: 'dynamic-select', labelKey: 'group_name', valueKey: 'id', endpoint: '/item-groups/', hideInGrid: true, omitInForm: false },
+  { key: 'item_group_name', label: 'Grupo', hideInGrid: false, omitInForm: true },
+  { key: 'category', label: 'Categoría', type: 'dynamic-select', labelKey: 'category', valueKey: 'id', endpoint: '/item-categories/', hideInGrid: true, omitInForm: false },
+  { key: 'category_name', label: 'Categoría', hideInGrid: false, omitInForm: true },
+  { key: 'url', label: 'URL', type: 'text' },
+  { key: 'package', label: 'Empaque', type: 'dynamic-select', labelKey: 'description', valueKey: 'id', endpoint: '/packages/', hideInGrid: true, omitInForm: false },
+  { key: 'package_description', label: 'Embalaje', hideInGrid: false, omitInForm: true },
+  { key: 'price_configuration', label: 'Config Precio', type: 'dynamic-select', labelKey: 'price_configuration', valueKey: 'code', endpoint: '/price-configurations/', hideInGrid: true, omitInForm: false },
+  { key: 'is_active', label: 'Activo', type: 'checkbox' },
+  { key: 'is_confirmed', label: 'Confirmado', hideInGrid: false, omitInForm: true },
+  { key: 'is_deleted', label: 'Eliminado', hideInGrid: false, omitInForm: true },
+  { key: 'created_at', label: 'Fecha creación', hideInGrid: false, omitInForm: true },
+  { key: 'updated_at', hideInGrid: true, omitInForm: true },
+  { key: 'confirmed_at', hideInGrid: true, omitInForm: true },
+  { key: 'deleted_at', hideInGrid: true, omitInForm: true },
+  { key: 'created_by', hideInGrid: true, omitInForm: true },
+  { key: 'confirmed_by', hideInGrid: true, omitInForm: true },
+  { key: 'updated_by', hideInGrid: true, omitInForm: true },
+  { key: 'deleted_by', hideInGrid: true, omitInForm: true },
+  { key: 'log', hideInGrid: true, omitInForm: true },
+  { key: 'version', hideInGrid: true, omitInForm: true },
+  { key: 'gross_amount', hideInGrid: true, omitInForm: true },
+  { key: 'iva_amount', hideInGrid: true, omitInForm: true },
+  { key: 'aditional_tax_amount', hideInGrid: true, omitInForm: true },
+  { key: 'retention_amount', hideInGrid: true, omitInForm: true },
+  { key: 'price', hideInGrid: true, omitInForm: true }
 ])
 
 const onFranchiseChange = payload => {
