@@ -17,19 +17,27 @@
       <br />
     </div>
 
-    <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="Producto" endpoint="products/"
-      get-endpoint="products/" post-endpoint="products/" iconClass="fas fa-dolly" :fields="fields"
-      :showCalculationComponent="true" :calculationCode="selectedPriceConfiguration"
+    <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="Producto" endpoint="products/list/"
+      get-endpoint="products/list/" post-endpoint="products/" iconClass="fas fa-dolly" :fields="fields"
+      :showPropertiesButton="true" :showCalculationComponent="true" :calculationCode="selectedPriceConfiguration"
       :baseNetAmount="selectedBaseNetAmount" :netAmount="selectedNetAmount" :grossAmount="selectedGrossAmount"
       :ivaAmount="selectedIVAAmount" :additionalTaxAmount="selectedAditionalTaxAmount"
-      :retentionAmount="selectedRetentionAmount" @row-selected="handleProductSelected" @refresh="handleRefresh" />
+      :configFormResourcePath="'products'" :configFormLookupField="'code'" :retentionAmount="selectedRetentionAmount"
+      @row-selected="handleProductSelected" @refresh="handleRefresh">
+      <template #properties>
+        <PropertiesComponent :product="selectedProduct" :fields="fields" title="Propiedades del Producto"
+          configResource="products" lookupField="code" />
+      </template>
+    </CRUDManagerComponent>
   </div>
 </template>
+
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from '../api/axios'
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue'
 import FranchiseSelector from '../components/FranchiseSelectorComponent.vue'
+import PropertiesComponent from '../components/PropertiesComponent.vue'
 
 const franchises = ref([])
 const selectedFranchise = ref('')
@@ -42,6 +50,7 @@ const selectedGrossAmount = ref(null)
 const selectedIVAAmount = ref(null)
 const selectedAditionalTaxAmount = ref(null)
 const selectedRetentionAmount = ref(null)
+const selectedProduct = ref(null)
 
 const fields = ref([
   { key: 'id', hideInGrid: true, omitInForm: true },
@@ -63,7 +72,8 @@ const fields = ref([
   { key: 'url', label: 'URL', type: 'text' },
   { key: 'package', label: 'Empaque', type: 'dynamic-select', labelKey: 'description', valueKey: 'id', endpoint: '/packages/', hideInGrid: true, omitInForm: false },
   { key: 'package_description', label: 'Embalaje', hideInGrid: false, omitInForm: true },
-  { key: 'price_configuration', label: 'Config Precio', type: 'dynamic-select', labelKey: 'price_configuration', valueKey: 'code', endpoint: '/price-configurations/', hideInGrid: true, omitInForm: false },
+  { key: 'price_configuration', hideInGrid: true, omitInForm: true },
+  { key: 'price_configuration_label', hideInGrid: true, omitInForm: true },
   { key: 'is_active', label: 'Activo', type: 'checkbox' },
   { key: 'is_confirmed', label: 'Confirmado', hideInGrid: false, omitInForm: true },
   { key: 'is_deleted', label: 'Eliminado', hideInGrid: false, omitInForm: true },
@@ -81,7 +91,8 @@ const fields = ref([
   { key: 'iva_amount', hideInGrid: true, omitInForm: true },
   { key: 'aditional_tax_amount', hideInGrid: true, omitInForm: true },
   { key: 'retention_amount', hideInGrid: true, omitInForm: true },
-  { key: 'price', hideInGrid: true, omitInForm: true }
+  { key: 'price', hideInGrid: true, omitInForm: true },
+
 ])
 
 const onFranchiseChange = payload => {
@@ -89,7 +100,12 @@ const onFranchiseChange = payload => {
 }
 
 const handleProductSelected = product => {
-  if (!product) return
+  if (!product) {
+    selectedProduct.value = null
+    return
+  }
+
+  selectedProduct.value = product
 
   selectedPriceConfiguration.value = product.price_configuration
   selectedBaseNetAmount.value = product.base_net_amount

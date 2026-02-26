@@ -242,7 +242,9 @@ const props = defineProps({
   configurationData: { type: Object, default: null },
   calculationTitle: { type: String, default: '' },
   calculationDescription: { type: String, default: '' },
-  fields: { type: Array, default: () => [] }
+  configResource: { type: String, required: true }, 
+  lookupField: { type: String, default: 'code' },       // "sku" o "code"
+  fields: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['close', 'load-advanced'])
@@ -295,6 +297,7 @@ function toggleAdvanced() {
 
 function toggleConfiguration() {
   showConfiguration.value = !showConfiguration.value
+  if (showConfiguration.value) loadConfiguration()
 }
 
 /* =========================
@@ -340,7 +343,14 @@ const safeLinking = computed(() => {
 })
 
 const informativaFields = computed(() => {
-  return configData.value?.informative?.fields || []
+  const data = configData.value?.informativa?.data || {}
+  const verbose = configData.value?.informativa?.verbose_names || {}
+
+  return Object.keys(data).map(key => ({
+    key,
+    label: verbose[key] || key,
+    value: data[key]
+  }))
 })
 
 /* =========================
@@ -390,7 +400,8 @@ function getPillClass(field, value) {
 ========================= */
 
 async function loadConfiguration() {
-  if (!props.product?.sku) return
+  const lookupValue = props.product?.[props.lookupField]
+  if (!lookupValue) return
 
   configLoading.value = true
   configError.value = null
@@ -398,7 +409,11 @@ async function loadConfiguration() {
   originalLinkingSnapshot.value = null
 
   try {
-    const res = await axios.get(`/catalogs/${props.product.sku}/config/`)
+    if (!props.configResource) return
+
+    const res = await axios.get(
+      `/${props.configResource}/${lookupValue}/config/`
+    )
     configData.value = res.data
 
     // 🔥 SETEAR BASE NETO ANTES DEL SNAPSHOT
@@ -454,9 +469,9 @@ function takeSnapshot() {
 ========================= */
 
 watch(
-  () => props.product?.sku,
-  (newSku) => {
-    if (newSku) loadConfiguration()
+  () => props.product?.[props.lookupField],
+  (val) => {
+    if (val) loadConfiguration()
     else configData.value = null
   },
   { immediate: true }
@@ -496,9 +511,8 @@ function resetLinkingEdits() {
 }
 
 async function saveConfiguration() {
-  if (!props.product?.sku) return
-
-  const sku = props.product.sku
+  const lookupValue = props.product?.[props.lookupField]
+  if (!lookupValue) return
   const priceConfigCode = configData.value?.calculation?.props?.code
   if (!priceConfigCode) {
     console.error('price_configuration no viene desde config')
@@ -517,14 +531,14 @@ async function saveConfiguration() {
   saving.value = true
   try {
     // 1) GUARDAR TABLAS (ItemConfigurationDetail)
-    await axios.post(`/catalogs/${sku}/config/`, {
+    await axios.post(`/${props.configResource}/${lookupValue}/config/`, {
       products: normalize(productLinks.value, 'product'),
       materials: normalize(materialLinks.value, 'material'),
       services: normalize(serviceLinks.value, 'service'),
     })
 
     // 2) GUARDAR PRECIO (Price versionado)
-    await axios.patch(`/catalogs/${sku}/`, {
+    await axios.patch(`/${props.configResource}/${lookupValue}/`, {
       price_data: {
         base_net_amount: Number(baseNetAmount.value) || 0,
         price_configuration: priceConfigCode

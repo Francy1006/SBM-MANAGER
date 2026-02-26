@@ -28,8 +28,8 @@
       :optionsProps="optionsProps" @refresh="handleRefresh" @created="handleCreated" @updated="handleUpdated"
       @row-selected="handleCatalogSelected" @import="handleImport" @export="handleExport">
       <template #properties>
-        <PropertiesComponent title="Propiedades del Catálogo" :total="franchises.length" :activos="null"
-          :inactivos="null" :lastUpdate="lastUpdate" status="Activo" />
+        <PropertiesComponent :product="selectedCatalog" :fields="fields" title="Propiedades del Catálogo"
+          configResource="catalogs" lookupField="sku" />
       </template>
     </CRUDManagerComponent>
   </div>
@@ -49,6 +49,7 @@ const selectedFranchiseName = ref('');
 const selectedFranchiseSigla = ref('');
 
 const selectedCatalogId = ref(null);
+const selectedCatalog = ref(null)
 const selectedCatalogName = ref('');
 const selectedCatalogSku = ref('');
 
@@ -177,16 +178,8 @@ const handleCreated = (data) => console.log('Catálogo creado:', data);
 const handleUpdated = (id) => console.log('Catálogo actualizado:', id);
 
 const handleCatalogSelected = (catalog) => {
-  if (!catalog) {
-    selectedCatalogId.value = null;
-    selectedCatalogName.value = '';
-    selectedCatalogSku.value = '';
-    return;
-  }
-  selectedCatalogId.value = catalog.id;
-  selectedCatalogName.value = catalog.name;
-  selectedCatalogSku.value = catalog.sku;
-};
+  selectedCatalog.value = catalog
+}
 
 const handleImport = () => {
   console.log('Importar catálogos');

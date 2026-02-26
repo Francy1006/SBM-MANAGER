@@ -70,8 +70,9 @@
       @row-selected="onRowSelected" @show-properties="onShowProperties" @import="handleImport" @export="handleExport"
       @counts-updated="onCountsUpdated" />
 
-    <PropertiesComponent v-if="showProperties" :product="selectedRow" :propertiesTitle="propertiesTitle"
-      :fields="fields" :verboseNames="props.propertiesVerboseNames" :systemFields="props.systemFields"
+    <PropertiesComponent v-if="showProperties" :product="selectedRow" :configResource="props.configFormResourcePath"
+      :lookupField="props.configFormLookupField" :propertiesTitle="propertiesTitle" :fields="fields"
+      :verboseNames="props.propertiesVerboseNames" :systemFields="props.systemFields"
       :systemVerboseNames="props.systemVerboseNames" :configComponent="props.configComponent"
       :configProps="props.configProps" :showCalculationComponent="props.showCalculationComponent"
       :calculationTitle="props.calculationTitle" :calculationDescription="props.calculationDescription"
@@ -390,18 +391,24 @@ function onShowProperties(row) {
 }
 
 async function loadAdvanced() {
-  if (!selectedRow.value?.sku) return;
+  if (!selectedRow.value) return;
+
+  const resource = props.configFormResourcePath || 'catalogs'
+  const lookup = props.configFormLookupField || 'sku'
+  const value = selectedRow.value[lookup]
+
+  if (!value) return
 
   try {
     const res = await axios.get(
-      `/catalogs/adv/${selectedRow.value.sku}/`
-    );
+      `/${resource}/adv/${value}/`
+    )
 
-    advancedData.value = res.data.results;
-    advancedVerbose.value = res.data.verbose_names;
+    advancedData.value = res.data.results
+    advancedVerbose.value = res.data.verbose_names
 
   } catch (error) {
-    console.error('Error cargando avanzado:', error);
+    console.error('Error cargando avanzado:', error)
   }
 }
 
