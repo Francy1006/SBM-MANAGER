@@ -138,18 +138,6 @@
                   :extraVariables="calculationExtraVariables" @calculated="onRecalculate" />
               </div>
 
-              <!-- 🟣 ESTADÍSTICAS -->
-              <div class="mb-4 border-bottom">
-                <h6 class="fw-bold pb-2 mb-3 text-secondary">
-                  <i class="fas fa-chart-line me-2"></i>
-                  Estadísticas
-                </h6>
-
-                <StatsComponent v-if="priceHistory.length" title="Histórico de Precio"
-                  :x="{ key: 'created_at', label: 'Fecha' }" :y="{ key: 'base_net_amount', label: 'Valor Neto' }"
-                  :values="priceHistory" />
-              </div>
-
               <!-- 🔴 VINCULACIÓN (SOLO SI APLICA) -->
               <div v-if="hasItemConfiguration" class="mb-4 border-bottom">
                 <h6 class="fw-bold pb-2 mb-3 text-secondary">
@@ -197,6 +185,23 @@
                 <ConfigLinkTableComponent v-model="serviceLinks" title="Servicios" itemType="service"
                   searchBaseUrl="/services/" />
 
+              </div>
+
+              <!-- 🟣 ESTADÍSTICAS -->
+              <div class="mb-4 border-bottom">
+                <h6 class="fw-bold pb-2 mb-3 text-secondary">
+                  <i class="fas fa-chart-line me-2"></i>
+                  Estadísticas
+                </h6>
+
+                <StatsComponent v-if="priceHistory.length" title="Histórico de Precio"
+                  :x="{ key: 'created_at', label: 'Fecha' }" :y="{ key: 'base_net_amount', label: 'Valor Neto' }"
+                  :values="priceHistory" v-bind="(props.configResource === 'catalogs' && props.hasItemConfiguration)
+                    ? {
+                      y2: { key: 'costo_neto', label: 'Costo Neto' },
+                      values2: costHistory
+                    }
+                    : {}" />
               </div>
 
             </div>
@@ -278,6 +283,7 @@ const priceHistory = ref([])
 const productLinks = ref([])
 const materialLinks = ref([])
 const serviceLinks = ref([])
+const costHistory = ref([])
 
 const originalLinkingSnapshot = ref(null)
 
@@ -424,6 +430,17 @@ async function loadConfiguration() {
 
     await loadPriceHistory()
 
+    if (props.configResource === 'catalogs' && props.hasItemConfiguration) {
+      try {
+        const r = await axios.get(`/${props.configResource}/${lookupValue}/cost-prices/`)
+        costHistory.value = r.data || []
+      } catch {
+        costHistory.value = []
+      }
+    } else {
+      costHistory.value = []
+    }
+
     if (props.hasItemConfiguration) {
       const pl = res.data?.linking?.products?.links || []
       const ml = res.data?.linking?.materials?.links || []
@@ -524,17 +541,10 @@ watch(
 function resetLinkingEdits() {
   if (!originalLinkingSnapshot.value) return
 
-  productLinks.value =
-    JSON.parse(JSON.stringify(originalLinkingSnapshot.value.productLinks))
-  materialLinks.value =
-    JSON.parse(JSON.stringify(originalLinkingSnapshot.value.materialLinks))
-  serviceLinks.value =
-    JSON.parse(JSON.stringify(originalLinkingSnapshot.value.serviceLinks))
-  baseNetAmount.value = Number(
-    res.data?.informativa?.data?.base_net_amount ??
-    res.data?.calculation?.props?.baseNetAmount ??
-    0
-  )
+  productLinks.value = JSON.parse(JSON.stringify(originalLinkingSnapshot.value.productLinks))
+  materialLinks.value = JSON.parse(JSON.stringify(originalLinkingSnapshot.value.materialLinks))
+  serviceLinks.value = JSON.parse(JSON.stringify(originalLinkingSnapshot.value.serviceLinks))
+  baseNetAmount.value = Number(originalLinkingSnapshot.value.baseNetAmount ?? 0)
 }
 
 async function saveConfiguration() {

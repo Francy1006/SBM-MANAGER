@@ -6,7 +6,7 @@
         {{ title }}
       </h6>
 
-      <div v-if="!chartData.length" class="text-muted text-center py-4">
+      <div v-if="!chartData1.length" class="text-muted text-center py-4">
         Sin datos históricos
       </div>
 
@@ -34,9 +34,6 @@ import {
   Legend,
   Filler
 } from 'chart.js'
-
-// ✅ NECESARIO para que funcione TimeScale (evita "time is not a registered scale")
-// npm i chartjs-adapter-date-fns
 import 'chartjs-adapter-date-fns'
 
 Chart.register(
@@ -55,12 +52,18 @@ const props = defineProps({
   title: { type: String, default: 'Histórico de Precios' },
   x: { type: Object, required: true },   // { key, label }
   y: { type: Object, required: true },   // { key, label }
-  values: { type: Array, default: () => [] } // [{ created_at, base_net_amount, is_current? }]
+  values: { type: Array, default: () => [] },
+
+  // ✅ opcional (2da línea)
+  y2: { type: Object, default: null },     // { key, label }
+  values2: { type: Array, default: () => [] }
 })
 
 const canvasRef = ref(null)
 let chartInstance = null
-const chartData = ref([])
+
+const chartData1 = ref([])
+const chartData2 = ref([])
 
 /* =========================
    HELPERS
@@ -86,7 +89,6 @@ function formatDateFloatingLabel(dateLike) {
   const hh = pad2(d.getHours())
   const mm = pad2(d.getMinutes())
 
-  // "Lunes 31 de Marzo 2026"
   const datePart = new Intl.DateTimeFormat('es-CL', {
     weekday: 'long',
     day: '2-digit',
@@ -94,26 +96,18 @@ function formatDateFloatingLabel(dateLike) {
     year: 'numeric'
   }).format(d)
 
-  // Capitalizar primera letra (Intl entrega "lunes...")
   const cap = datePart.charAt(0).toUpperCase() + datePart.slice(1)
-
   return `${hh}:${mm} hrs, ${cap}`
 }
 
-/* =========================
-   BUILD DATA
-========================= */
-
-function buildData() {
-  chartData.value = (props.values || [])
+function buildSeries(valuesArr, yKey) {
+  const arr = (valuesArr || [])
     .map(v => {
       const rawX = v?.[props.x.key]
       const dt = rawX ? new Date(rawX) : null
       return {
-        // ✅ TimeScale necesita Date (o timestamp)
         x: dt && !Number.isNaN(dt.getTime()) ? dt : null,
-        y: Number(v?.[props.y.key]),
-        // ✅ si backend no lo trae, inferimos "actual" como el último por fecha
+        y: Number(v?.[yKey]),
         is_current: Boolean(v?.is_current),
         _raw: v
       }
@@ -121,9 +115,37 @@ function buildData() {
     .filter(p => p.x && Number.isFinite(p.y))
     .sort((a, b) => a.x - b.x)
 
-  // Si no viene is_current, marcamos el último como actual
-  if (chartData.value.length && !chartData.value.some(p => p.is_current)) {
-    chartData.value[chartData.value.length - 1].is_current = true
+  if (arr.length && !arr.some(p => p.is_current)) {
+    arr[arr.length - 1].is_current = true
+  }
+
+  return arr
+}
+
+function findXBounds(...series) {
+  const all = series.flat().filter(Boolean)
+  if (!all.length) return { xMin: undefined, xMax: undefined }
+
+  const first = all[0]?.x
+  const last = all[all.length - 1]?.x
+
+  const padMs = 60 * 1000
+  const xMin = first ? new Date(first.getTime() - padMs) : undefined
+  const xMax = last ? new Date(last.getTime() + padMs) : undefined
+  return { xMin, xMax }
+}
+
+/* =========================
+   BUILD DATA
+========================= */
+
+function buildData() {
+  chartData1.value = buildSeries(props.values, props.y.key)
+
+  if (props.y2 && props.y2.key && (props.values2 || []).length) {
+    chartData2.value = buildSeries(props.values2, props.y2.key)
+  } else {
+    chartData2.value = []
   }
 }
 
@@ -132,58 +154,61 @@ function buildData() {
 ========================= */
 
 function renderChart() {
-  if (!canvasRef.value || !chartData.value.length) return
+  if (!canvasRef.value || !chartData1.value.length) return
 
   if (chartInstance) chartInstance.destroy()
 
   const primary = getBootstrapPrimary()
+  const { xMin, xMax } = findXBounds(chartData1.value, chartData2.value)
 
-  const firstX = chartData.value[0]?.x
-  const lastX = chartData.value[chartData.value.length - 1]?.x
-  const padMs = 60 * 1000 // 1 minuto (puedes subir a 5*60*1000)
+  const datasets = [
+    {
+      label: props.y.label,
+      data: chartData1.value,
+      parsing: false,
+      clip: false,
+      borderColor: primary,
+      borderWidth: 2,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      pointBorderWidth: 2,
+      pointBorderColor: '#ffffff',
+      pointBackgroundColor: (ctx) => {
+        const p = ctx?.raw
+        return p?.is_current ? '#198754' : '#ffc107'
+      },
+      tension: 0.3
+    }
+  ]
 
-  const xMin = firstX ? new Date(firstX.getTime() - padMs) : undefined
-  const xMax = lastX ? new Date(lastX.getTime() + padMs) : undefined
+  // ✅ 2da línea (roja) SOLO si viene y2/values2
+  if (chartData2.value.length) {
+    datasets.push({
+      label: props.y2?.label || 'Costo',
+      data: chartData2.value,
+      parsing: false,
+      clip: false,
+      borderColor: '#dc3545',
+      borderWidth: 2,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      pointBorderWidth: 2,
+      pointBorderColor: '#ffffff',
+      pointBackgroundColor: (ctx) => {
+        const p = ctx?.raw
+        return p?.is_current ? '#198754' : '#ffc107'
+      },
+      tension: 0.3
+    })
+  }
 
   chartInstance = new Chart(canvasRef.value, {
     type: 'line',
-    data: {
-      datasets: [
-        {
-          label: props.y.label,
-          data: chartData.value,
-          parsing: false,
-          clip: false,
-
-          // ✅ línea primary
-          borderColor: primary,
-          borderWidth: 2,
-
-          // ✅ puntos: amarillo histórico, verde actual
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointBorderWidth: 2,
-          pointBorderColor: '#ffffff',
-          pointBackgroundColor: (ctx) => {
-            const p = ctx?.raw
-            return p?.is_current ? '#198754' : '#ffc107'
-          },
-
-          tension: 0.3
-        }
-      ]
-    },
+    data: { datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-
-      layout: {
-        padding: {
-          left: 30,
-          right: 20
-        }
-      },
-
+      layout: { padding: { left: 30, right: 20 } },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -194,38 +219,27 @@ function renderChart() {
               return p?.x ? formatDateFloatingLabel(p.x) : ''
             },
             label: (item) => {
+              const dsLabel = item?.dataset?.label || ''
               const p = item?.raw
               const val = Number(p?.y)
               if (!Number.isFinite(val)) return ''
-              return `${props.y.label}: $${val.toLocaleString('es-CL')}`
+              return `${dsLabel}: $${val.toLocaleString('es-CL')}`
             }
           }
         }
       },
-
       scales: {
         x: {
           type: 'time',
-          offset: true,   // 🔥 separa el primer punto del borde
+          offset: true,
           min: xMin,
           max: xMax,
-          time: {
-            tooltipFormat: 'PPpp'
-          },
-          ticks: {
-            autoSkip: true,
-            maxRotation: 0
-          },
-          title: {
-            display: true,
-            text: props.x.label
-          }
+          time: { tooltipFormat: 'PPpp' },
+          ticks: { autoSkip: true, maxRotation: 0 },
+          title: { display: true, text: props.x.label }
         },
         y: {
-          title: {
-            display: true,
-            text: props.y.label
-          }
+          title: { display: true, text: props.y.label }
         }
       }
     }
@@ -237,12 +251,12 @@ function renderChart() {
 ========================= */
 
 watch(
-  () => props.values,
+  () => [props.values, props.values2, props.y, props.y2],
   () => {
     buildData()
     renderChart()
   },
-  { immediate: true }
+  { deep: true, immediate: true }
 )
 
 onMounted(() => {
