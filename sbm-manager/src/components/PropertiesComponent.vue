@@ -99,16 +99,15 @@
 
             <div v-else>
 
-              <!-- INFORMATIVE -->
+              <!-- 🔵 BÁSICO -->
               <div class="mb-4 border-bottom">
-                <h6 class="fw-bold pb-2 mb-3 text-secondary d-flex align-items-center">
-                  <i class="fas fa-info-circle me-2 text-secondary"></i>
+                <h6 class="fw-bold pb-2 mb-3 text-secondary">
+                  <i class="fas fa-info-circle me-2"></i>
                   Básico
                 </h6>
 
                 <div class="row g-3">
 
-                  <!-- 🔥 BASE NETO SIEMPRE PRESENTE -->
                   <div class="col-12 col-md-6">
                     <label class="form-label fw-semibold">
                       Valor Base Neto
@@ -116,7 +115,6 @@
                     <input type="number" class="form-control" v-model.number="baseNetAmount" />
                   </div>
 
-                  <!-- RESTO CAMPOS INFORMATIVOS (EXCLUYE base_net_amount) -->
                   <div v-for="f in informativaFields.filter(x => x.key !== 'base_net_amount')" :key="f.key"
                     class="col-12 col-md-6">
                     <label class="form-label fw-semibold">
@@ -128,10 +126,10 @@
                 </div>
               </div>
 
-              <!-- CÁLCULO -->
+              <!-- 🟢 CÁLCULO -->
               <div class="mb-4 border-bottom">
                 <h6 class="fw-bold pb-2 mb-3 text-secondary">
-                  <i class="fas fa-calculator me-2 text-secondary"></i>
+                  <i class="fas fa-calculator me-2"></i>
                   Cálculo
                 </h6>
 
@@ -140,8 +138,20 @@
                   :extraVariables="calculationExtraVariables" @calculated="onRecalculate" />
               </div>
 
-              <!-- VINCULACIÓN -->
+              <!-- 🟣 ESTADÍSTICAS -->
               <div class="mb-4 border-bottom">
+                <h6 class="fw-bold pb-2 mb-3 text-secondary">
+                  <i class="fas fa-chart-line me-2"></i>
+                  Estadísticas
+                </h6>
+
+                <StatsComponent v-if="priceHistory.length" title="Histórico de Precio"
+                  :x="{ key: 'created_at', label: 'Fecha' }" :y="{ key: 'base_net_amount', label: 'Valor Neto' }"
+                  :values="priceHistory" />
+              </div>
+
+              <!-- 🔴 VINCULACIÓN (SOLO SI APLICA) -->
+              <div v-if="hasItemConfiguration" class="mb-4 border-bottom">
                 <h6 class="fw-bold pb-2 mb-3 text-secondary">
                   Vinculación
                 </h6>
@@ -178,44 +188,34 @@
                   </div>
                 </div>
 
-                <!-- <ConfigLinkTableComponent title="Productos" icon="fas fa-dolly" itemType="product" searchBaseUrl=""
-                  :rows="productLinks" @rows-changed="onRowsChanged('product', $event)" header-bg-class="bg-dark"
-                  header-text-class="text-white" /> -->
+                <ConfigLinkTableComponent v-model="productLinks" title="Productos" itemType="product"
+                  searchBaseUrl="/products/" />
 
-                <ConfigLinkTableComponent v-model="productLinks" title="Productos" icon="fas fa-dolly text-white"
-                  itemType="product" searchBaseUrl="/products/" headerBgClass="bg-dark" headerTextClass="text-white" />
+                <ConfigLinkTableComponent v-model="materialLinks" title="Materiales" itemType="material"
+                  searchBaseUrl="/materials/" />
 
-                <ConfigLinkTableComponent v-model="materialLinks" title="Materiales" icon="fas fa-spoon"
-                  itemType="material" searchBaseUrl="/materials/" headerBgClass="bg-warning-subtle"
-                  headerTextClass="text-dark" />
-
-                <ConfigLinkTableComponent v-model="serviceLinks" title="Servicios" icon="fas fa-people-carry-box"
-                  itemType="service" searchBaseUrl="/services/" headerBgClass="bg-success-subtle"
-                  headerTextClass="text-dark" />
+                <ConfigLinkTableComponent v-model="serviceLinks" title="Servicios" itemType="service"
+                  searchBaseUrl="/services/" />
 
               </div>
+
             </div>
           </div>
         </div>
       </transition>
     </div>
 
-    <!-- ✅ BOTONES SUBMIT GENERALES (siempre visibles, fuera de Configuración) -->
+    <!-- BOTONES -->
     <div v-if="configData" class="mt-4 pt-3">
       <div class="d-flex justify-content-end align-items-center gap-3">
 
-        <div v-if="linkDirty" class="small text-warning me-auto">
-          <i class="fas fa-exclamation-circle me-1"></i>
-          Cambios pendientes
-        </div>
-
         <button type="button" class="btn btn-outline-secondary btn-lg rounded-pill px-5" @click="resetLinkingEdits"
-          :disabled="saving || !linkDirty">
+          :disabled="saving">
           Cancelar
         </button>
 
         <button type="button" class="btn btn-success btn-lg rounded-pill px-5" @click="saveConfiguration"
-          :disabled="saving || !linkDirty">
+          :disabled="saving">
           <i :class="saving ? 'fas fa-spinner fa-spin' : 'fas fa-save'" class="me-2"></i>
           {{ saving ? 'Guardando...' : 'Guardar información' }}
         </button>
@@ -231,9 +231,10 @@ import { computed, ref, watch } from 'vue'
 import axios from '../api/axios'
 import ConfigLinkTableComponent from './ConfigLinkTableComponent.vue'
 import CalculationComponent from './CalculationComponent.vue'
+import StatsComponent from './StatsComponent.vue'
 
 /* =========================
-   PROPS / EMITS
+   PROPS
 ========================= */
 
 const props = defineProps({
@@ -242,8 +243,9 @@ const props = defineProps({
   configurationData: { type: Object, default: null },
   calculationTitle: { type: String, default: '' },
   calculationDescription: { type: String, default: '' },
-  configResource: { type: String, required: true }, 
-  lookupField: { type: String, default: 'code' },       // "sku" o "code"
+  hasItemConfiguration: { type: Boolean, default: false },
+  configResource: { type: String, required: true },
+  lookupField: { type: String, default: 'code' },
   fields: { type: Array, default: () => [] },
 })
 
@@ -265,10 +267,9 @@ const configData = ref(null)
 const configLoading = ref(false)
 const configError = ref(null)
 
-/* 🔥 BASE NETO EDITABLE */
 const baseNetAmount = ref(0)
 const calculationResults = ref({})
-
+const priceHistory = ref([])
 
 /* =========================
    LINKING STATE
@@ -409,34 +410,54 @@ async function loadConfiguration() {
   originalLinkingSnapshot.value = null
 
   try {
-    if (!props.configResource) return
-
     const res = await axios.get(
       `/${props.configResource}/${lookupValue}/config/`
     )
+
     configData.value = res.data
 
-    // 🔥 SETEAR BASE NETO ANTES DEL SNAPSHOT
-    baseNetAmount.value =
-      Number(res.data?.linking?.header?.base_net_amount || 0)
+    baseNetAmount.value = Number(
+      res.data?.informativa?.data?.base_net_amount ??
+      props.product?.base_net_amount ??
+      0
+    )
 
-    const pl = res.data?.linking?.products?.links || []
-    const ml = res.data?.linking?.materials?.links || []
-    const sl = res.data?.linking?.services?.links || []
+    await loadPriceHistory()
 
-    productLinks.value = pl.map(normalizeRow)
-    materialLinks.value = ml.map(normalizeRow)
-    serviceLinks.value = sl.map(normalizeRow)
+    if (props.hasItemConfiguration) {
+      const pl = res.data?.linking?.products?.links || []
+      const ml = res.data?.linking?.materials?.links || []
+      const sl = res.data?.linking?.services?.links || []
 
-    // 🔥 SNAPSHOT FINAL YA SINCRONIZADO
+      productLinks.value = pl.map(normalizeRow)
+      materialLinks.value = ml.map(normalizeRow)
+      serviceLinks.value = sl.map(normalizeRow)
+    }
+
     takeSnapshot()
     linkDirty.value = false
+
 
   } catch (e) {
     configError.value =
       e.response?.data?.detail || 'Error cargando configuración'
   } finally {
     configLoading.value = false
+  }
+}
+
+async function loadPriceHistory() {
+  const lookupValue = props.product?.[props.lookupField]
+  if (!lookupValue) return
+
+  try {
+    const res = await axios.get(
+      `/${props.configResource}/${lookupValue}/prices/`
+    )
+
+    priceHistory.value = res.data || []
+  } catch (e) {
+    priceHistory.value = []
   }
 }
 
@@ -480,7 +501,6 @@ watch(
 watch(
   [productLinks, materialLinks, serviceLinks, baseNetAmount],
   () => {
-
     if (!originalLinkingSnapshot.value) {
       linkDirty.value = false
       return
@@ -502,54 +522,74 @@ watch(
 ========================= */
 
 function resetLinkingEdits() {
+  if (!originalLinkingSnapshot.value) return
+
   productLinks.value =
     JSON.parse(JSON.stringify(originalLinkingSnapshot.value.productLinks))
   materialLinks.value =
     JSON.parse(JSON.stringify(originalLinkingSnapshot.value.materialLinks))
   serviceLinks.value =
     JSON.parse(JSON.stringify(originalLinkingSnapshot.value.serviceLinks))
+  baseNetAmount.value = Number(
+    res.data?.informativa?.data?.base_net_amount ??
+    res.data?.calculation?.props?.baseNetAmount ??
+    0
+  )
 }
 
 async function saveConfiguration() {
   const lookupValue = props.product?.[props.lookupField]
   if (!lookupValue) return
-  const priceConfigCode = configData.value?.calculation?.props?.code
-  if (!priceConfigCode) {
-    console.error('price_configuration no viene desde config')
-    return
-  }
 
-  const normalize = (rows, kind) =>
-    (rows || []).map(r => ({
-      item_kind: kind,
-      item_sku: String(r?.item_sku || '').trim(),
-      item_code: String(r?.item_code || r?.id || '').trim(),
-      detail: String(r?.detail || '').slice(0, 50),
-      quantity: Number(r?.quantity || 1)
-    }))
+  const priceConfigCode =
+    configData.value?.calculation?.props?.code ||
+    configData.value?.informativa?.data?.price_configuration ||
+    props.product?.price_configuration ||
+    null
 
   saving.value = true
+
   try {
-    // 1) GUARDAR TABLAS (ItemConfigurationDetail)
-    await axios.post(`/${props.configResource}/${lookupValue}/config/`, {
-      products: normalize(productLinks.value, 'product'),
-      materials: normalize(materialLinks.value, 'material'),
-      services: normalize(serviceLinks.value, 'service'),
-    })
 
-    // 2) GUARDAR PRECIO (Price versionado)
-    await axios.patch(`/${props.configResource}/${lookupValue}/`, {
-      price_data: {
-        base_net_amount: Number(baseNetAmount.value) || 0,
-        price_configuration: priceConfigCode
+    // 🔴 SOLO SI TIENE ITEM CONFIGURATION
+    if (props.hasItemConfiguration) {
+
+      const normalize = (rows, kind) =>
+        (rows || []).map(r => ({
+          item_kind: kind,
+          item_sku: String(r?.item_sku || '').trim(),
+          item_code: String(r?.item_code || r?.id || '').trim(),
+          detail: String(r?.detail || '').slice(0, 50),
+          quantity: Number(r?.quantity || 1)
+        }))
+
+      await axios.post(
+        `/${props.configResource}/${lookupValue}/config/`,
+        {
+          products: normalize(productLinks.value, 'product'),
+          materials: normalize(materialLinks.value, 'material'),
+          services: normalize(serviceLinks.value, 'service'),
+        }
+      )
+    }
+
+    // 🟢 SIEMPRE VERSIONA PRECIO
+    await axios.patch(
+      `/${props.configResource}/${lookupValue}/`,
+      {
+        price_data: {
+          base_net_amount: Number(baseNetAmount.value) || 0,
+          price_configuration: priceConfigCode
+        }
       }
-    })
+    )
 
-    await loadConfiguration() // refresca desde backend
+    await loadConfiguration()
     takeSnapshot()
     linkDirty.value = false
+
   } catch (e) {
-    console.error('ERROR GUARDANDO CONFIG + PRECIO', e.response?.data || e)
+    console.error('ERROR GUARDANDO', e.response?.data || e)
   } finally {
     saving.value = false
   }
@@ -583,11 +623,9 @@ const calculationExtraVariables = computed(() => {
 
   return {
     base_net_amount: baseNetAmount.value,
-
     total_neto_productos: productsNet,
     total_neto_materiales: materialsNet,
     total_neto_servicios: servicesNet,
-
     costo_neto: productsNet + materialsNet + servicesNet,
     iva_costo: productsIva + materialsIva + servicesIva
   }

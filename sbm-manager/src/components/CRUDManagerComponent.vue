@@ -70,17 +70,10 @@
       @row-selected="onRowSelected" @show-properties="onShowProperties" @import="handleImport" @export="handleExport"
       @counts-updated="onCountsUpdated" />
 
-    <PropertiesComponent v-if="showProperties" :product="selectedRow" :configResource="props.configFormResourcePath"
-      :lookupField="props.configFormLookupField" :propertiesTitle="propertiesTitle" :fields="fields"
-      :verboseNames="props.propertiesVerboseNames" :systemFields="props.systemFields"
-      :systemVerboseNames="props.systemVerboseNames" :configComponent="props.configComponent"
-      :configProps="props.configProps" :showCalculationComponent="props.showCalculationComponent"
-      :calculationTitle="props.calculationTitle" :calculationDescription="props.calculationDescription"
-      :calculationCode="props.calculationCode" :baseNetAmount="props.baseNetAmount" :netAmount="props.netAmount"
-      :grossAmount="props.grossAmount" :ivaAmount="props.ivaAmount" :additionalTaxAmount="props.additionalTaxAmount"
-      :retentionAmount="props.retentionAmount" :selectedProductSku="props.selectedProductSku"
-      :advancedData="advancedData" :advancedVerbose="advancedVerbose" @close="onPropertiesClose"
-      @load-advanced="loadAdvanced">
+    <PropertiesComponent v-if="showProperties" :product="selectedRow" :fields="fields" :advancedData="advancedData"
+      :calculationTitle="calculationTitle" :calculationDescription="calculationDescription"
+      :configResource="configFormResourcePath" :lookupField="configFormLookupField"
+      :hasItemConfiguration="showConfigForm" @close="onPropertiesClose" @load-advanced="loadAdvanced">
       <slot name="properties"></slot>
     </PropertiesComponent>
 

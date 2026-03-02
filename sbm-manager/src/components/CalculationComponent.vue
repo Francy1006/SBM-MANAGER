@@ -1,9 +1,8 @@
-<!-- CalculationComponent.vue (COMPLETO, actualizado) -->
+<!-- CalculationComponent.vue (COMPLETO CORREGIDO) -->
 <template>
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
 
-      <!-- HEADER -->
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h6 v-if="titleToShow" class="fw-bold mb-1">
@@ -15,7 +14,6 @@
         </div>
       </div>
 
-      <!-- VARIABLES -->
       <div class="table-responsive mb-4">
         <table class="table table-sm table-bordered">
           <thead class="table-secondary">
@@ -33,7 +31,6 @@
         </table>
       </div>
 
-      <!-- RESULTADOS DINÁMICOS -->
       <h6 class="fw-bold border-bottom pb-2 mb-3 text-secondary">
         Resultados
       </h6>
@@ -66,12 +63,9 @@ import api from '../api/axios'
 const props = defineProps({
   title: String,
   description: String,
-  code: { type: String, required: true },              // price_configuration
+  code: { type: String, required: true },
   baseNetAmount: { type: [Number, String], required: true },
-
-  // ✅ OPCIONAL: variables extra (costos desde ConfigLinkTable, etc.)
-  // NO pueden colisionar con: base_net_amount, iva, etc.
-  extraVariables: { type: Object, default: null }      // { cost_products_net: 123, ... }
+  extraVariables: { type: Object, default: null }
 })
 
 const titleToShow = computed(() => (props.title ?? '').trim())
@@ -81,7 +75,7 @@ const loading = ref(false)
 const formulaTemplate = ref(null)
 
 const fields = reactive([
-  { key: 'base_net_amount', label: 'Valor Base Neto', value: Number(props.baseNetAmount) }
+  { key: 'base_net_amount', label: 'Valor Base Neto', value: 0 }
 ])
 
 const results = ref([])
@@ -116,18 +110,20 @@ function formatValue(val, decimals = 0) {
 ================================ */
 
 async function fetchFormula() {
+  if (!props.code || props.code === 'null') return
   const response = await api.get(`/price-configuration-formula/?code=${props.code}`)
   formulaTemplate.value = response.data?.[0]?.formula_template || null
 }
 
 /* ================================
-   FETCH VARIABLES (iva etc)
+   FETCH VARIABLES
 ================================ */
 
 async function fetchVariables() {
+  if (!props.code || props.code === 'null') return
+
   const response = await api.get(`/formula-variables/?code=${props.code}`)
 
-  // limpia dinámicas (deja base_net_amount + extras)
   const keepKeys = new Set(['base_net_amount'])
   if (props.extraVariables && typeof props.extraVariables === 'object') {
     Object.keys(props.extraVariables).forEach(k => keepKeys.add(k))
@@ -137,7 +133,6 @@ async function fetchVariables() {
     if (!keepKeys.has(fields[i].key)) fields.splice(i, 1)
   }
 
-  // agrega fiscales
   ;(response.data || []).forEach(v => {
     const k = String(v.var || '').trim()
     if (!k || k === 'base_net_amount') return
@@ -148,7 +143,6 @@ async function fetchVariables() {
     }
   })
 
-  // agrega extras (costos, etc.)
   if (props.extraVariables && typeof props.extraVariables === 'object') {
     Object.entries(props.extraVariables).forEach(([k, v]) => {
       const key = String(k).trim()
@@ -163,7 +157,7 @@ async function fetchVariables() {
 }
 
 /* ================================
-   CALCULATION ENGINE (FRONT)
+   CALCULATION
 ================================ */
 
 function calculateFormula() {
@@ -214,28 +208,41 @@ function calculateFormula() {
 }
 
 /* ================================
-   INIT / REACTIVE
+   INIT / WATCH
 ================================ */
 
+async function initIfValid() {
+  if (!props.code || props.code === 'null') return
+  await fetchFormula()
+  await fetchVariables()
+
+  const baseField = fields.find(f => f.key === 'base_net_amount')
+  if (baseField) {
+    baseField.value = Number(props.baseNetAmount)
+  }
+
+  calculateFormula()
+}
+
 onMounted(async () => {
+  await initIfValid()
+})
+
+watch(() => props.code, async (newVal) => {
+  if (!newVal || newVal === 'null') return
   await fetchFormula()
   await fetchVariables()
   calculateFormula()
 })
 
-watch(() => props.baseNetAmount, async (v) => {
+watch(() => props.baseNetAmount, (v) => {
   const f = fields.find(x => x.key === 'base_net_amount')
   if (f) f.value = Number(v)
   calculateFormula()
 })
 
-watch(() => props.code, async () => {
-  await fetchFormula()
-  await fetchVariables()
-  calculateFormula()
-})
-
 watch(() => props.extraVariables, async () => {
+  if (!props.code || props.code === 'null') return
   await fetchVariables()
   calculateFormula()
 }, { deep: true })

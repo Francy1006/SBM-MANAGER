@@ -17,8 +17,8 @@
       <br />
     </div>
 
-    <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="Producto" endpoint="products/list/"
-      get-endpoint="products/list/" post-endpoint="products/" iconClass="fas fa-dolly" :fields="fields"
+    <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="Producto" endpoint="products/"
+      get-endpoint="products/" post-endpoint="products/" iconClass="fas fa-dolly" :fields="fields"
       :showPropertiesButton="true" :showCalculationComponent="true" :calculationCode="selectedPriceConfiguration"
       :baseNetAmount="selectedBaseNetAmount" :netAmount="selectedNetAmount" :grossAmount="selectedGrossAmount"
       :ivaAmount="selectedIVAAmount" :additionalTaxAmount="selectedAditionalTaxAmount"
@@ -26,7 +26,7 @@
       @row-selected="handleProductSelected" @refresh="handleRefresh">
       <template #properties>
         <PropertiesComponent :product="selectedProduct" :fields="fields" title="Propiedades del Producto"
-          configResource="products" lookupField="code" />
+          configResource="products" lookupField="code" :hasItemConfiguration="true" />
       </template>
     </CRUDManagerComponent>
   </div>
