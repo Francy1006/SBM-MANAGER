@@ -3,7 +3,7 @@
       <!-- Col label -->
       <div class="col-12 col-md-3 col-lg-2 text-end">
         <label class="form-label fw-bold text-black mb-2 mb-md-0">
-          <i class="fas fa-industry text-secondary me-2"></i>
+          <i class="fas fa-cube text-secondary me-2"></i>
           Marca
         </label>
       </div>

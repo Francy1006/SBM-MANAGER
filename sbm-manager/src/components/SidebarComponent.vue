@@ -42,6 +42,12 @@
         </router-link>
       </li>
       <li>
+        <router-link to="/menus" class="nav-link" active-class="active">
+          <i class="fa-solid fa-atlas"></i>
+          <span class="nav-text">Menús</span>
+        </router-link>
+      </li>
+      <li>
         <router-link to="/proveedores" class="nav-link" active-class="active">
           <i class="fa-solid fa-industry"></i>
           <span class="nav-text">Proveedores</span>

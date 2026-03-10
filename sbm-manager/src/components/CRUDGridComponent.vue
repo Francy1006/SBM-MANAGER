@@ -163,7 +163,7 @@
                     {{
                       fields.find(f => f.key === col)?._manualOptions
                         ?.find(o => String(o.id) === String(row[col]))
-                    ?.name || '-'
+                        ?.name || '-'
                     }}
                   </span>
 
@@ -205,6 +205,15 @@
                   {{ getStateName(row[col]) }}
                 </span>
 
+                <!-- ⭐ RATING -->
+                <span v-else-if="fields.find(f => f.key === col)?.type === 'rating'">
+                  <span v-for="star in 5" :key="star" class="me-1"
+                    :class="star <= Number(row[col]) ? 'text-warning' : 'text-secondary opacity-25'"
+                    style="font-size:1.2rem;">
+                    <i class="fa-solid fa-star"></i>
+                  </span>
+                </span>
+
                 <!-- BOOLEAN -->
                 <span v-else-if="typeof row[col] === 'boolean'">
                   <i v-if="row[col]" class="fas fa-check text-success" style="font-size: x-large;"></i>
@@ -224,6 +233,14 @@
                 <!-- URL -->
                 <span v-else-if="col.toLowerCase().includes('url') && row[col]">
                   <a :href="row[col]" target="_blank">{{ row[col] }}</a>
+                </span>
+
+                <!-- 🔵 PILL DINÁMICO POR COLOR (menu) -->
+                <span v-else-if="fields.find(f => f.key === col)?.type === 'pill_name'" class="pill-status" :style="{
+                  background: '#' + (row.menu_background_color || '6c757d'),
+                  color: '#' + (row.menu_text_color || 'ffffff')
+                }">
+                  {{ row[col] }}
                 </span>
 
                 <!-- DEFAULT -->

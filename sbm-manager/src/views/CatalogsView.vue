@@ -86,6 +86,8 @@ const fields = ref([
 
   { key: 'menu', label: 'Menú', type: 'dynamic-select', required: true, endpoint: '/menus/', labelKey: 'menu', valueKey: 'id', hideInGrid: true },
   { key: 'menu_name', label: 'Menú', type: 'pill_name', omitInForm: true },
+  { key: 'menu_background_color', type: 'hidden', omitInForm: true, hideInGrid: true },
+  { key: 'menu_text_color', type: 'hidden', omitInForm: true, hideInGrid: true },
 
   { key: 'category', label: 'Categoría', type: 'dynamic-select', required: true, endpoint: '/item-categories/', labelKey: 'category', valueKey: 'id', hideInGrid: true },
   { key: 'category_name', label: 'Categoría', type: 'text', omitInForm: true },

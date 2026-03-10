@@ -9,6 +9,7 @@ import ProviderView from '../views/ProviderView.vue';
 import FiscalDirective from '../views/Configuration/FiscalDirective.vue';
 import LoginView from '../views/LoginView.vue';
 import ClientsView from '../views/ClientsView.vue';
+import MenuView from '../views/MenuView.vue';
 import { useAuth } from '../composables/useAuth';
 
 const routes = [
@@ -52,6 +53,12 @@ const routes = [
     path: '/servicios', 
     name: 'Servicios', 
     component: ServiceView,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/menus', 
+    name: 'Menus', 
+    component: MenuView,
     meta: { requiresAuth: true }
   },
   { 
