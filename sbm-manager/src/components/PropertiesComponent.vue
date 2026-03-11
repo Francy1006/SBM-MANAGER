@@ -115,14 +115,6 @@
                     <input type="number" class="form-control" v-model.number="baseNetAmount" />
                   </div>
 
-                  <div v-for="f in informativaFields.filter(x => x.key !== 'base_net_amount')" :key="f.key"
-                    class="col-12 col-md-6">
-                    <label class="form-label fw-semibold">
-                      {{ f.label || formatLabel(f.key) }}
-                    </label>
-                    <input type="text" class="form-control bg-light" :value="formatValue(f.value)" disabled />
-                  </div>
-
                 </div>
               </div>
 
@@ -312,8 +304,14 @@ function toggleConfiguration() {
 ========================= */
 
 const safeAdvancedData = computed(() => {
-  if (!props.advancedData || typeof props.advancedData !== 'object') return {}
-  return props.advancedData
+  const adv = { ...(props.advancedData || {}) }
+  const info = configData.value?.informativa?.data || {}
+  Object.keys(info).forEach(k => {
+    if (k !== safeCalculationProps?.baseKey) {
+      adv[k] = info[k]
+    }
+  })
+  return adv
 })
 
 const computedTitle = computed(() => {

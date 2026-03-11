@@ -113,7 +113,7 @@ const fields = ref([
     key: 'base_net_amount',
     label: 'Venta Base NETO',
     type: 'price',
-    secretField: false,
+    secretField: true,
     omitInForm: false,
     formGroup: 'price_data'   // 🔥 FALTA ESTO
   },

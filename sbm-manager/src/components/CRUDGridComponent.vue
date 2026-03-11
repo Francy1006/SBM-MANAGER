@@ -245,7 +245,8 @@
 
                 <!-- DEFAULT -->
                 <span v-else>
-                  {{ formatValue(row[col], col) }}
+                  <span v-if="isSecretHidden(col)">●●●●●</span>
+                  <span v-else>{{ formatValue(row[col], col) }}</span>
                 </span>
 
               </td>

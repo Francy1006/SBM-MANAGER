@@ -57,7 +57,8 @@
 
     <SimpleFormComponent v-if="showForm && (!showConfigForm || !showConfigFormComponent) && !showProperties"
       :show="showForm" :is-edit="isEdit" :fields="formFields" :values="editingData" :loading="loading"
-      v-bind="states ? { states } : {}" @close="onClose" @save="onSave" />
+      :configureHeaderFields="configureHeaderFields" v-bind="states ? { states } : {}" @close="onClose"
+      @save="onSave" />
 
     <ConfigFormComponent v-if="showConfigForm && showConfigFormComponent && selectedRow" :catalog="selectedRow"
       :configurationName="configFormName" :publicPivotField="configFormPivotField"
@@ -171,14 +172,14 @@ const finalCreateEndpoint = computed(() => props.postEndpoint || props.createEnd
 
 const finalUpdateEndpoint = computed(() => props.endpoint);
 
-const propertiesTitle = computed(() => {
-  if (selectedRow.value && selectedRow.value.sku) {
-    return selectedRow.value.description
-      ? `${selectedRow.value.sku} - ${selectedRow.value.description}`
-      : selectedRow.value.sku;
-  }
-  return "Producto: Sistema de Gestión";
-});
+const configureHeaderFields = computed(() => {
+  return props.fields
+    .filter(f => f.readOnlyOnConfigure)
+    .map(f => f.key)
+})
+
+
+
 
 function getCurrentDate() {
   return capitalizeFirst(
@@ -225,7 +226,10 @@ async function onSave(data) {
   try {
     const cleanedData = cleanData(data);
     if (isEdit.value && editingData.value.sku) {
-      await axios.patch(`/products/${editingData.value.sku}/`, cleanedData);
+      await axios.patch(
+        `${finalUpdateEndpoint.value}${editingData.value.code ?? editingData.value.id ?? editingData.value.sku}/`,
+        cleanedData
+      );
       emit('updated', editingData.value.sku);
       alert(`${props.resourceName} actualizado exitosamente!`);
     } else if (isEdit.value && editingData.value.id) {
@@ -344,7 +348,9 @@ function onConfigure(row) {
 
   editingData.value = mappedRow;
   isEdit.value = true;
-  formFields.value = props.fields.map(f => ({ ...f, options: [], loading: false }));
+  formFields.value = props.fields
+    .filter(f => f.quickConfigure !== false)
+    .map(f => ({ ...f, options: [], loading: false }));
   showForm.value = true;
   updateFieldsState();
 }

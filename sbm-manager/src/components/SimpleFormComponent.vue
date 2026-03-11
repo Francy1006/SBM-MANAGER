@@ -1,5 +1,10 @@
 <template>
   <div v-if="show" class="p-4 bg-white rounded-4 shadow-sm border mb-4">
+
+    <h5 v-if="configureHeaderFields?.some(f => values?.[f])" class="mb-4 fw-bold text-dark">
+      {{configureHeaderFields.map(f => values?.[f]).filter(Boolean).join(' · ')}}
+    </h5>
+
     <form @submit.prevent="onSave">
       <div v-for="field in visibleFields" :key="field.key" class="mb-4">
         <label class="form-label fw-semibold" :class="{ 'checkbox-label': field.type === 'checkbox' }">
@@ -7,112 +12,61 @@
           <span v-if="field.required" class="text-danger">*</span>
         </label>
 
-        <input
-          v-if="['text', 'email', 'url'].includes(field.type)"
-          :type="field.type"
-          class="form-control form-control-lg rounded-3"
-          :value="form[field.key]"
-          @input="handleInputUppercase(field, $event)"
-          :required="field.required"
-          :maxlength="field.maxlength"
-          :disabled="field.disabled"
-        />
+        <input v-if="['text', 'email', 'url'].includes(field.type)" :type="field.type"
+          class="form-control form-control-lg rounded-3" :value="form[field.key]"
+          @input="handleInputUppercase(field, $event)" :required="field.required" :maxlength="field.maxlength"
+          :disabled="field.disabled || (isEdit && field.readOnlyOnConfigure)" />
 
         <div v-else-if="field.type === 'number' && field.suffix" class="input-group input-group-lg">
-          <input
-            type="number"
-            class="form-control rounded-3"
-            v-model.number="form[field.key]"
-            :required="field.required"
-            :min="field.min"
-            :max="field.max"
-            :step="field.step || 'any'"
-            :disabled="field.disabled"
-          />
+          <input type="number" class="form-control rounded-3" v-model.number="form[field.key]"
+            :required="field.required" :min="field.min" :max="field.max" :step="field.step || 'any'"
+            :disabled="field.disabled || (isEdit && field.readOnlyOnConfigure)" />
           <span class="input-group-text">{{ field.suffix }}</span>
         </div>
 
-        <input
-          v-else-if="field.type === 'number'"
-          type="number"
-          class="form-control form-control-lg rounded-3"
-          v-model.number="form[field.key]"
-          :required="field.required"
-          :min="field.min"
-          :max="field.max"
-          :step="field.step || 'any'"
-          :disabled="field.disabled"
-        />
+        <input v-else-if="field.type === 'number'" type="number" class="form-control form-control-lg rounded-3"
+          v-model.number="form[field.key]" :required="field.required" :min="field.min" :max="field.max"
+          :step="field.step || 'any'" :disabled="field.disabled || (isEdit && field.readOnlyOnConfigure)" />
 
-        <textarea
-          v-else-if="field.type === 'textarea'"
-          class="form-control form-control-lg rounded-3"
-          :value="form[field.key]"
-          @input="handleInputUppercase(field, $event)"
-          :required="field.required"
-          :rows="field.rows || 3"
-          :disabled="field.disabled"
-        />
+        <textarea v-else-if="field.type === 'textarea'" class="form-control form-control-lg rounded-3"
+          :value="form[field.key]" @input="handleInputUppercase(field, $event)" :required="field.required"
+          :rows="field.rows || 3" :disabled="field.disabled || (isEdit && field.readOnlyOnConfigure)" />
 
-        <select
-          v-else-if="field.type === 'select'"
-          class="form-select form-select-lg rounded-3"
-          v-model="form[field.key]"
-          :required="field.required"
-          :disabled="field.disabled"
-        >
+        <select v-else-if="field.type === 'select'" class="form-select form-select-lg rounded-3"
+          v-model="form[field.key]" :required="field.required" :disabled="field.disabled || (isEdit && field.readOnlyOnConfigure)">
           <option v-for="option in getOptions(field)" :key="option.id" :value="option.id">
             {{ option.state || option.label || option.name }}
           </option>
         </select>
 
-        <select
-          v-else-if="field.type === 'dynamic-select'"
-          class="form-select form-select-lg rounded-3"
-          v-model="form[field.key]"
-          :required="field.required"
-          :disabled="field.disabled || field.loading"
-        >
+        <select v-else-if="field.type === 'dynamic-select'" class="form-select form-select-lg rounded-3"
+          v-model="form[field.key]" :required="field.required"
+          :disabled="field.disabled || field.loading || (isEdit && field.readOnlyOnConfigure)">
           <option :value="null" disabled>Selecciona...</option>
 
-          <option
-            v-for="option in (field.options || [])"
+          <option v-for="option in (field.options || [])"
             :key="option[field.valueKey || 'id'] ?? option.code ?? option.id"
-            :value="String(option[field.valueKey || 'id'])"
-          >
+            :value="String(option[field.valueKey || 'id'])">
             {{ option[field.labelKey || 'name'] }}
           </option>
         </select>
 
-        <div
-          v-else-if="field.type === 'dynamic-select' && field.disabled"
-          class="form-control form-control-lg rounded-3 bg-light"
-        >
+        <div v-else-if="field.type === 'dynamic-select' && field.disabled"
+          class="form-control form-control-lg rounded-3 bg-light">
           <span class="text-muted">
             {{ form[field.key] || 'No seleccionado' }}
           </span>
         </div>
 
-        <input
-          v-else-if="field.type === 'checkbox'"
-          type="checkbox"
-          class="form-check-input ms-2"
-          v-model="form[field.key]"
-          :disabled="field.disabled"
-          style="transform: scale(1.3); margin-top: 0.4em;"
-        />
+        <input v-else-if="field.type === 'checkbox'" type="checkbox" class="form-check-input ms-2"
+          v-model="form[field.key]" :disabled="field.disabled || (isEdit && field.readOnlyOnConfigure)"
+          style="transform: scale(1.3); margin-top: 0.4em;" />
 
         <div v-else-if="field.type === 'rating'" class="rating-input">
-          <span
-            v-for="star in 5"
-            :key="star"
-            class="star"
+          <span v-for="star in 5" :key="star" class="star"
             :class="{ filled: (form[`__hover_${field.key}`] || form[field.key]) >= star }"
-            @click="form[field.key] = star"
-            @mouseover="form[`__hover_${field.key}`] = star"
-            @mouseleave="form[`__hover_${field.key}`] = null"
-            style="cursor:pointer; font-size:2rem;"
-          >
+            @click="form[field.key] = star" @mouseover="form[`__hover_${field.key}`] = star"
+            @mouseleave="form[`__hover_${field.key}`] = null" style="cursor:pointer; font-size:2rem;">
             <i class="fa-star fa-solid"></i>
           </span>
           <span v-if="form[field.key] > 0" class="ms-2 text-secondary">
@@ -121,17 +75,9 @@
           <span v-else class="ms-2 text-secondary">Sin calificación</span>
         </div>
 
-        <input
-          v-else-if="field.type === 'price'"
-          type="text"
-          class="form-control form-control-lg rounded-3"
-          v-model="form[field.key]"
-          @input="onPriceInput(field)"
-          :required="field.required"
-          :maxlength="field.maxlength"
-          :disabled="field.disabled"
-          placeholder="$0"
-        />
+        <input v-else-if="field.type === 'price'" type="text" class="form-control form-control-lg rounded-3"
+          v-model="form[field.key]" @input="onPriceInput(field)" :required="field.required" :maxlength="field.maxlength"
+          :disabled="field.disabled || (isEdit && field.readOnlyOnConfigure)" placeholder="$0" />
       </div>
 
       <div class="row mt-4">
@@ -163,6 +109,7 @@ export default {
   name: 'SimpleFormComponent',
   props: {
     show: { type: Boolean, default: false },
+    configureHeaderFields: { type: Array, default: () => [] },
     isEdit: Boolean,
     fields: Array,
     values: Object,
