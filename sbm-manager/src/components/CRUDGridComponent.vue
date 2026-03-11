@@ -207,11 +207,17 @@
 
                 <!-- ⭐ RATING -->
                 <span v-else-if="fields.find(f => f.key === col)?.type === 'rating'">
-                  <span v-for="star in 5" :key="star" class="me-1"
-                    :class="star <= Number(row[col]) ? 'text-warning' : 'text-secondary opacity-25'"
-                    style="font-size:1.2rem;">
-                    <i class="fa-solid fa-star"></i>
+
+                  <span v-if="isSecretHidden(col)">●●●●●</span>
+
+                  <span v-else>
+                    <span v-for="star in 5" :key="star" class="me-1"
+                      :class="star <= Number(row[col]) ? 'text-warning' : 'text-secondary opacity-25'"
+                      style="font-size:1.2rem;">
+                      <i class="fa-solid fa-star"></i>
+                    </span>
                   </span>
+
                 </span>
 
                 <!-- BOOLEAN -->

@@ -71,7 +71,7 @@ const fields = ref([
   { key: 'package_unit', label: 'Unidades Empaque', type: 'number', required: true},
   { key: 'min_package_purchase', label: 'Mínimo Compra', type: 'number', required: true },
   { key: 'provider', label: 'Proveedor', type: 'dynamic-select', labelKey: 'provider', valueKey: 'id', endpoint: '/providers/', hideInGrid: true, omitInForm: false, required: true, readOnlyOnConfigure: true },
-  { key: 'provider_name', label: 'Proveedor', hideInGrid: false, omitInForm: true },
+  { key: 'provider_name', label: 'Proveedor', hideInGrid: false, omitInForm: true, secretField: true },
   { key: 'type', label: 'Tipo', type: 'dynamic-select', labelKey: 'type', valueKey: 'id', endpoint: '/item-types/', hideInGrid: true, omitInForm: false, required: true },
   { key: 'type_name', label: 'Tipo', hideInGrid: false, omitInForm: true },
   { key: 'item_group', label: 'Grupo', type: 'dynamic-select', labelKey: 'group_name', valueKey: 'id', endpoint: '/item-groups/', hideInGrid: true, omitInForm: false, required: true },

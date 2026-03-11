@@ -72,7 +72,7 @@ const fields = ref([
   { key: 'type', label: 'Tipo', type: 'dynamic-select', endpoint: '/provider-types/', labelKey: 'type', valueKey: 'id', hideInGrid: true },
   { key: 'type_name', label: 'Tipo', hideInGrid: false, omitInForm: true },
 
-  { key: 'rating', label: 'Rating', type: 'rating' },
+  { key: 'rating', label: 'Rating', type: 'rating', secretField: true },
 
   { key: 'obs_provider', label: 'Observaciones proveedor', type: 'textarea' },
 
@@ -115,7 +115,7 @@ const fields = ref([
 
   { key: 'is_active', label: 'Activo', type: 'checkbox' },
 
-  { key: 'is_confirmed', label: 'Confirmado', hideInGrid: false, omitInForm: true },
+  { key: 'is_confirmed', label: 'Confirmado',type: 'checkbox', hideInGrid: false, omitInForm: false },
   { key: 'is_deleted', label: 'Eliminado', hideInGrid: false, omitInForm: true },
 
   { key: 'created_at', label: 'Fecha creación', hideInGrid: false, omitInForm: true },
