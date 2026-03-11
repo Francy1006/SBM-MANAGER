@@ -82,7 +82,7 @@ const fields = ref([
   { key: 'package', label: 'Empaque', type: 'dynamic-select', labelKey: 'description', valueKey: 'id', endpoint: '/packages/', hideInGrid: true, omitInForm: false, required: true },
   { key: 'package_description', label: 'Embalaje', hideInGrid: false, omitInForm: true },
   { key: 'is_active', label: 'Activo', type: 'checkbox' },
-  { key: 'is_confirmed', label: 'Confirmado', hideInGrid: false, omitInForm: true },
+  { key: 'is_confirmed', label: 'Confirmado', type: 'checkbox', hideInGrid: false, omitInForm: false },
   { key: 'is_deleted', label: 'Eliminado', hideInGrid: false, omitInForm: true },
   { key: 'created_at', label: 'Fecha creación', hideInGrid: false, omitInForm: true },
   { key: 'updated_at', hideInGrid: true, omitInForm: true },
