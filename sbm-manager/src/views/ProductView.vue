@@ -54,8 +54,8 @@ const selectedProduct = ref(null)
 
 const fields = ref([
   { key: 'id', hideInGrid: true, omitInForm: true },
-  { key: 'sku', label: 'SKU', type: 'text', required: true, readOnlyOnConfigure: true },
-  { key: 'description', label: 'Descripción', type: 'textarea', required: true, readOnlyOnConfigure: true  },
+  { key: 'sku', label: 'SKU', type: 'text', omitInForm: true, readOnlyOnConfigure: true },
+  { key: 'description', label: 'Descripción', type: 'textarea', required: true, readOnlyOnConfigure: true },
   { key: 'price_configuration_input', label: 'Configuración Precio', type: 'dynamic-select', labelKey: 'price_configuration', valueKey: 'code', endpoint: '/price-configurations/', required: true, quickConfigure: false },
   { key: 'price_configuration', hideInGrid: true, omitInForm: true },
   { key: 'price_configuration_label', hideInGrid: true, omitInForm: true },
