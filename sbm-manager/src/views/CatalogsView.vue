@@ -81,28 +81,22 @@ const optionsProps = ref({
 });
 
 const fields = ref([
-  { key: 'sku', label: 'SKU', type: 'text', required: true, maxlength: 50 },
+  { key: 'sku', label: 'SKU', type: 'text', maxlength: 50, omitInForm: true },
   { key: 'cover_image', label: 'Imagen de Portada', type: 'url', required: false, maxlength: 500, omitInForm: true },
-
   { key: 'menu', label: 'Menú', type: 'dynamic-select', required: true, endpoint: '/menus/', labelKey: 'menu', valueKey: 'id', hideInGrid: true },
   { key: 'menu_name', label: 'Menú', type: 'pill_name', omitInForm: true },
   { key: 'menu_background_color', type: 'hidden', omitInForm: true, hideInGrid: true },
   { key: 'menu_text_color', type: 'hidden', omitInForm: true, hideInGrid: true },
-
   { key: 'category', label: 'Categoría', type: 'dynamic-select', required: true, endpoint: '/item-categories/', labelKey: 'category', valueKey: 'id', hideInGrid: true },
   { key: 'category_name', label: 'Categoría', type: 'text', omitInForm: true },
-
   { key: 'type', label: 'Tipo de Item', type: 'dynamic-select', required: true, endpoint: '/item-types/', labelKey: 'type', valueKey: 'id', hideInGrid: true },
   { key: 'type_name', label: 'Tipo de Item', type: 'text', omitInForm: true },
-
-  { key: 'restriction', label: 'Restricción', type: 'dynamic-select', required: true, endpoint: '/restrictions/', labelKey: 'restriction', valueKey: 'id', hideInGrid: true },
-
   { key: 'item_group', label: 'Grupo de Item', type: 'dynamic-select', required: true, endpoint: '/item-groups/', labelKey: 'group_name', valueKey: 'id', hideInGrid: true },
+  { key: 'restriction', label: 'Restricción', type: 'dynamic-select', required: true, endpoint: '/restrictions/', labelKey: 'restriction', valueKey: 'id', hideInGrid: true },
   { key: 'group_name', label: 'Grupo de Item', type: 'text', omitInForm: true },
-
   { key: 'name', label: 'Nombre', type: 'text', required: true, maxlength: 255 },
   { key: 'description', label: 'Descripción', type: 'textarea', required: true },
-  { key: 'obs', label: 'Observaciones', type: 'textarea' },
+  { key: 'obs', label: 'Observaciones', type: 'textarea', required: true },
   { key: 'chef_recommendation', label: 'Recomendación del Chef', type: 'checkbox' },
 
   // ==========================
@@ -146,19 +140,20 @@ const fields = ref([
     labelKey: 'price_configuration',
     valueKey: 'code',
     formGroup: 'price_data',   // 🔥 ESTO ES LA CLAVE
-    hideInGrid: true
+    hideInGrid: true,
+    required: true,
   },
 
-  { key: 'min_quantity_purchase', label: 'Cantidad Mínima de Compra', type: 'number', min: 1 },
-  { key: 'rations_quantity', label: 'Cantidad de Raciones', type: 'number', min: 1 },
+  { key: 'min_quantity_purchase', label: 'Cantidad Mínima de Compra', type: 'number', min: 1, required: true, },
+  { key: 'rations_quantity', label: 'Cantidad de Raciones', type: 'number', min: 1, required: true, },
 
-  { key: 'package', label: 'Empaque', type: 'dynamic-select', endpoint: '/packages/', labelKey: 'description', valueKey: 'id', hideInGrid: true },
+  { key: 'package', label: 'Empaque', type: 'dynamic-select', endpoint: '/packages/', labelKey: 'description', valueKey: 'id', hideInGrid: true, required: true, },
 
   { key: 'item_configuration', label: 'Configuración de Item', type: 'text', omitInForm: true, hideInGrid: true },
 
-  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', endpoint: '/instructions/', labelKey: 'instruction', valueKey: 'code', hideInGrid: true },
+  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', endpoint: '/instructions/', labelKey: 'instruction', valueKey: 'code', hideInGrid: true, required: true, },
 
-  { key: 'configuration', label: 'Configuración', type: 'dynamic-select', endpoint: '/item-configurations/', labelKey: 'configuration', valueKey: 'code', hideInGrid: true, omitInForm: true },
+  { key: 'configuration', label: 'Configuración', type: 'dynamic-select', endpoint: '/item-configurations/', labelKey: 'configuration', valueKey: 'code', hideInGrid: true, omitInForm: true, required: true, },
 
   { key: 'is_visible', label: 'Visible', type: 'checkbox' },
   { key: 'is_deleted', label: 'Eliminado', type: 'checkbox' },
