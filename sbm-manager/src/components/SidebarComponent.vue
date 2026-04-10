@@ -48,6 +48,12 @@
         </router-link>
       </li>
       <li>
+        <router-link to="/pedidos" class="nav-link" active-class="active">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span class="nav-text">Órdenes</span>
+        </router-link>
+      </li>
+      <li>
         <router-link to="/proveedores" class="nav-link" active-class="active">
           <i class="fa-solid fa-industry"></i>
           <span class="nav-text">Proveedores</span>

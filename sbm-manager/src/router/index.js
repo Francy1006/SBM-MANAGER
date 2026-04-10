@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 import FranchiseView from '../views/FranchiseView.vue';
 import CatalogsView from '../views/CatalogsView.vue';
+import OrdersView from '../views/OrdersView.vue';
 import ProductView from '../views/ProductView.vue';
 import MaterialView from '../views/MaterialView.vue';
 import ServiceView from '../views/ServiceView.vue';
@@ -35,6 +36,12 @@ const routes = [
     path: '/catalogos', 
     name: 'Catalogos', 
     component: CatalogsView,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/pedidos', 
+    name: 'Pedidos', 
+    component: OrdersView,
     meta: { requiresAuth: true }
   },
   { 

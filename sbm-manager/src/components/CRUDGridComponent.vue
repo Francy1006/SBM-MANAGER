@@ -107,6 +107,11 @@
               <th v-if="filteredRows.length > 0" style="width:60px!important;" class="align-middle">
                 <input type="checkbox" :checked="allSelected" @change.stop="toggleAllSelection" />
               </th>
+
+              <th v-if="showOpenColumn" style="width:90px!important;" class="align-middle text-center">
+                {{ openColumnLabel }}
+              </th>
+
               <th v-for="col in visibleColumns" :key="col" style="min-width:200px!important; cursor:pointer;"
                 class="align-middle" @click="toggleSort(col)">
                 <div class="d-flex justify-content-between align-items-center">
@@ -126,137 +131,142 @@
           <!-- BODY -->
           <tbody>
             <tr v-if="filteredRows.length === 0">
-              <td :colspan="visibleColumns.length" class="text-center text-muted py-4">
+              <td :colspan="visibleColumns.length + (filteredRows.length > 0 ? 1 : 0) + (showOpenColumn ? 1 : 0)"
+                class="text-center text-muted py-4">
                 <i class="fas fa-info-circle me-2"></i>
                 {{ searchTerm ? `No se encontraron resultados para "${searchTerm}"` : 'No hay elementos disponibles' }}
               </td>
             </tr>
 
-            <tr v-for="row in filteredRows" :key="'row-' + (row.code ?? row.id ?? row.sku)" :class="{
-              'table-primary fw-bold': selected.includes(String(row.code ?? row.id ?? row.sku)) || rowId(row) === editingRowId,
-              'text-white': rowId(row) === editingRowId
-            }">
+            <template v-for="row in filteredRows" :key="rowId(row)">
+              <tr :class="{
+                'table-primary fw-bold': selected.includes(String(row.code ?? row.id ?? row.sku)) || rowId(row) === editingRowId,
+                'text-white': rowId(row) === editingRowId
+              }">
 
-              <!-- SELECTION CHECKBOX -->
-              <td v-if="rows.length > 0" class="text-center">
-                <input type="checkbox" :key="'checkbox-' + (row.code ?? row.id ?? row.sku)"
-                  :value="String(row.code ?? row.id ?? row.sku)" v-model="selected" @change.stop="toggleRowSelection" />
-              </td>
+                <!-- SELECTION CHECKBOX -->
+                <td v-if="rows.length > 0" class="text-center">
+                  <input type="checkbox" :key="'checkbox-' + (row.code ?? row.id ?? row.sku)"
+                    :value="String(row.code ?? row.id ?? row.sku)" v-model="selected"
+                    @change.stop="toggleRowSelection" />
+                </td>
 
-              <!-- CELLS -->
-              <td v-for="col in visibleColumns" :key="col">
+                <!-- OPEN -->
+                <td v-if="showOpenColumn" class="text-center">
+                  <button class="btn btn-sm btn-outline-primary rounded-pill" @click.stop="openRow(row)"
+                    title="Abrir registro">
+                    <i class="fas fa-arrow-turn-down"></i>
+                  </button>
+                </td>
 
-                <!-- 🔥 1️⃣ CELL MANUAL (dynamic-select con pill opcional) -->
-                <template v-if="
-                  (() => {
-                    const field = fields.find(f => f.key === col)
-                    return field && field.cellManual
-                  })()
-                ">
+                <!-- CELLS -->
+                <td v-for="col in visibleColumns" :key="col">
 
-                  <!-- 🟢 PILL (si tiene _detail y cellPill) -->
-                  <span v-if="
-                    editingCellKey !== rowId(row) + '-' + col &&
-                    fields.find(f => f.key === col)?.cellPill
-                  " :class="getCellPillClass(col, row)" class="pill-status" style="cursor:pointer;"
-                    @click.stop="editingCellKey = rowId(row) + '-' + col">
+                  <template v-if="
+                    (() => {
+                      const field = fields.find(f => f.key === col)
+                      return field && field.cellManual
+                    })()
+                  ">
+
+                    <span v-if="
+                      editingCellKey !== rowId(row) + '-' + col &&
+                      fields.find(f => f.key === col)?.cellPill
+                    " :class="getCellPillClass(col, row)" class="pill-status" style="cursor:pointer;"
+                      @click.stop="editingCellKey = rowId(row) + '-' + col">
+                      {{
+                        fields.find(f => f.key === col)?._manualOptions
+                          ?.find(o => String(o.id) === String(row[col]))
+                          ?.name || '-'
+                      }}
+                    </span>
+
+                    <select v-else-if="fields.find(f => f.key === col)?.type === 'dynamic-select'"
+                      class="form-select form-select-sm" v-model="row[col]"
+                      @change="handleManualChange(row, col); editingCellKey = null" @blur="editingCellKey = null"
+                      @click.stop>
+                      <option v-for="opt in fields.find(f => f.key === col)._manualOptions || []"
+                        :key="opt[fields.find(f => f.key === col).cellManual.valueKey]"
+                        :value="opt[fields.find(f => f.key === col).cellManual.valueKey]">
+                        {{opt[fields.find(f => f.key === col).cellManual.labelKey]}}
+                      </option>
+                    </select>
+
+                    <textarea v-else-if="fields.find(f => f.key === col)?.type === 'textarea'"
+                      class="form-control form-control-sm" rows="2" v-model="row[col]"
+                      @blur="handleManualTextarea(row, col)" @click.stop></textarea>
+
+                  </template>
+
+                  <span v-else-if="
+                    (() => {
+                      const field = fields.find(f => f.key === col)
+                      return field && field.cellLabel && row[`${col}_detail`]
+                    })()
+                  ">
                     {{
-                      fields.find(f => f.key === col)?._manualOptions
-                        ?.find(o => String(o.id) === String(row[col]))
-                        ?.name || '-'
+                      row[`${col}_detail`][
+                      fields.find(f => f.key === col).cellLabel
+                      ]
                     }}
                   </span>
 
-                  <!-- 🔵 SELECT EDITABLE -->
-                  <select v-else-if="fields.find(f => f.key === col)?.type === 'dynamic-select'"
-                    class="form-select form-select-sm" v-model="row[col]"
-                    @change="handleManualChange(row, col); editingCellKey = null" @blur="editingCellKey = null"
-                    @click.stop>
-                    <option v-for="opt in fields.find(f => f.key === col)._manualOptions || []"
-                      :key="opt[fields.find(f => f.key === col).cellManual.valueKey]"
-                      :value="opt[fields.find(f => f.key === col).cellManual.valueKey]">
-                      {{opt[fields.find(f => f.key === col).cellManual.labelKey]}}
-                    </option>
-                  </select>
+                  <span v-else-if="col === 'state' && states">
+                    {{ getStateName(row[col]) }}
+                  </span>
 
-                  <!-- 🔵 TEXTAREA INLINE -->
-                  <textarea v-else-if="fields.find(f => f.key === col)?.type === 'textarea'"
-                    class="form-control form-control-sm" rows="2" v-model="row[col]"
-                    @blur="handleManualTextarea(row, col)" @click.stop></textarea>
+                  <span v-else-if="fields.find(f => f.key === col)?.type === 'rating'">
+                    <span v-if="isSecretHidden(col)">●●●●●</span>
 
-                </template>
-
-                <!-- 🔵 CELL LABEL SIMPLE -->
-                <span v-else-if="
-                  (() => {
-                    const field = fields.find(f => f.key === col)
-                    return field && field.cellLabel && row[`${col}_detail`]
-                  })()
-                ">
-                  {{
-                    row[`${col}_detail`][
-                    fields.find(f => f.key === col).cellLabel
-                    ]
-                  }}
-                </span>
-
-                <!-- STATE legacy -->
-                <span v-else-if="col === 'state' && states">
-                  {{ getStateName(row[col]) }}
-                </span>
-
-                <!-- ⭐ RATING -->
-                <span v-else-if="fields.find(f => f.key === col)?.type === 'rating'">
-
-                  <span v-if="isSecretHidden(col)">●●●●●</span>
-
-                  <span v-else>
-                    <span v-for="star in 5" :key="star" class="me-1"
-                      :class="star <= Number(row[col]) ? 'text-warning' : 'text-secondary opacity-25'"
-                      style="font-size:1.2rem;">
-                      <i class="fa-solid fa-star"></i>
+                    <span v-else>
+                      <span v-for="star in 5" :key="star" class="me-1"
+                        :class="star <= Number(row[col]) ? 'text-warning' : 'text-secondary opacity-25'"
+                        style="font-size:1.2rem;">
+                        <i class="fa-solid fa-star"></i>
+                      </span>
                     </span>
                   </span>
 
-                </span>
+                  <span v-else-if="typeof row[col] === 'boolean'">
+                    <i v-if="row[col]" class="fas fa-check text-success" style="font-size: x-large;"></i>
+                    <i v-else class="fas fa-times text-danger" style="font-size: x-large;"></i>
+                  </span>
 
-                <!-- BOOLEAN -->
-                <span v-else-if="typeof row[col] === 'boolean'">
-                  <i v-if="row[col]" class="fas fa-check text-success" style="font-size: x-large;"></i>
-                  <i v-else class="fas fa-times text-danger" style="font-size: x-large;"></i>
-                </span>
+                  <span v-else-if="
+                    typeof row[col] === 'string' &&
+                    row[col] &&
+                    row[col].startsWith('https://res.cloudinary.com')
+                  ">
+                    <img :src="row[col]" alt="Imagen"
+                      style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px;" />
+                  </span>
 
-                <!-- CLOUDINARY -->
-                <span v-else-if="
-                  typeof row[col] === 'string' &&
-                  row[col] &&
-                  row[col].startsWith('https://res.cloudinary.com')
-                ">
-                  <img :src="row[col]" alt="Imagen"
-                    style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 6px;" />
-                </span>
+                  <span v-else-if="col.toLowerCase().includes('url') && row[col]">
+                    <a :href="row[col]" target="_blank">{{ row[col] }}</a>
+                  </span>
 
-                <!-- URL -->
-                <span v-else-if="col.toLowerCase().includes('url') && row[col]">
-                  <a :href="row[col]" target="_blank">{{ row[col] }}</a>
-                </span>
+                  <span v-else-if="fields.find(f => f.key === col)?.type === 'pill_name'" class="pill-status" :style="{
+                    background: '#' + (row.menu_background_color || '6c757d'),
+                    color: '#' + (row.menu_text_color || 'ffffff')
+                  }">
+                    {{ row[col] }}
+                  </span>
 
-                <!-- 🔵 PILL DINÁMICO POR COLOR (menu) -->
-                <span v-else-if="fields.find(f => f.key === col)?.type === 'pill_name'" class="pill-status" :style="{
-                  background: '#' + (row.menu_background_color || '6c757d'),
-                  color: '#' + (row.menu_text_color || 'ffffff')
-                }">
-                  {{ row[col] }}
-                </span>
+                  <span v-else>
+                    <span v-if="isSecretHidden(col)">●●●●●</span>
+                    <span v-else>{{ formatValue(row[col], col) }}</span>
+                  </span>
 
-                <!-- DEFAULT -->
-                <span v-else>
-                  <span v-if="isSecretHidden(col)">●●●●●</span>
-                  <span v-else>{{ formatValue(row[col], col) }}</span>
-                </span>
+                </td>
+              </tr>
 
-              </td>
-            </tr>
+              <tr v-if="showDetailComponent && isRowExpanded(row)">
+                <td :colspan="visibleColumns.length + (rows.length > 0 ? 1 : 0) + (showOpenColumn ? 1 : 0)"
+                  class="p-3 bg-light">
+                  <GridDetailContainerComponent :tables="buildDetailTables(row)" @close="toggleDetailRow(row)" />
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -299,11 +309,12 @@
 import api from '../api/axios';
 import { mapGetters, mapActions } from 'vuex';
 import OptionsComponent from './OptionsComponent.vue';
+import GridDetailContainerComponent from './GridDetailContainerComponent.vue'
 import * as XLSX from 'xlsx';
 
 export default {
   name: 'CRUDGridComponent',
-  components: { OptionsComponent },
+  components: { OptionsComponent, GridDetailContainerComponent },
   props: {
     resourceName: { type: String, required: true },
     endpoint: { type: String, required: true },
@@ -313,6 +324,11 @@ export default {
     fields: { type: Array, default: () => [] },
     optionsProps: { type: Object, default: () => ({}) },
     refreshKey: { type: [Number, String], default: 0 },
+
+    showOpenColumn: { type: Boolean, default: false },
+    openColumnLabel: { type: String, default: 'Abrir' },
+    showDetailComponent: { type: Boolean, default: false },
+
     percentColorThresholds: {
       type: Array,
       default: () => [20, 40, 60, 80, 100]
@@ -320,13 +336,21 @@ export default {
     percentColorClasses: {
       type: Array,
       default: () => [
-        'text-danger',      // <= 20
-        'text-warning',     // <= 40
-        'text-orange',      // <= 60 (puedes crear clase)
-        'text-info',        // <= 80
-        'text-primary',     // <= 100
-        'text-primary fw-bold' // > 100
+        'text-danger',
+        'text-warning',
+        'text-orange',
+        'text-info',
+        'text-primary',
+        'text-primary fw-bold'
       ]
+    },
+    detailTablesConfig: {
+      type: Array,
+      default: null
+    },
+    detailFieldsConfig: {
+      type: Object,
+      default: null
     },
   },
   data() {
@@ -349,6 +373,9 @@ export default {
       tableKey: '',
       showSecretFields: false,
       hideDeleted: true,
+      detailRow: null,
+      showDetail: false,
+      expandedRows: {},
       blockGroupDelete: true,
       sortKey: 'created_at',
       sortDirection: 'desc',
@@ -452,6 +479,15 @@ export default {
           this.$emit('row-selected', null);
         }
       }
+    },
+
+    toggleDetailRow(row) {
+      const id = this.rowId(row)
+      this.expandedRows[id] = !this.expandedRows[id]
+    },
+
+    isRowExpanded(row) {
+      return !!this.expandedRows[this.rowId(row)]
     },
 
     toggleRowSelection() {
@@ -924,7 +960,36 @@ export default {
       } catch (error) {
         console.error('Error PATCH textarea manual:', error)
       }
-    }
+    },
+    openRow(row) {
+      if (this.showDetailComponent) {
+        this.toggleDetailRow(row)
+      } else {
+        this.$emit('open-row', row)
+      }
+    },
+    buildDetailTables(row) {
+      if (!this.detailTablesConfig || !this.showDetailComponent) {
+        return [
+          {
+            title: `Detalle de ${row.code || row.id}`,
+            fields: this.fields,
+            rows: [row]
+          }
+        ]
+      }
+
+      return this.detailTablesConfig.map(t => ({
+        title: t.title,
+        icon: t.icon,
+        type: t.type,
+        order: row,
+        rows: [],
+        fields: this.detailFieldsConfig?.[t.type] || [],
+        searchConfig: t.searchConfig || {},
+        createConfig: t.createConfig || {}
+      }))
+    },
   },
   watch: {
     endpoint: 'fetchData',

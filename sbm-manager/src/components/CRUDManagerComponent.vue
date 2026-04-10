@@ -67,9 +67,11 @@
 
     <CRUDGridComponent v-if="!showProperties" ref="crudGridRef" :resourceName="resourceName"
       :endpoint="finalGetEndpoint" :iconClass="iconClass" :showPropertiesButton="showPropertiesButton"
+      :showOpenColumn="showOpenColumn" :openColumnLabel="openColumnLabel" :showDetailComponent="showDetailComponent"
+      :detailTablesConfig="detailTablesConfig" :detailFieldsConfig="detailFieldsConfig"
       v-bind="states ? { states } : {}" :fields="fields" :optionsProps="optionsProps" @configure="onConfigure"
-      @row-selected="onRowSelected" @show-properties="onShowProperties" @import="handleImport" @export="handleExport"
-      @counts-updated="onCountsUpdated" />
+      @row-selected="onRowSelected" @open-row="emit('open-row', $event)" @show-properties="onShowProperties"
+      @import="handleImport" @export="handleExport" @counts-updated="onCountsUpdated" />
 
     <PropertiesComponent v-if="showProperties" :product="selectedRow" :fields="fields" :advancedData="advancedData"
       :calculationTitle="calculationTitle" :calculationDescription="calculationDescription"
@@ -143,11 +145,23 @@ const props = defineProps({
   additionalTaxAmount: { type: [Number, String], default: null },
   retentionAmount: { type: [Number, String], default: null },
   selectedProductSku: { type: String, default: null },
-
-  optionsProps: { type: Object, default: () => ({}) }
+  optionsProps: { type: Object, default: () => ({}) },
+  showOpenColumn: { type: Boolean, default: true },
+  openColumnLabel: { type: String, default: 'Abrir' },
+  showDetailComponent: { type: Boolean, default: false },
+  /** Valores iniciales al abrir el formulario de creación (p. ej. franchise_code desde la marca seleccionada). */
+  createDefaults: { type: Function, default: null },
+  detailTablesConfig: {
+    type: Array,
+    default: () => null
+  },
+  detailFieldsConfig: {
+    type: Object,
+    default: () => null
+  },
 });
 
-const emit = defineEmits(['refresh', 'created', 'updated', 'mounted', 'row-selected', 'import', 'export']);
+const emit = defineEmits(['refresh', 'created', 'updated', 'mounted', 'row-selected', 'open-row', 'import', 'export']);
 
 const currentDate = ref(getCurrentDate());
 const isEdit = ref(false);
@@ -215,7 +229,10 @@ function updateFieldsState() {
 
 function showCreateForm() {
   isEdit.value = false;
-  editingData.value = {};
+  const defaults =
+    typeof props.createDefaults === 'function' ? props.createDefaults() : null;
+  editingData.value =
+    defaults && typeof defaults === 'object' && !Array.isArray(defaults) ? { ...defaults } : {};
   formFields.value = props.fields.map(f => ({ ...f, options: [], loading: false }));
   showForm.value = true;
   updateFieldsState();
