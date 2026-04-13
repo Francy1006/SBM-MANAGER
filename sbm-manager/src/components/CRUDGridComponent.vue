@@ -983,11 +983,19 @@ export default {
         title: t.title,
         icon: t.icon,
         type: t.type,
-        order: row,
+
+        // 🔥 clave
+        order: this.detailExtraProps?.order || row,
+
         rows: [],
         fields: this.detailFieldsConfig?.[t.type] || [],
+
         searchConfig: t.searchConfig || {},
-        createConfig: t.createConfig || {}
+        createConfig: t.createConfig || {},
+        calculationConfig: t.calculationConfig || null,
+
+        // 🔥 clave (esto te faltaba)
+        detailConfig: t.detailConfig || {}
       }))
     },
   },

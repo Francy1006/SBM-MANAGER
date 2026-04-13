@@ -17,10 +17,30 @@
         </div>
 
         <div v-else class="d-flex flex-column gap-3">
-            <GridDetailTableComponent v-for="(table, index) in localTables" :key="index" :title="table.title"
-                :icon="table.icon" :type="table.type" :order="table.order" :fields="table.fields || []"
-                :rows="table.rows" :searchConfig="table.searchConfig || {}" :createConfig="table.createConfig || {}"
-                @update:rows="updateRows(index, $event)" @refresh-details="refreshDetails(index)" />
+            <div v-for="(table, index) in localTables" :key="index" class="border rounded bg-white">
+                <div class="d-flex justify-content-between align-items-center px-3 py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i :class="table.icon"></i>
+                        <strong>{{ table.title }}</strong>
+                        <span class="badge bg-light text-dark">
+                            {{ Array.isArray(table.rows) ? table.rows.length : 0 }}
+                        </span>
+                    </div>
+
+                    <button class="btn btn-sm btn-link text-secondary text-decoration-none p-0"
+                        @click="toggleTable(index)" :title="collapsedTables[index] ? 'Expandir' : 'Colapsar'">
+                        <i :class="collapsedTables[index] ? 'fas fa-chevron-down' : 'fas fa-chevron-up'"></i>
+                    </button>
+                </div>
+
+                <div v-show="!collapsedTables[index]" class="px-2 pb-2">
+                    <GridDetailTableComponent :title="table.title" :icon="table.icon" :type="table.type"
+                        :order="table.order" :fields="table.fields || []" :rows="table.rows"
+                        :searchConfig="table.searchConfig || {}" :createConfig="table.createConfig || {}"
+                        :calculationConfig="table.calculationConfig || null" :detailConfig="table.detailConfig || {}"
+                        @update:rows="updateRows(index, $event)" @refresh-details="refreshDetails(index)" />
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -42,7 +62,8 @@ export default {
 
     data() {
         return {
-            localTables: []
+            localTables: [],
+            collapsedTables: {},
         }
     },
 
@@ -54,13 +75,21 @@ export default {
                 this.localTables = Array.isArray(val)
                     ? val.map(t => ({
                         ...t,
+                        order: t.order || this.tables?.[0]?.order || null,
                         rows: Array.isArray(t.rows) ? t.rows : []
                     }))
                     : []
 
+                const nextCollapsed = {}
+
                 for (let i = 0; i < this.localTables.length; i++) {
                     await this.refreshDetails(i)
+                    const table = this.localTables[i]
+                    const hasRows = Array.isArray(table?.rows) && table.rows.length > 0
+                    nextCollapsed[i] = !hasRows
                 }
+
+                this.collapsedTables = nextCollapsed
             }
         }
     },
@@ -72,15 +101,32 @@ export default {
 
         async refreshDetails(index) {
             const table = this.localTables[index]
-            if (!table?.order?.id || !table?.type) return
+            if (!table?.order?.id) return
 
             try {
-                const { data } = await axios.get(`/orders/${table.order.id}/details/?type=${table.type}`)
-                this.localTables[index].rows = Array.isArray(data) ? data : (data?.results || [])
+                const buildUrl = table?.detailConfig?.buildUrl
+                if (!buildUrl) return
+
+                const url = buildUrl({
+                    order: table.order,
+                    table
+                })
+
+                if (!url) return
+
+                const { data } = await axios.get(url)
+
+                this.localTables[index].rows = Array.isArray(data)
+                    ? data
+                    : (data?.results || [])
+
             } catch (error) {
                 console.error('Error recargando details:', error)
             }
-        }
+        },
+        toggleTable(index) {
+            this.collapsedTables[index] = !this.collapsedTables[index]
+        },
     }
 }
 </script>

@@ -334,7 +334,17 @@ const visibleFields = computed(() => {
 })
 
 const safeCalculationProps = computed(() => {
-  return configData.value?.calculation?.props || null
+  const raw = configData.value?.calculation?.props || null
+  if (!raw) return null
+
+  return {
+    code: raw.code,
+    contextKey: raw.contextKey || raw.formulaQueryParam || 'code',
+    formulaEndpoint: raw.formulaEndpoint,
+    formulaResponsePath: raw.formulaResponsePath,
+    variablesEndpoint: raw.variablesEndpoint || raw.variableEndpoint,
+    variablesQueryParams: raw.variablesQueryParams || raw.variableQueryParams || {}
+  }
 })
 
 const safeLinking = computed(() => {

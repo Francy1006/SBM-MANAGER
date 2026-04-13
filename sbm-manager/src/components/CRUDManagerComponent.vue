@@ -69,9 +69,10 @@
       :endpoint="finalGetEndpoint" :iconClass="iconClass" :showPropertiesButton="showPropertiesButton"
       :showOpenColumn="showOpenColumn" :openColumnLabel="openColumnLabel" :showDetailComponent="showDetailComponent"
       :detailTablesConfig="detailTablesConfig" :detailFieldsConfig="detailFieldsConfig"
-      v-bind="states ? { states } : {}" :fields="fields" :optionsProps="optionsProps" @configure="onConfigure"
-      @row-selected="onRowSelected" @open-row="emit('open-row', $event)" @show-properties="onShowProperties"
-      @import="handleImport" @export="handleExport" @counts-updated="onCountsUpdated" />
+      :detailExtraProps="detailExtraProps" v-bind="states ? { states } : {}" :fields="fields"
+      :optionsProps="optionsProps" @configure="onConfigure" @row-selected="onRowSelected"
+      @open-row="emit('open-row', $event)" @show-properties="onShowProperties" @import="handleImport"
+      @export="handleExport" @counts-updated="onCountsUpdated" />
 
     <PropertiesComponent v-if="showProperties" :product="selectedRow" :fields="fields" :advancedData="advancedData"
       :calculationTitle="calculationTitle" :calculationDescription="calculationDescription"
@@ -133,6 +134,8 @@ const props = defineProps({
 
   showDateAlert: { type: Boolean, default: false },
   endpointBase: { type: String, default: '' },
+
+  detailExtraProps: { type: Object, default: () => ({}) },
 
   configComponent: { type: String, default: null },
   configProps: { type: Object, default: () => ({}) },

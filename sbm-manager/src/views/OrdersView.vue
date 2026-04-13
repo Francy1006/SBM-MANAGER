@@ -20,276 +20,11 @@
     <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="Orden" endpoint="orders/"
       get-endpoint="orders/" post-endpoint="orders/" iconClass="" :componentTitle="componentTitle" :fields="fields"
       :showConfigForm="false" :showPropertiesButton="true" :showConfigList="false" :optionsProps="optionsProps"
-      :createDefaults="orderCreateDefaults" :showOpenColumn="true" :showDetailComponent="true" :detailTablesConfig="[
-        {
-          type: 'catalog',
-          title: 'Catálogo',
-          icon: 'fa-solid fa-utensils',
-          searchConfig: {
-            endpoint: 'catalogs/',
-            queryParam: 'search',
-            resultPath: 'results',
-            minChars: 2,
-            placeholder: 'Buscar catálogo...',
-            addButtonText: 'Agregar',
-            keyField: 'code',
-            primaryField: 'sku',
-            secondaryField: 'description'
-          },
-          createConfig: {
-            endpoint: '/order-details/',
-            itemTypeId: 1
-          }
-        },
-        {
-          type: 'product',
-          title: 'Productos',
-          icon: 'fa-solid fa-box',
-          searchConfig: {
-            endpoint: 'products/',
-            queryParam: 'search',
-            resultPath: 'results',
-            minChars: 2,
-            placeholder: 'Buscar producto...',
-            addButtonText: 'Agregar',
-            keyField: 'code',
-            primaryField: 'sku',
-            secondaryField: 'description'
-          },
-          createConfig: {
-            endpoint: '/order-details/',
-            itemTypeId: 2
-          }
-        },
-        {
-          type: 'material',
-          title: 'Materiales',
-          icon: 'fa-solid fa-cubes',
-          searchConfig: {
-            endpoint: 'materials/',
-            queryParam: 'search',
-            resultPath: 'results',
-            minChars: 2,
-            placeholder: 'Buscar material...',
-            addButtonText: 'Agregar',
-            keyField: 'code',
-            primaryField: 'sku',
-            secondaryField: 'description'
-          },
-          createConfig: {
-            endpoint: '/order-details/',
-            itemTypeId: 3
-          }
-        },
-        {
-          type: 'service',
-          title: 'Servicios',
-          icon: 'fa-solid fa-concierge-bell',
-          searchConfig: {
-            endpoint: 'services/',
-            queryParam: 'search',
-            resultPath: 'results',
-            minChars: 2,
-            placeholder: 'Buscar servicio...',
-            addButtonText: 'Agregar',
-            keyField: 'code',
-            primaryField: 'sku',
-            secondaryField: 'description'
-          },
-          createConfig: {
-            endpoint: '/order-details/',
-            itemTypeId: 4
-          }
-        },
-        {
-          type: 'ticket',
-          title: 'Tickets',
-          icon: 'fa-solid fa-receipt',
-          searchConfig: {
-            endpoint: 'tickets/',
-            queryParam: 'search',
-            resultPath: 'results',
-            minChars: 2,
-            placeholder: 'Buscar ticket...',
-            addButtonText: 'Agregar',
-            keyField: 'code',
-            primaryField: 'sku',
-            secondaryField: 'description'
-          },
-          createConfig: {
-            endpoint: '/order-details/',
-            itemTypeId: 5
-          }
-        }
-      ]" :detail-fields-config="{
-    catalog: [
-      { key: 'item_sku', label: 'SKU' },
-      { key: 'status', label: 'Status' },
-      { key: 'order_type', label: 'Tipo' },
-      { key: 'menu', label: 'Carta' },
-      { key: 'description', label: 'Nombre' },
-      { key: 'quantity', label: 'Cantidad', editable: true },
-      { key: 'unit_net_amount', label: 'Neto Unit.', type: 'price' },
-      { key: 'net_amount', label: 'SubTotal', type: 'price' },
-      {
-        key: 'hitos',
-        label: 'Hitos',
-        type: 'icon_group',
-        icons: [
-          { key: 'is_processing', icon: 'fas fa-sync-alt', class: 'text-info', title: 'Procesado' },
-          { key: 'requires_cold_chain', icon: 'fas fa-snowflake', class: 'text-info', title: 'Cadena de frío' },
-          { key: 'is_done', icon: 'fas fa-check', class: 'text-success', title: 'Terminado' },
-          { key: 'has_fiscal_issue', icon: 'fas fa-file-invoice-dollar', class: 'text-warning', title: 'Documentación fiscal' },
-          { key: 'is_delayed', icon: 'fas fa-clock', class: 'text-warning', title: 'Atraso' },
-          { key: 'has_problem', icon: 'fas fa-exclamation-triangle', class: 'text-danger', title: 'Problema' },
-          { key: 'has_packaging_issue', icon: 'fas fa-box-open', class: 'text-warning', title: 'Embalaje' },
-          { key: 'is_deleted', icon: 'fas fa-trash', class: 'text-danger', title: 'Eliminado' }
-        ]
-      },
-      { key: 'created_at', label: 'Creación', type: 'datetime' },
-      { key: 'processed_at', label: 'Procesado', type: 'datetime' },
-      { key: 'done_at', label: 'Finalizado', type: 'datetime' },
-      { key: 'estimated_date', label: 'Estimado', type: 'datetime' },
-      { key: 'quote_url', label: 'Cotización', type: 'link', linkText: 'Ver' },
-      { key: 'dispatch_url', label: 'Guía', type: 'link', linkText: 'Ver' },
-      { key: 'sale_note_url', label: 'Nota', type: 'link', linkText: 'Ver' },
-      { key: 'invoice_url', label: 'Factura', type: 'link', linkText: 'Ver' }
-    ],
-    product: [
-      { key: 'item_sku', label: 'SKU' },
-      { key: 'status', label: 'Status' },
-      { key: 'order_type', label: 'Tipo' },
-      { key: 'menu', label: 'Carta' },
-      { key: 'description', label: 'Nombre' },
-      { key: 'quantity', label: 'Cantidad', editable: true },
-      { key: 'unit_net_amount', label: 'Neto Unit.', type: 'price' },
-      { key: 'net_amount', label: 'SubTotal', type: 'price' },
-      {
-        key: 'hitos',
-        label: 'Hitos',
-        type: 'icon_group',
-        icons: [
-          { key: 'is_processing', icon: 'fas fa-sync-alt', class: 'text-info', title: 'Procesado' },
-          { key: 'requires_cold_chain', icon: 'fas fa-snowflake', class: 'text-info', title: 'Cadena de frío' },
-          { key: 'is_done', icon: 'fas fa-check', class: 'text-success', title: 'Terminado' },
-          { key: 'has_fiscal_issue', icon: 'fas fa-file-invoice-dollar', class: 'text-warning', title: 'Documentación fiscal' },
-          { key: 'is_delayed', icon: 'fas fa-clock', class: 'text-warning', title: 'Atraso' },
-          { key: 'has_problem', icon: 'fas fa-exclamation-triangle', class: 'text-danger', title: 'Problema' },
-          { key: 'has_packaging_issue', icon: 'fas fa-box-open', class: 'text-warning', title: 'Embalaje' },
-          { key: 'is_deleted', icon: 'fas fa-trash', class: 'text-danger', title: 'Eliminado' }
-        ]
-      },
-      { key: 'created_at', label: 'Creación', type: 'datetime' },
-      { key: 'processed_at', label: 'Procesado', type: 'datetime' },
-      { key: 'done_at', label: 'Finalizado', type: 'datetime' },
-      { key: 'estimated_date', label: 'Estimado', type: 'datetime' },
-      { key: 'quote_url', label: 'Cotización', type: 'link', linkText: 'Ver' },
-      { key: 'dispatch_url', label: 'Guía', type: 'link', linkText: 'Ver' },
-      { key: 'sale_note_url', label: 'Nota', type: 'link', linkText: 'Ver' },
-      { key: 'invoice_url', label: 'Factura', type: 'link', linkText: 'Ver' }
-    ],
-    material: [
-      { key: 'item_sku', label: 'SKU' },
-      { key: 'status', label: 'Status' },
-      { key: 'order_type', label: 'Tipo' },
-      { key: 'menu', label: 'Carta' },
-      { key: 'description', label: 'Nombre' },
-      { key: 'quantity', label: 'Cantidad', editable: true },
-      { key: 'unit_net_amount', label: 'Neto Unit.', type: 'price' },
-      { key: 'net_amount', label: 'SubTotal', type: 'price' },
-      {
-        key: 'hitos',
-        label: 'Hitos',
-        type: 'icon_group',
-        icons: [
-          { key: 'is_processing', icon: 'fas fa-sync-alt', class: 'text-info', title: 'Procesado' },
-          { key: 'requires_cold_chain', icon: 'fas fa-snowflake', class: 'text-info', title: 'Cadena de frío' },
-          { key: 'is_done', icon: 'fas fa-check', class: 'text-success', title: 'Terminado' },
-          { key: 'has_fiscal_issue', icon: 'fas fa-file-invoice-dollar', class: 'text-warning', title: 'Documentación fiscal' },
-          { key: 'is_delayed', icon: 'fas fa-clock', class: 'text-warning', title: 'Atraso' },
-          { key: 'has_problem', icon: 'fas fa-exclamation-triangle', class: 'text-danger', title: 'Problema' },
-          { key: 'has_packaging_issue', icon: 'fas fa-box-open', class: 'text-warning', title: 'Embalaje' },
-          { key: 'is_deleted', icon: 'fas fa-trash', class: 'text-danger', title: 'Eliminado' }
-        ]
-      },
-      { key: 'created_at', label: 'Creación', type: 'datetime' },
-      { key: 'processed_at', label: 'Procesado', type: 'datetime' },
-      { key: 'done_at', label: 'Finalizado', type: 'datetime' },
-      { key: 'estimated_date', label: 'Estimado', type: 'datetime' },
-      { key: 'quote_url', label: 'Cotización', type: 'link', linkText: 'Ver' },
-      { key: 'dispatch_url', label: 'Guía', type: 'link', linkText: 'Ver' },
-      { key: 'sale_note_url', label: 'Nota', type: 'link', linkText: 'Ver' },
-      { key: 'invoice_url', label: 'Factura', type: 'link', linkText: 'Ver' }
-    ],
-    service: [
-      { key: 'item_sku', label: 'SKU' },
-      { key: 'status', label: 'Status' },
-      { key: 'order_type', label: 'Tipo' },
-      { key: 'menu', label: 'Carta' },
-      { key: 'description', label: 'Nombre' },
-      { key: 'quantity', label: 'Cantidad', editable: true },
-      { key: 'unit_net_amount', label: 'Neto Unit.', type: 'price' },
-      { key: 'net_amount', label: 'SubTotal', type: 'price' },
-      {
-        key: 'hitos',
-        label: 'Hitos',
-        type: 'icon_group',
-        icons: [
-          { key: 'is_processing', icon: 'fas fa-sync-alt', class: 'text-info', title: 'Procesado' },
-          { key: 'requires_cold_chain', icon: 'fas fa-snowflake', class: 'text-info', title: 'Cadena de frío' },
-          { key: 'is_done', icon: 'fas fa-check', class: 'text-success', title: 'Terminado' },
-          { key: 'has_fiscal_issue', icon: 'fas fa-file-invoice-dollar', class: 'text-warning', title: 'Documentación fiscal' },
-          { key: 'is_delayed', icon: 'fas fa-clock', class: 'text-warning', title: 'Atraso' },
-          { key: 'has_problem', icon: 'fas fa-exclamation-triangle', class: 'text-danger', title: 'Problema' },
-          { key: 'has_packaging_issue', icon: 'fas fa-box-open', class: 'text-warning', title: 'Embalaje' },
-          { key: 'is_deleted', icon: 'fas fa-trash', class: 'text-danger', title: 'Eliminado' }
-        ]
-      },
-      { key: 'created_at', label: 'Creación', type: 'datetime' },
-      { key: 'processed_at', label: 'Procesado', type: 'datetime' },
-      { key: 'done_at', label: 'Finalizado', type: 'datetime' },
-      { key: 'estimated_date', label: 'Estimado', type: 'datetime' },
-      { key: 'quote_url', label: 'Cotización', type: 'link', linkText: 'Ver' },
-      { key: 'dispatch_url', label: 'Guía', type: 'link', linkText: 'Ver' },
-      { key: 'sale_note_url', label: 'Nota', type: 'link', linkText: 'Ver' },
-      { key: 'invoice_url', label: 'Factura', type: 'link', linkText: 'Ver' }
-    ],
-    ticket: [
-      { key: 'item_sku', label: 'SKU' },
-      { key: 'status', label: 'Status' },
-      { key: 'order_type', label: 'Tipo' },
-      { key: 'menu', label: 'Carta' },
-      { key: 'description', label: 'Nombre' },
-      { key: 'quantity', label: 'Cantidad', editable: true },
-      { key: 'unit_net_amount', label: 'Neto Unit.', type: 'price' },
-      { key: 'net_amount', label: 'SubTotal', type: 'price' },
-      {
-        key: 'hitos',
-        label: 'Hitos',
-        type: 'icon_group',
-        icons: [
-          { key: 'is_processing', icon: 'fas fa-sync-alt', class: 'text-info', title: 'Procesado' },
-          { key: 'requires_cold_chain', icon: 'fas fa-snowflake', class: 'text-info', title: 'Cadena de frío' },
-          { key: 'is_done', icon: 'fas fa-check', class: 'text-success', title: 'Terminado' },
-          { key: 'has_fiscal_issue', icon: 'fas fa-file-invoice-dollar', class: 'text-warning', title: 'Documentación fiscal' },
-          { key: 'is_delayed', icon: 'fas fa-clock', class: 'text-warning', title: 'Atraso' },
-          { key: 'has_problem', icon: 'fas fa-exclamation-triangle', class: 'text-danger', title: 'Problema' },
-          { key: 'has_packaging_issue', icon: 'fas fa-box-open', class: 'text-warning', title: 'Embalaje' },
-          { key: 'is_deleted', icon: 'fas fa-trash', class: 'text-danger', title: 'Eliminado' }
-        ]
-      },
-      { key: 'created_at', label: 'Creación', type: 'datetime' },
-      { key: 'processed_at', label: 'Procesado', type: 'datetime' },
-      { key: 'done_at', label: 'Finalizado', type: 'datetime' },
-      { key: 'estimated_date', label: 'Estimado', type: 'datetime' },
-      { key: 'quote_url', label: 'Cotización', type: 'link', linkText: 'Ver' },
-      { key: 'dispatch_url', label: 'Guía', type: 'link', linkText: 'Ver' },
-      { key: 'sale_note_url', label: 'Nota', type: 'link', linkText: 'Ver' },
-      { key: 'invoice_url', label: 'Factura', type: 'link', linkText: 'Ver' }
-    ]
-  }" openColumnLabel="Abrir" configFormResourcePath="orders" configFormLookupField="code" @refresh="handleRefresh"
-      @created="handleCreated" @updated="handleUpdated" @row-selected="handleOrderSelected" @import="handleImport"
-      @export="handleExport">
+      :createDefaults="orderCreateDefaults" :showOpenColumn="true" :showDetailComponent="true"
+      :detailTablesConfig="detailTablesConfig" :detail-fields-config="detailFieldsConfig"
+      :detail-extra-props="{ order: selectedOrder }" openColumnLabel="Abrir" configFormResourcePath="orders"
+      configFormLookupField="code" @refresh="handleRefresh" @created="handleCreated" @updated="handleUpdated"
+      @row-selected="handleOrderSelected" @import="handleImport" @export="handleExport">
       <template #properties>
         <PropertiesComponent :product="selectedOrder" :fields="fields" title="Propiedades de la orden"
           configResource="orders" lookupField="code" :hasItemConfiguration="false" />
@@ -339,25 +74,230 @@ const optionsProps = ref({
 
 const orderCreateDefaults = () => ({
   franchise_code: selectedFranchiseCode.value || '',
+  client: null,
   parent_order_id: null,
   order_type_id: null,
   status_id: null,
+  name: '',
   description: '',
   is_delayed: false,
   is_partial: false,
   is_canceled: false,
   is_non_conforming: false,
   requires_cold_chain: true,
+  requires_fiscal_documentation: false,
+  has_fiscal_documentation: false,
+  fiscal_documentation_error: false,
+  is_processed: false,
+  is_closed: false,
+  expected_dispatch_date: null,
+  expected_delivery_date: null,
+  dispatch_date: null,
+  delivery_date: null,
+  delivery_route: '',
+  delivery_window: '',
+  delivery_comments: '',
   total_net_amount: 0,
   total_discount: 0,
   total_surcharge: 0,
-  operation_date: '',
   is_deleted: false
 });
 
+const moduleConfig = {
+  base: {
+    formula: {
+      endpoint: '/module-order-formula/',
+      queryParam: 'type',
+      codeResponsePath: 'code'
+    },
+    formulaDetail: {
+      endpoint: '/module-order-formula-detail/',
+      queryParam: 'code',
+      responsePath: 'formula_template'
+    },
+    variables: {
+      endpoint: '/module-order-variables/',
+      module_code: 'ORDER'
+    },
+    create: {
+      endpoint: '/order-details/'
+    }
+  },
+
+  types: [
+    {
+      type: 'catalog',
+      title: 'Catálogo',
+      icon: 'fa-solid fa-utensils',
+      itemTypeId: 1,
+      module_config_id: 'CATALOG',
+      search: {
+        endpoint: 'catalogs/',
+        placeholder: 'Buscar catálogo...'
+      }
+    },
+    {
+      type: 'product',
+      title: 'Productos',
+      icon: 'fa-solid fa-box',
+      itemTypeId: 2,
+      module_config_id: 'PRODUCT',
+      search: {
+        endpoint: 'products/',
+        placeholder: 'Buscar producto...'
+      }
+    },
+    {
+      type: 'service',
+      title: 'Servicios',
+      icon: 'fa-solid fa-concierge-bell',
+      itemTypeId: 3,
+      module_config_id: 'SERVICE',
+      search: {
+        endpoint: 'services/',
+        placeholder: 'Buscar servicio...'
+      }
+    },
+    {
+      type: 'ticket',
+      title: 'Tickets',
+      icon: 'fa-solid fa-receipt',
+      itemTypeId: 4,
+      module_config_id: 'TICKET',
+      search: {
+        endpoint: 'tickets/',
+        placeholder: 'Buscar ticket...'
+      }
+    },
+    {
+      type: 'material',
+      title: 'Materiales',
+      icon: 'fa-solid fa-cubes',
+      itemTypeId: 5,
+      module_config_id: 'MATERIAL',
+      search: {
+        endpoint: 'materials/',
+        placeholder: 'Buscar material...'
+      }
+    }
+  ]
+}
+
+
+const baseDetailFields = [
+  { key: 'id', label: 'ID Detail' },
+  {
+    key: 'hitos',
+    label: 'Hitos',
+    type: 'icon_group',
+    icons: [
+      { key: 'is_processed', icon: 'fa-solid fa-rotate-right', title: 'Procesado' },
+      { key: 'requires_cold_chain', icon: 'fa-solid fa-snowflake', title: 'Cadena de frío' },
+      { key: 'dispatch_date', icon: 'fa-solid fa-truck', title: 'Despacho' },
+      { key: 'is_closed', icon: 'fa-solid fa-check-circle', title: 'Finalizado' },
+      { key: 'fiscal_documentation', icon: 'fa-solid fa-file-invoice-dollar', title: 'Documento fiscal' },
+      { key: 'is_delayed', icon: 'fa-solid fa-clock', title: 'Atraso' },
+      { key: 'is_non_conforming', icon: 'fa-solid fa-triangle-exclamation', title: 'Error pedido' },
+      { key: 'is_partial', icon: 'fa-solid fa-box-open', title: 'Embalaje' },
+      { key: 'is_canceled', icon: 'fa-solid fa-ban', title: 'Cancelado' }
+    ]
+  },
+  { key: 'sku', label: 'SKU' },
+  { key: 'description', label: 'Nombre' },
+  { key: 'quantity', label: 'Cantidad', editable: true },
+  { key: 'unit_net_amount', label: 'Valor Neto Unitario', type: 'price' },
+  { key: 'net_amount', label: 'Valor Neto', type: 'price' },
+  { key: 'created_at', label: 'Creación', type: 'datetime' },
+  { key: 'processed_at', label: 'Procesado', type: 'datetime' },
+  { key: 'closed_at', label: 'Cerrado', type: 'datetime' },
+  { key: 'expected_delivery_date', label: 'Entrega estimada', type: 'datetime' },
+  { key: 'delivery_date', label: 'Entrega', type: 'datetime' }
+];
+
+const detailFieldsConfig = {
+  catalog: baseDetailFields,
+  product: baseDetailFields,
+  service: baseDetailFields,
+  ticket: baseDetailFields,
+  material: baseDetailFields
+};
+
+const detailTablesConfig = moduleConfig.types.map(t => ({
+  type: t.type,
+  title: t.title,
+  icon: t.icon,
+  fields: detailFieldsConfig[t.type] || [],
+
+  detailConfig: {
+    buildUrl: ({ order, table }) =>
+      `/orders/${order.id}/details/?type=${table.type}`,
+
+    deleteBuilder: ({ row }) => ({
+      url: `/order-details/${row.id}/`,
+      payload: { is_canceled: true }
+    })
+  },
+
+  calculationConfig: {
+    endpoint: moduleConfig.base.formula.endpoint,
+    queryParam: moduleConfig.base.formula.queryParam,
+    queryValue: t.module_config_id,
+    codeResponsePath: moduleConfig.base.formula.codeResponsePath,
+
+    formulaEndpoint: moduleConfig.base.formulaDetail.endpoint,
+    formulaQueryParam: moduleConfig.base.formulaDetail.queryParam,
+    formulaResponsePath: moduleConfig.base.formulaDetail.responsePath,
+
+    variablesEndpoint: moduleConfig.base.variables.endpoint,
+    variablesQueryParams: {
+      module_code: moduleConfig.base.variables.module_code,
+      module_config_id: t.module_config_id
+    }
+  },
+
+  searchConfig: {
+    endpoint: t.search.endpoint,
+    queryParam: 'search',
+    resultPath: 'results',
+    minChars: 2,
+    placeholder: t.search.placeholder,
+    addButtonText: 'Agregar',
+    keyField: 'code',
+    primaryField: 'sku',
+    secondaryField: 'description'
+  },
+
+  createConfig: {
+    endpoint: moduleConfig.base.create.endpoint,
+    itemTypeId: t.itemTypeId,
+    payloadBuilder: ({ selectedItem, order, createConfig, getOrderTypeId, getSelectedItemCode }) => {
+      const unitNet = Number(
+        selectedItem?.unit_net_amount ??
+        selectedItem?.base_net_amount ??
+        selectedItem?.net_amount ??
+        0
+      ) || 0
+
+      return {
+        order: order.id,
+        order_type: getOrderTypeId(),
+        item_type: createConfig.itemTypeId,
+        id_item: getSelectedItemCode(selectedItem),
+        description: selectedItem.description || selectedItem.name || '',
+        quantity: 1,
+        percent: null,
+        net_amount: unitNet,
+        fiscal_documentation: null,
+        obs: selectedItem.obs || null,
+        url_evidence: null
+      }
+    }
+  }
+}));
+
 const fields = ref([
   { key: 'id', label: 'ID', type: 'number', omitInForm: true },
-  { key: 'code', label: 'Código', type: 'text', maxlength: 36, omitInForm: true, readOnlyOnConfigure: true },
+  { key: 'code', label: 'Código', type: 'text', maxlength: 20, omitInForm: true, readOnlyOnConfigure: true },
 
   {
     key: 'franchise_code',
@@ -366,11 +306,22 @@ const fields = ref([
     maxlength: 36,
     omitInForm: true,
     hideInGrid: true,
-    readOnlyOnConfigure: true
   },
   { key: 'franchise_name', label: 'Franquicia', type: 'text', omitInForm: true },
 
   { key: 'name', label: 'Nombre', type: 'text', required: true, maxlength: 100 },
+
+  {
+    key: 'client',
+    label: 'Cliente',
+    type: 'dynamic-select',
+    required: false,
+    endpoint: '/clients/',
+    labelKey: 'company_name',
+    valueKey: 'code',
+    hideInGrid: true
+  },
+  { key: 'client_name', label: 'Cliente', type: 'text', omitInForm: true },
 
   {
     key: 'parent_order_id',
@@ -398,7 +349,7 @@ const fields = ref([
     label: 'Estado',
     type: 'dynamic-select',
     required: true,
-    endpoint: '/status/orders/',
+    endpoint: '/status/order/',
     labelKey: 'name',
     valueKey: 'id',
     hideInGrid: true
@@ -412,6 +363,11 @@ const fields = ref([
   { key: 'is_canceled', label: 'Cancelada', type: 'checkbox' },
   { key: 'is_non_conforming', label: 'No conforme', type: 'checkbox' },
   { key: 'requires_cold_chain', label: 'Cadena de frío', type: 'checkbox' },
+  { key: 'requires_fiscal_documentation', label: 'Requiere doc. fiscal', type: 'checkbox' },
+  { key: 'has_fiscal_documentation', label: 'Tiene doc. fiscal', type: 'checkbox', hideInGrid: true },
+  { key: 'fiscal_documentation_error', label: 'Error doc. fiscal', type: 'checkbox', hideInGrid: true },
+  { key: 'is_processed', label: 'Procesada', type: 'checkbox' },
+  { key: 'is_closed', label: 'Cerrada', type: 'checkbox' },
 
   {
     key: 'expected_dispatch_date',
@@ -428,15 +384,15 @@ const fields = ref([
     hideInGrid: true
   },
   {
-    key: 'actual_dispatch_date',
-    label: 'Despacho real',
+    key: 'dispatch_date',
+    label: 'Despacho',
     type: 'datetime-local',
     required: false,
     hideInGrid: true
   },
   {
-    key: 'actual_delivery_date',
-    label: 'Entrega real',
+    key: 'delivery_date',
+    label: 'Entrega',
     type: 'datetime-local',
     required: false,
     hideInGrid: true
@@ -468,22 +424,17 @@ const fields = ref([
     hideInGrid: true
   },
 
-  {
-    key: 'operation_date',
-    label: 'Fecha operación',
-    type: 'datetime-local',
-    required: false,
-    omitInForm: true,
-  },
-
+  { key: 'processed_at', label: 'Procesada en', type: 'text', hideInGrid: true, omitInForm: true },
+  { key: 'closed_at', label: 'Cerrada en', type: 'text', hideInGrid: true, omitInForm: true },
   { key: 'created_at', label: 'Creado en', type: 'text', hideInGrid: true, omitInForm: true },
   { key: 'updated_at', label: 'Actualizado en', type: 'text', hideInGrid: true, omitInForm: true },
-  { key: 'confirmed_at', label: 'Confirmado en', type: 'text', hideInGrid: true, omitInForm: true },
-  { key: 'closed_at', label: 'Cerrado en', type: 'text', hideInGrid: true, omitInForm: true },
+  { key: 'deleted_at', label: 'Eliminado en', type: 'text', hideInGrid: true, omitInForm: true },
   { key: 'is_deleted', label: 'Eliminado', type: 'checkbox', hideInGrid: true, omitInForm: true },
 
   { key: 'created_by', label: 'Creado por', type: 'text', hideInGrid: true, omitInForm: true },
-  { key: 'updated_by', label: 'Actualizado por', type: 'text', hideInGrid: true, omitInForm: true }
+  { key: 'updated_by', label: 'Actualizado por', type: 'text', hideInGrid: true, omitInForm: true },
+  { key: 'log', label: 'Log', type: 'textarea', hideInGrid: true, omitInForm: true, secretField: true },
+  { key: 'version', label: 'Versión', type: 'number', hideInGrid: true, omitInForm: true }
 ]);
 
 const onFranchiseChange = (payload) => {
