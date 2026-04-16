@@ -25,8 +25,8 @@
       :configFormResourcePath="'products'" :configFormLookupField="'code'" :retentionAmount="selectedRetentionAmount"
       @row-selected="handleProductSelected" @refresh="handleRefresh">
       <template #properties>
-        <PropertiesComponent :product="selectedProduct" :fields="fields" title="Propiedades del Producto"
-          configResource="products" lookupField="code" :hasItemConfiguration="true" />
+        <PropertiesComponent :product="selectedProduct" :fields="fields" configResource="products" lookupField="code"
+          :hasItemConfiguration="true" :calculationVariableLabels="calculationVariableLabels" />
       </template>
     </CRUDManagerComponent>
   </div>
@@ -52,6 +52,15 @@ const selectedAditionalTaxAmount = ref(null)
 const selectedRetentionAmount = ref(null)
 const selectedProduct = ref(null)
 
+const calculationVariableLabels = {
+  base_net_amount: 'Valor Base Neto',
+  total_neto_productos: 'Total Neto Productos',
+  total_neto_materiales: 'Total Neto Materiales',
+  total_neto_servicios: 'Total Neto Servicios',
+  costo_neto: 'Costo Neto',
+  iva_costo: 'IVA Costo'
+}
+
 const fields = ref([
   { key: 'id', hideInGrid: true, omitInForm: true },
   { key: 'sku', label: 'SKU', type: 'text', omitInForm: true, readOnlyOnConfigure: true },
@@ -68,7 +77,7 @@ const fields = ref([
   { key: 'retention_amount', hideInGrid: true, omitInForm: true },
   { key: 'price', hideInGrid: true, omitInForm: true },
   { key: 'obs', label: 'Observaciones', type: 'textarea', required: true },
-  { key: 'package_unit', label: 'Unidades Empaque', type: 'number', required: true},
+  { key: 'package_unit', label: 'Unidades Empaque', type: 'number', required: true },
   { key: 'min_package_purchase', label: 'Mínimo Compra', type: 'number', required: true },
   { key: 'provider', label: 'Proveedor', type: 'dynamic-select', labelKey: 'provider', valueKey: 'id', endpoint: '/providers/', hideInGrid: true, omitInForm: false, required: true, readOnlyOnConfigure: true },
   { key: 'provider_name', label: 'Proveedor', hideInGrid: false, omitInForm: true, secretField: true },

@@ -244,6 +244,7 @@ const props = defineProps({
   configResource: { type: String, required: true },
   lookupField: { type: String, default: 'code' },
   fields: { type: Array, default: () => [] },
+  calculationVariableLabels: { type: Object, default: () => ({}) },
 })
 
 const emit = defineEmits(['close', 'load-advanced'])

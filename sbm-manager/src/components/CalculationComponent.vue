@@ -18,8 +18,8 @@
         <table class="table table-sm table-bordered">
           <thead class="table-secondary">
             <tr>
-              <th>Variable</th>
-              <th class="text-end">Valor</th>
+              <th>{{ labels.variable || 'Variable' }}</th>
+              <th class="text-end">{{ labels.value || 'Valor' }}</th>
             </tr>
           </thead>
           <tbody>
@@ -46,15 +46,15 @@
         </table>
       </div>
       <h6 class="fw-bold border-bottom pb-2 mb-3 text-secondary">
-        Resultados
+        {{ labels.results || 'Resultados' }}
       </h6>
 
       <div class="table-responsive">
         <table class="table table-sm table-bordered">
           <thead class="table-dark">
             <tr>
-              <th>Concepto</th>
-              <th class="text-end">Monto</th>
+              <th>{{ labels.concept || 'Concepto' }}</th>
+              <th class="text-end">{{ labels.amount || 'Monto' }}</th>
             </tr>
           </thead>
           <tbody>
@@ -87,7 +87,9 @@ const props = defineProps({
   variablesEndpoint: { type: String, required: true },
   variablesQueryParams: { type: Object, default: () => ({}) },
 
-  extraVariables: { type: Object, default: () => ({}) }
+  extraVariables: { type: Object, default: () => ({}) },
+  labels: { type: Object, default: () => ({}) },
+  moduleContext: { type: Object, default: null }
 })
 
 const titleToShow = computed(() => (props.title ?? '').trim())
@@ -135,11 +137,34 @@ async function fetchFormula() {
   if (!props.code || props.code === 'null') return
   if (!props.formulaEndpoint) return
 
-  const query = new URLSearchParams({
-    [props.contextKey]: props.code
-  })
+  const isModule =
+    props.moduleContext &&
+    props.moduleContext.module_id &&
+    Number(props.moduleContext.module_id) !== 1 &&
+    props.moduleContext.module_config_id &&
+    props.moduleContext.module_id !== 'NO-MODULE'
 
-  const response = await api.get(`${props.formulaEndpoint}?${query.toString()}`)
+  let endpoint = props.formulaEndpoint
+
+  let params = {
+    [props.contextKey]: props.code
+  }
+
+  // CASE 2: MODULE (ORDER / CATALOG / etc)
+  if (isModule) {
+    endpoint = '/api/module-order-variables/'
+
+    params = {
+      module_id: props.moduleContext.module_id,
+      module_config_id: props.moduleContext.module_config_id
+    }
+
+    // 🔒 hard guard: evita 400 del backend
+    if (!params.module_id || !params.module_config_id) return
+  }
+
+  const query = new URLSearchParams(params)
+  const response = await api.get(`${endpoint}?${query.toString()}`)
 
   const path = String(props.formulaResponsePath).split('.')
   let value = response.data
@@ -158,47 +183,50 @@ async function fetchFormula() {
 ================================ */
 
 async function fetchVariables() {
-  if (!props.code || props.code === 'null') return
-  if (!props.variablesEndpoint) return
+  fields.splice(0, fields.length)
 
-  const query = new URLSearchParams({
-    [props.contextKey]: props.code
-  })
-
-  Object.entries(props.variablesQueryParams || {}).forEach(([key, value]) => {
-    if (value !== null && value !== undefined && value !== '') {
-      query.append(key, value)
-    }
-  })
-
-  const response = await api.get(`${props.variablesEndpoint}?${query.toString()}`)
-
-  const keepKeys = new Set()
-  Object.keys(props.extraVariables || {}).forEach(k => keepKeys.add(k))
-
-  for (let i = fields.length - 1; i >= 0; i--) {
-    if (!keepKeys.has(fields[i].key)) fields.splice(i, 1)
-  }
-
-  ; (response.data || []).forEach(v => {
-    const key = String(v.var || '').trim()
-    if (!key) return
-
+  const merge = (key, label, value) => {
     const existing = fields.find(f => f.key === key)
 
     if (!existing) {
       fields.push({
         key,
-        label: key,
-        value: Number(v.value)
+        label,
+        value: Number(value) || 0
       })
-      return
+    } else {
+      existing.label = label
+      existing.value = Number(value) || 0
     }
+  }
 
-    existing.value = Number(v.value)
-  })
+  // 1. backend variables
+  if (props.variablesEndpoint && props.code && props.code !== 'null') {
+    try {
+      const query = new URLSearchParams({
+        [props.contextKey]: props.code
+      })
 
-  Object.entries(props.extraVariables || {}).forEach(([key, rawValue]) => {
+      const response = await api.get(
+        `${props.variablesEndpoint}?${query.toString()}`
+      )
+
+        ; (response.data || []).forEach(v => {
+          const key = String(v.var || '').trim()
+          if (!key) return
+
+          merge(key, key, v.value)
+        })
+
+    } catch (e) {
+      console.warn('variablesEndpoint error', e)
+    }
+  }
+
+  // 2. extraVariables
+  const dynamicVars = props.extraVariables || {}
+
+  Object.entries(dynamicVars).forEach(([key, rawValue]) => {
     const cleanKey = String(key).trim()
     if (!cleanKey) return
 
@@ -215,19 +243,7 @@ async function fetchVariables() {
       ? Number(rawValue.value)
       : Number(rawValue)
 
-    const existing = fields.find(f => f.key === cleanKey)
-
-    if (!existing) {
-      fields.push({
-        key: cleanKey,
-        label,
-        value
-      })
-      return
-    }
-
-    existing.label = label
-    existing.value = value
+    merge(cleanKey, label, value)
   })
 }
 
@@ -305,25 +321,29 @@ function buildTranslateRows() {
 ================================ */
 
 onMounted(async () => {
-  if (!props.code || props.code === 'null') return
   await fetchFormula()
   await fetchVariables()
   calculateFormula()
   buildTranslateRows()
 })
 
-watch(() => props.code, async (newVal, oldVal) => {
-  if (!newVal || newVal === 'null' || newVal === oldVal) return
-  await fetchFormula()
-  await fetchVariables()
-  calculateFormula()
-  buildTranslateRows()
-})
+watch(
+  () => props.code,
+  async (newVal, oldVal) => {
+    if (!newVal || newVal === 'null' || newVal === oldVal) return
+    await fetchFormula()
+    await fetchVariables()
+    calculateFormula()
+    buildTranslateRows()
+  }
+)
 
-watch(() => props.extraVariables, async () => {
-  if (!props.code || props.code === 'null') return
-  await fetchVariables()
-  calculateFormula()
-  buildTranslateRows()
-}, { deep: true })
+watch(
+  () => props.extraVariables,
+  async () => {
+    await fetchVariables()
+    calculateFormula()
+  },
+  { deep: true }
+)
 </script>
