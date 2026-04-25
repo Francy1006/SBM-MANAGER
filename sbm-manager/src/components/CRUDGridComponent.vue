@@ -328,6 +328,10 @@ export default {
     showOpenColumn: { type: Boolean, default: false },
     openColumnLabel: { type: String, default: 'Abrir' },
     showDetailComponent: { type: Boolean, default: false },
+    detailExtraProps: {
+      type: Object,
+      default: () => ({})
+    },
 
     percentColorThresholds: {
       type: Array,

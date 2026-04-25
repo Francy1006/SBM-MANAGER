@@ -77,9 +77,8 @@
     <PropertiesComponent v-if="showProperties" :product="selectedRow" :fields="fields" :advancedData="advancedData"
       :calculationTitle="calculationTitle" :calculationDescription="calculationDescription"
       :configResource="configFormResourcePath" :lookupField="configFormLookupField"
-      :hasItemConfiguration="showConfigForm" @close="onPropertiesClose" @load-advanced="loadAdvanced">
-      <slot name="properties"></slot>
-    </PropertiesComponent>
+      :hasItemConfiguration="showConfigForm" :extraVariables="buildCalculationVariables"
+      :calculationConfig="props.calculationConfig" @close="onPropertiesClose" @load-advanced="loadAdvanced" />
 
   </div>
 </template>
@@ -136,6 +135,7 @@ const props = defineProps({
   endpointBase: { type: String, default: '' },
 
   detailExtraProps: { type: Object, default: () => ({}) },
+  calculationConfig: { type: Object, default: null },
 
   configComponent: { type: String, default: null },
   configProps: { type: Object, default: () => ({}) },
@@ -195,8 +195,25 @@ const configureHeaderFields = computed(() => {
     .map(f => f.key)
 })
 
+const buildCalculationVariables = computed(() => {
+  const row = selectedRow.value || {}
+  const fields = props.fields || []
 
+  const allowedKeys = new Set(
+    fields
+      .filter(f => f.calculation === true || f.useInCalculation === true)
+      .map(f => f.key)
+  )
 
+  const filteredRow = Object.fromEntries(
+    Object.entries(row).filter(([key]) => allowedKeys.has(key))
+  )
+
+  return {
+    ...filteredRow,
+    ...(props.detailExtraProps || {})
+  }
+})
 
 function getCurrentDate() {
   return capitalizeFirst(
@@ -405,8 +422,8 @@ function onConfigFormUpdated() {
 }
 
 function onShowProperties(row) {
-  showProperties.value = true;
   selectedRow.value = row;
+  showProperties.value = true;
 }
 
 async function loadAdvanced() {

@@ -126,8 +126,8 @@
                 </h6>
 
                 <CalculationComponent v-if="safeCalculationProps" :title="props.calculationTitle"
-                  :description="props.calculationDescription" v-bind="safeCalculationProps"
-                  :extraVariables="calculationExtraVariables" @calculated="onRecalculate" />
+                  :description="props.calculationDescription" v-bind="safeCalculationProps" :calculationConfig="calculationConfig"
+                  :extraVariables="extraVariablesComputed" @calculated="onRecalculate" />
               </div>
 
               <!-- 🔴 VINCULACIÓN (SOLO SI APLICA) -->
@@ -245,6 +245,9 @@ const props = defineProps({
   lookupField: { type: String, default: 'code' },
   fields: { type: Array, default: () => [] },
   calculationVariableLabels: { type: Object, default: () => ({}) },
+  extraVariables: { type: Object, default: () => ({}) },
+  module_id: { type: Number, default: 0 },
+  calculationConfig: { type: Object, default: null }
 })
 
 const emit = defineEmits(['close', 'load-advanced'])
@@ -304,11 +307,19 @@ function toggleConfiguration() {
    COMPUTEDS
 ========================= */
 
+const extraVariablesComputed = computed(() => {
+  return {
+    ...(props.extraVariables || {}),
+    module_id: props.module_id
+  }
+})
+
+
 const safeAdvancedData = computed(() => {
   const adv = { ...(props.advancedData || {}) }
   const info = configData.value?.informativa?.data || {}
   Object.keys(info).forEach(k => {
-    if (k !== safeCalculationProps?.baseKey) {
+    if (k !== safeCalculationProps.value?.baseKey) {
       adv[k] = info[k]
     }
   })
@@ -328,23 +339,16 @@ const computedTitle = computed(() => {
 const visibleFields = computed(() => {
   if (!props.fields || !props.product) return []
   return props.fields.filter(f =>
-    props.product.hasOwnProperty(f.key) &&
+    Object.prototype.hasOwnProperty.call(props.product, f.key) &&
     props.product[f.key] !== undefined &&
     !f.hideInGrid
   )
 })
 
 const safeCalculationProps = computed(() => {
-  const raw = configData.value?.calculation?.props || null
-  if (!raw) return null
-
+  if (!props.calculationConfig) return null
   return {
-    code: raw.code,
-    contextKey: raw.contextKey || raw.formulaQueryParam || 'code',
-    formulaEndpoint: raw.formulaEndpoint,
-    formulaResponsePath: raw.formulaResponsePath,
-    variablesEndpoint: raw.variablesEndpoint || raw.variableEndpoint,
-    variablesQueryParams: raw.variablesQueryParams || raw.variableQueryParams || {}
+    ...props.calculationConfig
   }
 })
 
@@ -390,6 +394,7 @@ function formatValue(val) {
   if (val === null || val === undefined) return '-'
   if (typeof val === 'boolean') return val ? 'SI' : 'NO'
   if (typeof val === 'number') return val.toLocaleString('es-CL')
+  if (typeof val === 'object') return JSON.stringify(val)
   return val
 }
 
@@ -518,7 +523,7 @@ function takeSnapshot() {
 watch(
   () => props.product?.[props.lookupField],
   (val) => {
-    if (val) loadConfiguration()
+    if (val && !configData.value) loadConfiguration()
     else configData.value = null
   },
   { immediate: true }
@@ -630,23 +635,4 @@ function sumField(rows, field) {
   return total
 }
 
-const calculationExtraVariables = computed(() => {
-
-  const productsNet = sumField(productLinks.value, 'net_amount')
-  const materialsNet = sumField(materialLinks.value, 'net_amount')
-  const servicesNet = sumField(serviceLinks.value, 'net_amount')
-
-  const productsIva = sumField(productLinks.value, 'iva_amount')
-  const materialsIva = sumField(materialLinks.value, 'iva_amount')
-  const servicesIva = sumField(serviceLinks.value, 'iva_amount')
-
-  return {
-    base_net_amount: baseNetAmount.value,
-    total_neto_productos: productsNet,
-    total_neto_materiales: materialsNet,
-    total_neto_servicios: servicesNet,
-    costo_neto: productsNet + materialsNet + servicesNet,
-    iva_costo: productsIva + materialsIva + servicesIva
-  }
-})
 </script>
