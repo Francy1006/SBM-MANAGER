@@ -24,13 +24,14 @@
                                 </tr>
                             </tbody>
                         </table>
-                        <CalculationComponent v-if="calculationCode" :code="calculationCode"
-                            :contextKey="calculationConfig?.formulaQueryParam"
+                        <CalculationComponent v-if="calculationCode || calculationConfig" :key="subtotalNet"
+                            :code="calculationConfig.variablesQueryParams.code"
+                            :contextKey="calculationConfig.contextKey"
                             :formula-endpoint="calculationConfig?.formulaEndpoint"
                             :formula-response-path="calculationConfig?.formulaResponsePath"
                             :variables-endpoint="calculationConfig?.variablesEndpoint"
                             :variables-query-params="calculationConfig?.variablesQueryParams || {}"
-                            :extraVariables="calculationVariables" />
+                            :calculationConfig="calculationConfig" :extraVariables="calculationVariables" />
                     </div>
                     <div class="dashboard-search-group">
                         <span class="dashboard-search-prefix">
@@ -224,7 +225,7 @@ export default {
 
         detailConfig: {
             type: Object,
-            default: () => ({})
+            default: null,
         }
     },
 
@@ -262,7 +263,8 @@ export default {
             selectedItem: null,
             activeIndex: -1,
             debounceTimer: null,
-            calculationCode: null
+            calculationCode: null,
+
         }
     },
     watch: {
@@ -723,7 +725,7 @@ export default {
 
         async loadCalculationCode() {
             try {
-                if (!this.calculationConfig?.endpoint) {
+                if (!this.calculationConfig || !this.calculationConfig.endpoint) {
                     this.calculationCode = null
                     return
                 }
@@ -732,7 +734,7 @@ export default {
                 const value = this.calculationConfig.queryValue
                 const responsePath = this.calculationConfig.codeResponsePath
 
-                if (!param || !value || !responsePath) {
+                if (!param || value === undefined || value === null || !responsePath) {
                     this.calculationCode = null
                     return
                 }
@@ -749,7 +751,7 @@ export default {
                     result = result[key]
                 }
 
-                this.calculationCode = result || null
+                this.calculationCode = result ?? null
 
             } catch (error) {
                 console.error('Error cargando calculation code:', error)

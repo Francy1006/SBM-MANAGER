@@ -973,22 +973,11 @@ export default {
       }
     },
     buildDetailTables(row) {
-      if (!this.detailTablesConfig || !this.showDetailComponent) {
-        return [
-          {
-            title: `Detalle de ${row.code || row.id}`,
-            fields: this.fields,
-            rows: [row]
-          }
-        ]
-      }
-
       return this.detailTablesConfig.map(t => ({
         title: t.title,
         icon: t.icon,
         type: t.type,
 
-        // 🔥 clave
         order: this.detailExtraProps?.order || row,
 
         rows: [],
@@ -996,10 +985,11 @@ export default {
 
         searchConfig: t.searchConfig || {},
         createConfig: t.createConfig || {},
+
+        // 🔥 FIX CLAVE: NO MERGE
         calculationConfig: t.calculationConfig || null,
 
-        // 🔥 clave (esto te faltaba)
-        detailConfig: t.detailConfig || {}
+        detailConfig: t.detailConfig || {},
       }))
     },
   },

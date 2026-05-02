@@ -178,8 +178,6 @@ function formatByType(value, dataType) {
 
 async function fetchFormula() {
   if (!props.code || props.code === 'null') return
-  if (!props.formulaEndpoint) return
-
   try {
     const query = new URLSearchParams({
       [props.contextKey]: props.code
@@ -190,56 +188,36 @@ async function fetchFormula() {
     )
 
     // =========================
-    // 1. NORMALIZAR RESPONSE
+    // NORMALIZAR SIEMPRE ARRAY
     // =========================
-    let raw = response.data
+    const raw = Array.isArray(response.data)
+      ? response.data[0]
+      : response.data
 
-    // si viene array, tomar primero
-    if (Array.isArray(raw)) {
-      raw = raw[0] || {}
-    }
-
-    // si viene path configurado
-    if (props.formulaResponsePath && raw?.[props.formulaResponsePath]) {
-      raw = raw[props.formulaResponsePath]
-    }
-
-    const data = raw || {}
+    formulaTemplate.value = raw?.formula_template || null
+    formulaTranslate.value = raw?.formula_translate || null
 
     // =========================
-    // 2. FORMULA TEXTOS
+    // DETAILS SAFE
     // =========================
-    formulaTemplate.value = data?.formula_template || null
-    formulaTranslate.value = data?.formula_translate || null
+    const details = raw?.details ?? []
 
-    // =========================
-    // 3. BUILD CALCULATION MAP
-    // =========================
     const map = {}
 
-    const details = data?.details || []
+    details.forEach(d => {
+      const key = String(d?.field || '').trim()
+      if (!key) return
 
-    if (Array.isArray(details)) {
-      details.forEach(d => {
-        const key = String(d.field || '').trim()
-        if (!key) return
-
-        map[key] = {
-          label: String(d.label || key).trim(),
-          data_type: Number(d.data_type) || 5
-        }
-      })
-    }
+      map[key] = {
+        label: String(d?.label || key).trim(),
+        data_type: Number(d?.data_type || 5)
+      }
+    })
 
     calculationMap.value = map
 
-    // DEBUG (puedes borrar luego)
-    console.log('FORMULA RAW:', response.data)
-    console.log('FORMULA DATA:', data)
-    console.log('CALC MAP:', map)
-
   } catch (e) {
-    console.error('fetchFormula error:', e)
+    console.error(e)
     formulaTemplate.value = null
     formulaTranslate.value = null
     calculationMap.value = {}
@@ -254,31 +232,61 @@ async function fetchVariables() {
   loading.value = true
 
   try {
-    const params = {
-      code: props.code,
-      ...(props.calculationConfig.variablesQueryParams || {})
+    const config = props.calculationConfig || {}
+
+    if (!config?.variablesEndpoint) {
+      console.error('❌ variablesEndpoint missing')
+      return
     }
 
-    const res = await api.get(props.calculationConfig.variablesEndpoint, { params })
+    let params
+
+    switch (Number(config.module_id)) {
+
+      // =========================
+      // PRODUCT
+      // =========================
+      case 1:
+        params = {
+          module_id: 1,
+          code: config.queryValue || config.code || props.code
+        }
+        break
+
+      // =========================
+      // ORDER
+      // =========================
+      case 2:
+        params = {
+          module_id: 2,
+          code: props.calculationConfig.variablesQueryParams.code
+        }
+        break
+
+      default:
+        console.warn('⚠️ module_id no soportado:', config.module_id)
+        return
+    }
+
+    console.log('📡 VARIABLES REQUEST:', config.variablesEndpoint, params)
+
+    const res = await api.get(config.variablesEndpoint, { params })
 
     const data = res.data || []
     const merged = new Map()
 
-    // =========================
-    // BACKEND VARIABLES
-    // =========================
     data.forEach(v => {
-      merged.set(v.var, {
-        key: v.var,
-        label: v.label || v.var,
+      const key = String(v.var || '').trim()
+      if (!key) return
+
+      merged.set(key, {
+        key,
+        label: v.label || key,
         value: Number(v.value) || 0,
-        data_type: v.data_type ?? null
+        data_type: v.data_type ?? 5
       })
     })
 
-    // =========================
-    // EXTRA VARIABLES (SIN module_id)
-    // =========================
     Object.entries(props.extraVariables || {}).forEach(([key, obj]) => {
       if (key === 'module_id') return
 
@@ -286,21 +294,15 @@ async function fetchVariables() {
         key,
         label: obj?.label || key,
         value: Number(obj?.value) || 0,
-        data_type: obj?.data_type ?? null
+        data_type: obj?.data_type ?? 5
       })
     })
 
-    // =========================
-    // 🔥 CLAVE: CLONAR OBJETOS (evita contaminación con results)
-    // =========================
-    const cleanFields = Array.from(merged.values()).map(f => ({
-      key: f.key,
-      label: f.label,
-      value: f.value,
-      data_type: f.data_type
-    }))
-
-    fields.splice(0, fields.length, ...cleanFields)
+    fields.splice(
+      0,
+      fields.length,
+      ...Array.from(merged.values()).map(f => ({ ...f }))
+    )
 
   } catch (e) {
     console.error('fetchVariables error:', e)
@@ -310,6 +312,20 @@ async function fetchVariables() {
 }
 
 
+function resolveProductVariables(config) {
+  return {
+    module_id: 1,
+    code: config.queryValue || config.code || props.code
+  }
+}
+
+function resolveOrderVariables(config) {
+  return {
+    module_id: 2,
+    code: config.queryValue || config.code || props.code
+  }
+}
+
 
 /* ================================
    CALCULATION
@@ -318,119 +334,80 @@ async function fetchVariables() {
 
 
 function calculateFormula() {
+  console.log("formulaTemplate.value : " + formulaTemplate.value)
   if (!formulaTemplate.value) return
 
-  loading.value = true
-
-  // 🔥 SIEMPRE array nuevo
-  const computedResults = []
-
-  // =========================
-  // 1. CONTEXTO (CLONADO)
-  // =========================
   const context = {}
+
+  // SOLO INPUTS → nunca results
   fields.forEach(f => {
     context[f.key] = Number(f.value) || 0
   })
 
-  // =========================
-  // 2. MAP BACKEND (CLONADO)
-  // =========================
-  const map = {}
-  Object.entries(calculationMap.value || {}).forEach(([key, val]) => {
-    const cleanKey = (key || '').trim()
-    map[cleanKey] = {
-      label: val?.label || cleanKey,
-      data_type: Number(val?.data_type) || 5
-    }
-  })
 
-  // =========================
-  // 3. PARSE FORMULA
-  // =========================
+
+  const map = calculationMap.value || {}
+
+  const computedResults = []
+
   const parts = String(formulaTemplate.value)
     .split(';')
-    .map(p => p.trim())
-    .filter(Boolean)
+    .map(p => p.replace(/;+$/, '').trim()) // 🔥 limpia ; al final
+    .filter(p => p.length > 0)
 
-  // =========================
-  // 4. LOOP
-  // =========================
-  parts.forEach(p => {
-    let [left, expr] = p.split('=')
+  parts.forEach(line => {
+    let [left, expr] = line.split('=')
     if (!left || !expr) return
 
-    let [fieldRaw, inlineLabel] = left.split('|')
+    let [field, inlineLabel] = left.split('|')
 
-    const field = (fieldRaw || '').trim().replace(/\n/g, '')
+    field = (field || '').trim()
     expr = (expr || '').trim()
     inlineLabel = inlineLabel ? inlineLabel.trim() : null
-
-    // =========================
-    // 5. REEMPLAZO VARIABLES
-    // =========================
-    Object.keys(context).forEach(key => {
-      const regex = new RegExp(`\\$\\{${key}\\}`, 'g')
-      expr = expr.replace(regex, String(context[key]))
+    console.log("works 2!")
+    // reemplazo variables
+    Object.keys(context).forEach(k => {
+      expr = expr.replaceAll(`\$\{${k}\}`, context[k])
+      console.log("expr: " + expr)
     })
 
-    // =========================
-    // 6. EVAL
-    // =========================
     let value = 0
     try {
       value = Function(`"use strict"; return (${expr})`)()
     } catch (e) {
-      console.warn('formula error:', expr, e)
+      console.warn('error formula:', expr)
     }
 
-    // =========================
-    // 7. LABEL + TYPE (SIN TOCAR fields)
-    // =========================
     const meta = map[field]
 
-    const finalLabel =
-      meta?.label ||
-      inlineLabel ||
-      field
 
-    const data_type =
-      meta?.data_type ??
-      5
 
-    // =========================
-    // 8. PUSH (OBJETO NUEVO)
-    // =========================
     computedResults.push({
-      field: String(field),
-      label: String(finalLabel),
+      field,
+      label: meta?.label || inlineLabel || field,
       value: Number(value) || 0,
-      data_type: Number(data_type)
+      data_type: meta?.data_type || 5
     })
   })
 
-  // 🔥 CLAVE: REASIGNACIÓN LIMPIA
-  results.value = computedResults.map(r => ({ ...r }))
-
-  loading.value = false
+  results.value = computedResults
 }
 
 function buildTranslateRows() {
   translateRows.value = []
 
   const raw = formulaTranslate.value
-
   if (!raw || typeof raw !== 'string') return
 
-  const parts = raw
-    .split(';')
-    .map(p => p.trim())
+  translateRows.value = raw
+    .replace(/;\s*\n/g, '\n') // 🔥 mueve/elimina ; antes del salto
+    .split('\n')
+    .map(l => l.trim())
     .filter(Boolean)
-
-  translateRows.value = parts.map((line, index) => ({
-    id: `${index}-${line}`,
-    text: line
-  }))
+    .map((line, i) => ({
+      id: i,
+      text: line
+    }))
 }
 
 /* ================================
@@ -440,13 +417,8 @@ function buildTranslateRows() {
 onMounted(async () => {
   loading.value = true
 
-  await fetchFormula()      // trae template + translate + calculationMap
-  buildTranslateRows()      // usa formulaTranslate ya cargado
-
-  await fetchVariables()    // llena fields
-
-  // 🔥 recién ahora tienes TODO listo
-  calculateFormula()
+  await fetchFormula()
+  buildTranslateRows()
 
   loading.value = false
 })
@@ -458,7 +430,7 @@ watch(
 
     await fetchFormula()
     await fetchVariables()
-    calculateFormula()
+    // calculateFormula()
     buildTranslateRows()
   }
 )
@@ -468,26 +440,20 @@ watch(
   (newVars) => {
     if (!newVars) return
 
-    Object.entries(newVars).forEach(([key, obj]) => {
+    fields.splice(0, fields.length) // 🔥 CLAVE
 
+    Object.entries(newVars).forEach(([key, obj]) => {
       if (key === 'module_id') return
 
-      const existing = fields.find(f => f.key === key)
-
-      if (existing) {
-        existing.value = Number(obj?.value) || 0
-        existing.data_type = obj?.data_type ?? existing.data_type
-      } else {
-        fields.push({
-          key,
-          label: obj?.label || key,
-          value: Number(obj?.value) || 0,
-          data_type: obj?.data_type ?? null
-        })
-      }
+      fields.push({
+        key,
+        label: obj?.label || key,
+        value: Number(obj?.value) || 0,
+        data_type: obj?.data_type ?? null
+      })
     })
 
-    calculateFormula()
+    // calculateFormula()
   },
   { deep: true, immediate: true }
 )
@@ -495,4 +461,24 @@ watch(
 watch(formulaTranslate, () => {
   buildTranslateRows()
 })
+
+watch(
+  () => props.calculationConfig,
+  async (val) => {
+    if (!val?.variablesEndpoint) return
+
+    await fetchVariables()
+    // calculateFormula()
+  },
+  { deep: true, immediate: true }
+)
+
+watch(
+  [formulaTemplate, fields],
+  () => {
+    if (!formulaTemplate.value || !fields.length) return
+    calculateFormula()
+  },
+  { deep: true, immediate: true }
+)
 </script>

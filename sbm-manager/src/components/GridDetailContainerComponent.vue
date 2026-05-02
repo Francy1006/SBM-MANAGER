@@ -37,7 +37,7 @@
                     <GridDetailTableComponent :title="table.title" :icon="table.icon" :type="table.type"
                         :order="table.order" :fields="table.fields || []" :rows="table.rows"
                         :searchConfig="table.searchConfig || {}" :createConfig="table.createConfig || {}"
-                        :calculationConfig="table.calculationConfig || null" :detailConfig="table.detailConfig || {}"
+                        :calculationConfig="table.calculationConfig ?? {}" :detailConfig="table.detailConfig || {}"
                         @update:rows="updateRows(index, $event)" @refresh-details="refreshDetails(index)" />
                 </div>
             </div>
@@ -57,7 +57,7 @@ export default {
         tables: {
             type: Array,
             default: () => []
-        }
+        },
     },
 
     data() {
@@ -75,8 +75,9 @@ export default {
                 this.localTables = Array.isArray(val)
                     ? val.map(t => ({
                         ...t,
-                        order: t.order || this.tables?.[0]?.order || null,
-                        rows: Array.isArray(t.rows) ? t.rows : []
+                        order: t.order || null,
+                        rows: Array.isArray(t.rows) ? t.rows : [],
+                        calculationConfig: t.calculationConfig ?? {}   // FIX
                     }))
                     : []
 

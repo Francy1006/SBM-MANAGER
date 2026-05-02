@@ -22,9 +22,10 @@
       :showConfigForm="false" :showPropertiesButton="true" :showConfigList="false" :optionsProps="optionsProps"
       :createDefaults="orderCreateDefaults" :showOpenColumn="true" :showDetailComponent="true"
       :detailTablesConfig="detailTablesConfig" :detail-fields-config="detailFieldsConfig"
-      :detail-extra-props="{ order: selectedOrder }" openColumnLabel="Abrir" configFormResourcePath="orders"
-      configFormLookupField="code" @refresh="handleRefresh" @created="handleCreated" @updated="handleUpdated"
-      @row-selected="handleOrderSelected" @import="handleImport" @export="handleExport">
+      :calculationConfig="detailTablesConfig.calculationConfig" :detail-extra-props="{ order: selectedOrder }"
+      openColumnLabel="Abrir" configFormResourcePath="orders" configFormLookupField="code" @refresh="handleRefresh"
+      @created="handleCreated" @updated="handleUpdated" @row-selected="handleOrderSelected" @import="handleImport"
+      @export="handleExport">
       <template #properties>
         <PropertiesComponent :product="selectedOrder" :fields="fields" title="Propiedades de la orden"
           configResource="orders" lookupField="code" :hasItemConfiguration="false" />
@@ -46,6 +47,7 @@ const selectedFranchiseCode = ref('');
 const selectedFranchiseName = ref('');
 const selectedFranchiseSigla = ref('');
 const selectedOrder = ref(null);
+const MODULE_ID = 2
 
 const componentTitle = computed(() => {
   if (!selectedFranchise.value) return null;
@@ -239,20 +241,27 @@ const detailTablesConfig = moduleConfig.types.map(t => ({
   },
 
   calculationConfig: {
-    endpoint: moduleConfig.base.formula.endpoint,
+    module_id: MODULE_ID,
+
+    // BASE (igual para todos)
+    formulaEndpoint: moduleConfig.base.formula.endpoint,
     queryParam: moduleConfig.base.formula.queryParam,
-    queryValue: t.module_config_id,
     codeResponsePath: moduleConfig.base.formula.codeResponsePath,
 
-    formulaEndpoint: moduleConfig.base.formulaDetail.endpoint,
-    formulaQueryParam: moduleConfig.base.formulaDetail.queryParam,
-    formulaResponsePath: moduleConfig.base.formulaDetail.responsePath,
+    formulaDetailEndpoint: moduleConfig.base.formulaDetail.endpoint,
+    formulaDetailQueryParam: moduleConfig.base.formulaDetail.queryParam,
+    formulaDetailResponsePath: moduleConfig.base.formulaDetail.responsePath,
 
-    variablesEndpoint: moduleConfig.base.variables.endpoint,
+    variablesEndpoint: '/formula-variables/',
+
+    // 🔥 KEY FIX: variables dinámicas por tipo
     variablesQueryParams: {
-      module_code: moduleConfig.base.variables.module_code,
-      module_config_id: t.module_config_id
-    }
+      module_id: MODULE_ID,
+      code: t.module_config_id
+    },
+
+    // 🔥 IMPORTANTE: no mezclar lógica de product
+    contextKey: 'type'
   },
 
   searchConfig: {
@@ -270,7 +279,14 @@ const detailTablesConfig = moduleConfig.types.map(t => ({
   createConfig: {
     endpoint: moduleConfig.base.create.endpoint,
     itemTypeId: t.itemTypeId,
-    payloadBuilder: ({ selectedItem, order, createConfig, getOrderTypeId, getSelectedItemCode }) => {
+
+    payloadBuilder: ({
+      selectedItem,
+      order,
+      createConfig,
+      getOrderTypeId,
+      getSelectedItemCode
+    }) => {
       const unitNet = Number(
         selectedItem?.unit_net_amount ??
         selectedItem?.base_net_amount ??
@@ -293,71 +309,22 @@ const detailTablesConfig = moduleConfig.types.map(t => ({
       }
     }
   }
-}));
+}))
 
 const fields = ref([
   { key: 'id', label: 'ID', type: 'number', omitInForm: true },
   { key: 'code', label: 'Código', type: 'text', maxlength: 20, omitInForm: true, readOnlyOnConfigure: true },
-
-  {
-    key: 'franchise_code',
-    label: 'Franquicia',
-    type: 'text',
-    maxlength: 36,
-    omitInForm: true,
-    hideInGrid: true,
-  },
+  { key: 'franchise_code', label: 'Franquicia', type: 'text', maxlength: 36, omitInForm: true, hideInGrid: true, },
   { key: 'franchise_name', label: 'Franquicia', type: 'text', omitInForm: true },
-
   { key: 'name', label: 'Nombre', type: 'text', required: true, maxlength: 100 },
-
-  {
-    key: 'client',
-    label: 'Cliente',
-    type: 'dynamic-select',
-    required: false,
-    endpoint: '/clients/',
-    labelKey: 'company_name',
-    valueKey: 'code',
-    hideInGrid: true
-  },
+  { key: 'client', label: 'Cliente', type: 'dynamic-select', required: false, endpoint: '/clients/', labelKey: 'company_name', valueKey: 'code', hideInGrid: true },
   { key: 'client_name', label: 'Cliente', type: 'text', omitInForm: true },
-
-  {
-    key: 'parent_order_id',
-    label: 'Orden padre',
-    type: 'number',
-    min: 1,
-    required: false,
-    hideInGrid: true
-  },
-
-  {
-    key: 'order_type_id',
-    label: 'Tipo de orden',
-    type: 'dynamic-select',
-    required: true,
-    endpoint: '/order-types/',
-    labelKey: 'type',
-    valueKey: 'id',
-    hideInGrid: true
-  },
+  { key: 'parent_order_id', label: 'Orden padre', type: 'number', min: 1, required: false, hideInGrid: true },
+  { key: 'order_type_id', label: 'Tipo de orden', type: 'dynamic-select', required: true, endpoint: '/order-types/', labelKey: 'type', valueKey: 'id', hideInGrid: true },
   { key: 'order_type_name', label: 'Tipo', type: 'text', omitInForm: true },
-
-  {
-    key: 'status_id',
-    label: 'Estado',
-    type: 'dynamic-select',
-    required: true,
-    endpoint: '/status/order/',
-    labelKey: 'name',
-    valueKey: 'id',
-    hideInGrid: true
-  },
+  { key: 'status_id', label: 'Estado', type: 'dynamic-select', required: true, endpoint: '/status/order/', labelKey: 'name', valueKey: 'id', hideInGrid: true },
   { key: 'status_name', label: 'Estado', type: 'text', omitInForm: true },
-
   { key: 'description', label: 'Descripción', type: 'textarea', required: false },
-
   { key: 'is_delayed', label: 'Retrasada', type: 'checkbox' },
   { key: 'is_partial', label: 'Parcial', type: 'checkbox' },
   { key: 'is_canceled', label: 'Cancelada', type: 'checkbox' },
@@ -368,69 +335,22 @@ const fields = ref([
   { key: 'fiscal_documentation_error', label: 'Error doc. fiscal', type: 'checkbox', hideInGrid: true },
   { key: 'is_processed', label: 'Procesada', type: 'checkbox' },
   { key: 'is_closed', label: 'Cerrada', type: 'checkbox' },
-
-  {
-    key: 'expected_dispatch_date',
-    label: 'Despacho previsto',
-    type: 'datetime-local',
-    required: false,
-    hideInGrid: true
-  },
-  {
-    key: 'expected_delivery_date',
-    label: 'Entrega prevista',
-    type: 'datetime-local',
-    required: false,
-    hideInGrid: true
-  },
-  {
-    key: 'dispatch_date',
-    label: 'Despacho',
-    type: 'datetime-local',
-    required: false,
-    hideInGrid: true
-  },
-  {
-    key: 'delivery_date',
-    label: 'Entrega',
-    type: 'datetime-local',
-    required: false,
-    hideInGrid: true
-  },
-
+  { key: 'expected_dispatch_date', label: 'Despacho previsto', type: 'datetime-local', required: false, hideInGrid: true },
+  { key: 'expected_delivery_date', label: 'Entrega prevista', type: 'datetime-local', required: false, hideInGrid: true },
+  { key: 'dispatch_date', label: 'Despacho', type: 'datetime-local', required: false, hideInGrid: true },
+  { key: 'delivery_date', label: 'Entrega', type: 'datetime-local', required: false, hideInGrid: true },
   { key: 'delivery_route', label: 'Ruta de entrega', type: 'text', maxlength: 50, hideInGrid: true },
   { key: 'delivery_window', label: 'Ventana de entrega', type: 'text', maxlength: 50, hideInGrid: true },
   { key: 'delivery_comments', label: 'Comentarios de entrega', type: 'textarea', hideInGrid: true },
-
-  {
-    key: 'total_net_amount',
-    label: 'Total neto',
-    type: 'number',
-    step: '0.01',
-    sumCount: true
-  },
-  {
-    key: 'total_discount',
-    label: 'Descuento total',
-    type: 'number',
-    step: '0.01',
-    hideInGrid: true
-  },
-  {
-    key: 'total_surcharge',
-    label: 'Recargo total',
-    type: 'number',
-    step: '0.01',
-    hideInGrid: true
-  },
-
+  { key: 'total_net_amount', label: 'Total neto', type: 'number', step: '0.01', sumCount: true },
+  { key: 'total_discount', label: 'Descuento total', type: 'number', step: '0.01', hideInGrid: true },
+  { key: 'total_surcharge', label: 'Recargo total', type: 'number', step: '0.01', hideInGrid: true },
   { key: 'processed_at', label: 'Procesada en', type: 'text', hideInGrid: true, omitInForm: true },
   { key: 'closed_at', label: 'Cerrada en', type: 'text', hideInGrid: true, omitInForm: true },
   { key: 'created_at', label: 'Creado en', type: 'text', hideInGrid: true, omitInForm: true },
   { key: 'updated_at', label: 'Actualizado en', type: 'text', hideInGrid: true, omitInForm: true },
   { key: 'deleted_at', label: 'Eliminado en', type: 'text', hideInGrid: true, omitInForm: true },
   { key: 'is_deleted', label: 'Eliminado', type: 'checkbox', hideInGrid: true, omitInForm: true },
-
   { key: 'created_by', label: 'Creado por', type: 'text', hideInGrid: true, omitInForm: true },
   { key: 'updated_by', label: 'Actualizado por', type: 'text', hideInGrid: true, omitInForm: true },
   { key: 'log', label: 'Log', type: 'textarea', hideInGrid: true, omitInForm: true, secretField: true },
