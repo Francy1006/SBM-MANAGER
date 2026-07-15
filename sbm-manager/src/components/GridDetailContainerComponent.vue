@@ -37,7 +37,7 @@
                     <GridDetailTableComponent :title="table.title" :icon="table.icon" :type="table.type"
                         :order="table.order" :fields="table.fields || []" :rows="table.rows"
                         :searchConfig="table.searchConfig || {}" :createConfig="table.createConfig || {}"
-                        :calculationConfig="table.calculationConfig ?? {}" :detailConfig="table.detailConfig || {}"
+                        :calculationConfig="table.calculationConfig || null" :detailConfig="table.detailConfig || {}"
                         @update:rows="updateRows(index, $event)" @refresh-details="refreshDetails(index)" />
                 </div>
             </div>
@@ -48,6 +48,7 @@
 <script>
 import axios from '../api/axios'
 import GridDetailTableComponent from './GridDetailTableComponent.vue'
+import { RECORD_TYPE, RECORD_TYPE_BY_ID } from '@/constants/RecordTypes'
 
 export default {
     name: 'GridDetailContainerComponent',
@@ -72,14 +73,24 @@ export default {
             immediate: true,
             deep: true,
             async handler(val) {
+                
                 this.localTables = Array.isArray(val)
-                    ? val.map(t => ({
-                        ...t,
-                        order: t.order || null,
-                        rows: Array.isArray(t.rows) ? t.rows : [],
-                        calculationConfig: t.calculationConfig ?? {}   // FIX
-                    }))
+                    ? val
+                        .map(t => ({
+                            ...t,
+                            order: t.order || null,
+                            rows: Array.isArray(t.rows) ? t.rows : [],
+                            calculationConfig: t.calculationConfig || null
+                        }))
+                        .sort((a, b) => {
+                            const aType = RECORD_TYPE_BY_ID[a.itemcte]
+                            const bType = RECORD_TYPE_BY_ID[b.record_type]
+                            console.log( a.createConfig.itemTypeId )
+                            return RECORD_TYPE[aType] - RECORD_TYPE[bType]
+                        })
                     : []
+                    
+                    
 
                 const nextCollapsed = {}
 

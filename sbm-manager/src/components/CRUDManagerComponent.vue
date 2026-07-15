@@ -162,6 +162,7 @@ const props = defineProps({
     type: Object,
     default: () => null
   },
+
 });
 
 const emit = defineEmits(['refresh', 'created', 'updated', 'mounted', 'row-selected', 'open-row', 'import', 'export']);
@@ -183,6 +184,10 @@ const totalList = ref(0);
 const totalDeleted = ref(0);
 
 watch(() => props.propertiesProduct, () => { });
+
+watch(() => selectedRow.value, () => {
+  showProperties.value = false;
+})
 
 const finalGetEndpoint = computed(() => props.getEndpoint || props.endpoint);
 const finalCreateEndpoint = computed(() => props.postEndpoint || props.createEndpoint || props.endpoint);
@@ -395,14 +400,13 @@ function onConfigure(row) {
 function onRowSelected(row) {
   selectedRow.value = row;
 
-  if (!row && props.showConfigForm) {
-    showForm.value = false;
-    isEdit.value = false;
-    editingData.value = {};
-    showConfigFormComponent.value = false;
-  }
-
   emit('row-selected', row);
+
+  if (!row) return;
+
+  // FIX CLAVE: forzar detalle recalculado limpio
+  showProperties.value = false;
+  showConfigFormComponent.value = false;
 }
 
 function onConfigFormClose() {

@@ -40,6 +40,8 @@ import axios from '../api/axios';
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue';
 import PropertiesComponent from '../components/PropertiesComponent.vue';
 import FranchiseSelector from '../components/FranchiseSelectorComponent.vue';
+import { RECORD_TYPE } from '@/constants/RecordTypes'
+import { buildCalculationParams, buildVariablesParams } from '@/utils/RecordTypeResolver'
 
 const franchises = ref([]);
 const selectedFranchise = ref('');
@@ -108,7 +110,7 @@ const orderCreateDefaults = () => ({
 const moduleConfig = {
   base: {
     formula: {
-      endpoint: '/module-order-formula/',
+      endpoint: '/calculation/module-order-formula/',
       queryParam: 'type',
       codeResponsePath: 'code'
     },
@@ -128,25 +130,25 @@ const moduleConfig = {
 
   types: [
     {
-      type: 'catalog',
-      title: 'Catálogo',
-      icon: 'fa-solid fa-utensils',
-      itemTypeId: 1,
-      module_config_id: 'CATALOG',
-      search: {
-        endpoint: 'catalogs/',
-        placeholder: 'Buscar catálogo...'
-      }
-    },
-    {
       type: 'product',
       title: 'Productos',
       icon: 'fa-solid fa-box',
-      itemTypeId: 2,
-      module_config_id: 'PRODUCT',
+      itemTypeId: 1,
+      module_config_id: '1',
       search: {
         endpoint: 'products/',
         placeholder: 'Buscar producto...'
+      }
+    },
+    {
+      type: 'material',
+      title: 'Materiales',
+      icon: 'fa-solid fa-cubes',
+      itemTypeId: 2,
+      module_config_id: '2',
+      search: {
+        endpoint: 'materials/',
+        placeholder: 'Buscar material...'
       }
     },
     {
@@ -154,34 +156,34 @@ const moduleConfig = {
       title: 'Servicios',
       icon: 'fa-solid fa-concierge-bell',
       itemTypeId: 3,
-      module_config_id: 'SERVICE',
+      module_config_id: '3',
       search: {
         endpoint: 'services/',
         placeholder: 'Buscar servicio...'
       }
     },
     {
+      type: 'catalog',
+      title: 'Catálogo',
+      icon: 'fa-solid fa-utensils',
+      itemTypeId: 4,
+      module_config_id: '4',
+      search: {
+        endpoint: 'catalogs/',
+        placeholder: 'Buscar catálogo...'
+      }
+    },
+    {
       type: 'ticket',
       title: 'Tickets',
       icon: 'fa-solid fa-receipt',
-      itemTypeId: 4,
-      module_config_id: 'TICKET',
+      itemTypeId: 5,
+      module_config_id: '5',
       search: {
         endpoint: 'tickets/',
         placeholder: 'Buscar ticket...'
       }
     },
-    {
-      type: 'material',
-      title: 'Materiales',
-      icon: 'fa-solid fa-cubes',
-      itemTypeId: 5,
-      module_config_id: 'MATERIAL',
-      search: {
-        endpoint: 'materials/',
-        placeholder: 'Buscar material...'
-      }
-    }
   ]
 }
 
@@ -224,92 +226,88 @@ const detailFieldsConfig = {
   material: baseDetailFields
 };
 
-const detailTablesConfig = moduleConfig.types.map(t => ({
-  type: t.type,
-  title: t.title,
-  icon: t.icon,
-  fields: detailFieldsConfig[t.type] || [],
+const detailTablesConfig = moduleConfig.types
+  .map(t => ({
+    type: t.type,
+    title: t.title,
+    icon: t.icon,
+    fields: detailFieldsConfig[t.type] || [],
 
-  detailConfig: {
-    buildUrl: ({ order, table }) =>
-      `/orders/${order.id}/details/?type=${table.type}`,
+    detailConfig: {
+      buildUrl: ({ order, table }) =>
+        `/orders/${order.id}/details/?type=${table.type}`,
 
-    deleteBuilder: ({ row }) => ({
-      url: `/order-details/${row.id}/`,
-      payload: { is_canceled: true }
-    })
-  },
-
-  calculationConfig: {
-    module_id: MODULE_ID,
-
-    // BASE (igual para todos)
-    formulaEndpoint: moduleConfig.base.formula.endpoint,
-    queryParam: moduleConfig.base.formula.queryParam,
-    codeResponsePath: moduleConfig.base.formula.codeResponsePath,
-
-    formulaDetailEndpoint: moduleConfig.base.formulaDetail.endpoint,
-    formulaDetailQueryParam: moduleConfig.base.formulaDetail.queryParam,
-    formulaDetailResponsePath: moduleConfig.base.formulaDetail.responsePath,
-
-    variablesEndpoint: '/formula-variables/',
-
-    // 🔥 KEY FIX: variables dinámicas por tipo
-    variablesQueryParams: {
-      module_id: MODULE_ID,
-      code: t.module_config_id
+      deleteBuilder: ({ row }) => ({
+        url: `/order-details/${row.id}/`,
+        payload: { is_canceled: true }
+      })
     },
 
-    // 🔥 IMPORTANTE: no mezclar lógica de product
-    contextKey: 'type'
-  },
+    calculationConfig: {
+      endpoint: '/calculation/module-order-calculation/',
 
-  searchConfig: {
-    endpoint: t.search.endpoint,
-    queryParam: 'search',
-    resultPath: 'results',
-    minChars: 2,
-    placeholder: t.search.placeholder,
-    addButtonText: 'Agregar',
-    keyField: 'code',
-    primaryField: 'sku',
-    secondaryField: 'description'
-  },
+      context: ({ order, type }) =>
+        buildCalculationParams({
+          orderId: order?.id,
+          type: type // "catalog"
+        }),
 
-  createConfig: {
-    endpoint: moduleConfig.base.create.endpoint,
-    itemTypeId: t.itemTypeId,
+      variablesQuery: ({ order, type }) =>
+        buildVariablesParams({
+          orderId: order?.id,
+          type
+        })
+    },
 
-    payloadBuilder: ({
-      selectedItem,
-      order,
-      createConfig,
-      getOrderTypeId,
-      getSelectedItemCode
-    }) => {
-      const unitNet = Number(
-        selectedItem?.unit_net_amount ??
-        selectedItem?.base_net_amount ??
-        selectedItem?.net_amount ??
-        0
-      ) || 0
+    searchConfig: {
+      endpoint: t.search.endpoint,
+      queryParam: 'search',
+      resultPath: 'results',
+      minChars: 2,
+      placeholder: t.search.placeholder,
+      addButtonText: 'Agregar',
+      keyField: 'code',
+      primaryField: 'sku',
+      secondaryField: 'description'
+    },
 
-      return {
-        order: order.id,
-        order_type: getOrderTypeId(),
-        item_type: createConfig.itemTypeId,
-        id_item: getSelectedItemCode(selectedItem),
-        description: selectedItem.description || selectedItem.name || '',
-        quantity: 1,
-        percent: null,
-        net_amount: unitNet,
-        fiscal_documentation: null,
-        obs: selectedItem.obs || null,
-        url_evidence: null
+    createConfig: {
+      endpoint: moduleConfig.base.create.endpoint,
+      itemTypeId: t.itemTypeId,
+
+      payloadBuilder: ({
+        selectedItem,
+        order,
+        createConfig,
+        getOrderTypeId,
+        getSelectedItemCode
+      }) => {
+        const unitNet = Number(
+          selectedItem?.unit_net_amount ??
+          selectedItem?.base_net_amount ??
+          selectedItem?.net_amount ??
+          0
+        ) || 0
+
+        return {
+          order: order.id,
+          order_type: getOrderTypeId(),
+          record_type: createConfig.itemTypeId,
+          id_item: getSelectedItemCode(selectedItem),
+          description: selectedItem.description || selectedItem.name || '',
+          quantity: 1,
+          percent: null,
+          net_amount: unitNet,
+          fiscal_documentation: null,
+          obs: selectedItem.obs || null,
+          url_evidence: null
+        }
       }
     }
-  }
-}))
+  }))
+  .sort((a, b) =>
+    RECORD_TYPE[a.type.toUpperCase()] - RECORD_TYPE[b.type.toUpperCase()]
+  )
 
 const fields = ref([
   { key: 'id', label: 'ID', type: 'number', omitInForm: true },

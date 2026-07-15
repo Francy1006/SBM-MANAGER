@@ -24,13 +24,14 @@
                                 </tr>
                             </tbody>
                         </table>
-                        <CalculationComponent v-if="calculationCode || calculationConfig" :key="subtotalNet"
-                            :code="calculationConfig.variablesQueryParams.code"
-                            :contextKey="calculationConfig.contextKey"
-                            :formula-endpoint="calculationConfig?.formulaEndpoint"
-                            :formula-response-path="calculationConfig?.formulaResponsePath"
-                            :variables-endpoint="calculationConfig?.variablesEndpoint"
-                            :variables-query-params="calculationConfig?.variablesQueryParams || {}"
+                        <CalculationComponent
+                            v-if="calculationConfig?.endpoint && calculationConfig?.variablesEndpoint"
+                            :key="subtotalNet" :code="calculationCode"
+                            :contextKey="calculationConfig?.contextKey || 'code'"
+                            :formula-endpoint="calculationConfig.formulaEndpoint"
+                            :formula-response-path="calculationConfig.formulaResponsePath"
+                            :variables-endpoint="calculationConfig.variablesEndpoint"
+                            :variables-query-params="calculationConfig.variablesQueryParams || {}"
                             :calculationConfig="calculationConfig" :extraVariables="calculationVariables" />
                     </div>
                     <div class="dashboard-search-group">
@@ -724,6 +725,7 @@ export default {
         },
 
         async loadCalculationCode() {
+            if (!this.calculationConfig?.endpoint || !this.calculationConfig?.queryParam) return
             try {
                 if (!this.calculationConfig || !this.calculationConfig.endpoint) {
                     this.calculationCode = null

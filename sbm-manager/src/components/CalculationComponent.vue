@@ -173,7 +173,7 @@ function formatByType(value, dataType) {
 }
 
 /* ================================
-   FETCH FORMULA
+   FETCH CALCULATION
 ================================ */
 
 async function fetchFormula() {
@@ -227,6 +227,77 @@ async function fetchFormula() {
 /* ================================
    FETCH VARIABLES
 ================================ */
+async function fetchCalculation() {
+  const config = props.calculationConfig
+
+  if (!config?.endpoint) {
+    console.warn('❌ calculationConfig.endpoint missing')
+    results.value = []
+    return []
+  }
+
+  try {
+    // =========================
+    // BUILD CONTEXT (ROBUSTO)
+    // =========================
+    const context =
+      typeof config.context === 'function'
+        ? config.context({
+            order: props.moduleContext?.order,
+            code: props.code,
+            extra: props.extraVariables
+          })
+        : {}
+
+    // =========================
+    // VALIDACIÓN MÍNIMA
+    // =========================
+    if (!context.order_id && !context.type) {
+      console.warn('⚠️ Calculation request missing order_id or type', context)
+    }
+
+    console.log('📡 CALCULATION REQUEST:', config.endpoint, context)
+
+    // =========================
+    // REQUEST
+    // =========================
+    const res = await api.get(config.endpoint, {
+      params: context
+    })
+
+    // =========================
+    // NORMALIZE RESPONSE
+    // =========================
+    const raw =
+      Array.isArray(res.data)
+        ? res.data[0]?.calculation || []
+        : res.data?.calculation || []
+
+    // =========================
+    // MAP RESULTS
+    // =========================
+    const mapped = raw.map(v => ({
+      field: v.field,
+      label: v.label,
+      value: Number(v.value) || 0,
+      data_type: v.data_type ?? 5
+    }))
+
+    results.value = mapped
+
+    return mapped
+
+  } catch (e) {
+    console.error('❌ fetchCalculation error:', e)
+    results.value = []
+    return []
+  }
+}
+
+
+
+
+
 
 async function fetchVariables() {
   loading.value = true
@@ -235,48 +306,37 @@ async function fetchVariables() {
     const config = props.calculationConfig || {}
 
     if (!config?.variablesEndpoint) {
-      console.error('❌ variablesEndpoint missing')
+      console.error('❌ variablesEndpoint missing in calculationConfig')
       return
     }
 
-    let params
-
-    switch (Number(config.module_id)) {
-
-      // =========================
-      // PRODUCT
-      // =========================
-      case 1:
-        params = {
-          module_id: 1,
-          code: config.queryValue || config.code || props.code
-        }
-        break
-
-      // =========================
-      // ORDER
-      // =========================
-      case 2:
-        params = {
-          module_id: 2,
-          code: props.calculationConfig.variablesQueryParams.code
-        }
-        break
-
-      default:
-        console.warn('⚠️ module_id no soportado:', config.module_id)
-        return
-    }
+    // =========================
+    // RESOLVER PARAMS DESDE CONFIG
+    // =========================
+    const params = config.variablesQuery?.({
+      order: props.moduleContext?.order,
+      code: props.code,
+      extra: props.extraVariables
+    }) || {}
 
     console.log('📡 VARIABLES REQUEST:', config.variablesEndpoint, params)
 
-    const res = await api.get(config.variablesEndpoint, { params })
+    const res = await api.get(config.variablesEndpoint, {
+      params
+    })
 
-    const data = res.data || []
+    // =========================
+    // NORMALIZAR RESPUESTA
+    // =========================
+    const calculation =
+      Array.isArray(res.data)
+        ? res.data[0]?.calculation || []
+        : res.data?.calculation || []
+
     const merged = new Map()
 
-    data.forEach(v => {
-      const key = String(v.var || '').trim()
+    calculation.forEach(v => {
+      const key = String(v.field || '').trim()
       if (!key) return
 
       merged.set(key, {
@@ -287,25 +347,29 @@ async function fetchVariables() {
       })
     })
 
-    Object.entries(props.extraVariables || {}).forEach(([key, obj]) => {
-      if (key === 'module_id') return
-
-      merged.set(key, {
-        key,
-        label: obj?.label || key,
-        value: Number(obj?.value) || 0,
-        data_type: obj?.data_type ?? 5
-      })
-    })
-
+    // =========================
+    // UPDATE FIELDS
+    // =========================
     fields.splice(
       0,
       fields.length,
       ...Array.from(merged.values()).map(f => ({ ...f }))
     )
 
+    // =========================
+    // RESULTS (backend-calculated)
+    // =========================
+    results.value = calculation.map(v => ({
+      field: v.field,
+      label: v.label,
+      value: Number(v.value) || 0,
+      data_type: v.data_type ?? 5
+    }))
+
   } catch (e) {
-    console.error('fetchVariables error:', e)
+    console.error('❌ fetchVariables error:', e)
+    results.value = []
+    fields.splice(0, fields.length)
   } finally {
     loading.value = false
   }
@@ -419,6 +483,8 @@ onMounted(async () => {
 
   await fetchFormula()
   buildTranslateRows()
+
+  await fetchCalculation() // 👈 único entry point
 
   loading.value = false
 })
