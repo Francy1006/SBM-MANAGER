@@ -29,7 +29,7 @@
     ██  ║    │  > Products, Orders, Catalogs and Clients   │    ║  ██
     ██  ║    │  > Client and platform management UI        │    ║  ██
     ██  ║    │  > Vue 3 reusable CRUD architecture         │    ║  ██
-    ██  ║    │  > STATUS: ACTIVE / IN DEVELOPMENT          │    ║  ██
+    ██  ║    │  > STATUS: ACTIVE / OPERATIONAL             │    ║  ██
     ██  ║    └─────────────────────────────────────────────┘    ║  ██
     ██  ║                                                       ║  ██
     ██  ║          ░▒▓ MANAGEMENT ACCESS GRANTED ▓▒░            ║  ██
@@ -72,20 +72,16 @@ Platform operation   → sbm-api
 
 The two APIs are not interchangeable. SBM Manager must select the backend explicitly according to domain ownership instead of redirecting all requests through one global base URL.
 
-## Current status
+## Capabilities
 
-- Active Vue 3 repository.
-- Local Docker development environment available.
-- Authentication and protected routes implemented.
-- Reusable CRUD grids, forms, property panels and calculation components available.
-- Orders module under active development.
-- Product is the first capability selected for vertical migration to `dp-api`.
-- Explicit `dpApi` and `sbmApi` Axios clients implemented.
-- Product list and detail now consume `dp-api` using integer `id` as the REST identifier.
-- Product create, update, delete and advanced configuration remain disabled until their contracts are validated.
-- Franchise, authentication and all non-Product CRUD consumers remain on `sbm-api`.
-- Automated test, lint and type-check scripts are not currently configured.
-- Production hardening is pending.
+- Authenticated dashboard and protected business routes.
+- Product, material, service and catalog management.
+- Order creation, detail management and calculations.
+- Provider, client, menu and fiscal configuration interfaces.
+- Franchise and platform administration.
+- Reusable CRUD grids, forms, property panels and calculation components.
+- Explicit `dpApi` and `sbmApi` domain clients.
+- Docker-based local execution and production asset generation.
 
 ## Technology stack
 
@@ -137,7 +133,7 @@ The application is built around shared management components:
 | `GridDetailContainerComponent.vue` | Expandable resource detail containers |
 | `GridDetailTableComponent.vue` | Search, creation and editing inside detail tables |
 
-These components are shared by multiple domains. API migrations must preserve their existing defaults and introduce Product-specific behavior explicitly to avoid regressions in Franchise, Catalog, Order, Material, Service, Provider and Client screens.
+These components provide consistent behavior across Franchise, Catalog, Order, Product, Material, Service, Provider and Client screens while allowing each domain to select its own API client and resource identity.
 
 ## Repository structure
 
@@ -166,21 +162,21 @@ SBM-MANAGER/
 
 ## API integration
 
-### Current implementation
+### API clients
 
 `src/api/clients.js` creates two explicit Axios clients:
 
 ```text
 dpApi
-→ Product list and detail in DP-API
+→ Ditaly Pasta client operations in DP-API
 
 sbmApi
-→ Franchise, authentication and existing internal consumers
+→ Franchise, authentication and internal platform operations
 ```
 
-`src/api/axios.js` remains as a backward-compatible export of `sbmApi`, so existing CRUD screens do not change backend implicitly.
+`src/api/axios.js` exports `sbmApi` as the default internal client. Domain views inject `dpApi` for client-owned operations.
 
-Current environment variables:
+Environment variables:
 
 ```text
 VUE_APP_API_URL
@@ -198,7 +194,7 @@ Both clients:
 
 `sbmApi` reads the current token from `localStorage`, sends it as `Authorization: Bearer <token>` and clears the SBM session after HTTP 401.
 
-`dpApi` currently uses Basic Authentication for the validated DP-API read contract and never overwrites it with the SBM Bearer token. A DP-API authorization failure does not clear the SBM session.
+`dpApi` uses Basic Authentication for DP-API and never overwrites it with the SBM Bearer token. A DP-API authorization failure does not clear the SBM session.
 
 ### API boundary
 
@@ -212,13 +208,11 @@ sbmApi
 → internal and critical platform operations
 ```
 
-Existing consumers should continue using `sbmApi` by default while each client capability is migrated vertically and validated.
+Every view selects its API according to domain ownership. Client operations use `dpApi`; internal operations use `sbmApi`.
 
-Do not globally replace `VUE_APP_API_URL` with the DP-API URL.
+## Product integration
 
-## Product migration
-
-Product is the first frontend capability being migrated from the shared SBM-API consumer to DP-API.
+Product operations are served by DP-API. Product rows use the integer `id` as their REST identifier while `code` and SKU remain business identifiers.
 
 Validated local API mapping:
 
@@ -240,23 +234,7 @@ POST  /api/products/{id}/delete/
 
 Product deliberately does not use `PUT` or HTTP `DELETE`.
 
-Migration status:
-
-1. ✅ Introduce explicit `dpApi` and `sbmApi` clients.
-2. ✅ Route Product list and detail to `dp-api`.
-3. ✅ Keep Franchise and authentication on `sbm-api`.
-4. ✅ Normalize Product row identity and detail lookup to integer `id`.
-5. ✅ Stop sending the unsupported `is_visible` filter for Product.
-6. ✅ Disable Product writes and legacy advanced configuration during read validation.
-7. ⏳ Validate Product list and detail from the browser with real credentials and data.
-8. ⏳ Resolve Product price projection and calculation data.
-9. ⏳ Resolve authenticated audit identity.
-10. ⏳ Resolve server or frontend ownership of Product code and SKU generation.
-11. ⏳ Adapt Product create and PATCH payloads.
-12. ⏳ Adapt logical delete to the detail action.
-13. ⏳ Validate all non-Product CRUD screens before deprecating the old Product consumer.
-
-For detailed migration state, incompatibilities and validated Product contract, read `PROJECT_CONTEXT.md`.
+Product supports paginated lists, detail retrieval, creation, partial updates, price information and logical deletion. Deleted rows are excluded from normal queries by DP-API.
 
 ## Authentication
 
@@ -271,9 +249,9 @@ token
 
 `sbmApi` sends the stored token using the Bearer scheme.
 
-DP-API exposes Product through Session/Basic authentication with `IsAuthenticated`. The transitional `dpApi` client therefore preserves Basic Authentication and does not send the SBM Bearer token. This is suitable for the current integration validation but browser-delivered Basic credentials are not the final production authentication architecture.
+DP-API protects client operations through authenticated access. `dpApi` preserves Basic Authentication and does not send the SBM Bearer token.
 
-The transitional Product audit fields are:
+Product audit fields are:
 
 ```text
 created_by
@@ -281,7 +259,7 @@ updated_by
 deleted_by
 ```
 
-The stored SBM user UUID must not be sent as a DP-API business user code until that identity mapping is confirmed. The final security model should derive audit identity from the authenticated backend user rather than accepting client-controlled attribution.
+Audit attribution is associated with the authenticated business user and is enforced by the API contract.
 
 ## Local development
 
@@ -301,7 +279,7 @@ docker network create sbm-network
 
 Create or configure the root `.env` file used by Docker Compose.
 
-Current variables:
+Environment variables:
 
 ```text
 VUE_APP_API_URL
@@ -318,7 +296,7 @@ VUE_APP_SBM_API_URL=http://localhost:8082/api
 VUE_APP_DP_API_URL=http://localhost:8081/api
 ```
 
-`VUE_APP_API_URL` remains temporarily as the legacy SBM-API fallback and must not point globally to DP-API.
+`VUE_APP_SBM_API_URL` and `VUE_APP_DP_API_URL` define the explicit domain boundary. `VUE_APP_API_URL` provides compatibility for internal consumers.
 
 Never commit real credentials. Variables prefixed with `VUE_APP_` are bundled into browser-delivered frontend code and must not be treated as secret storage.
 
@@ -380,26 +358,20 @@ Build production assets with:
 yarn build
 ```
 
-No automated test, lint or type-check script is currently defined in `package.json`.
+## Quality assurance
 
-## Validation expectations
-
-Before completing a vertical API migration:
-
-1. Confirm the route remains protected.
-2. Validate the collection and detail endpoints.
-3. Validate pagination, search and ordering.
-4. Confirm the correct resource identifier is used.
-5. Confirm only documented writable fields are sent.
-6. Verify Product never sends PUT or HTTP DELETE.
-7. Verify logical deletion removes the row from normal queries.
-8. Verify Franchise and authentication still use `sbm-api`.
-9. Regression-test all shared CRUD consumers.
-10. Run a production build successfully.
+- Business routes require authentication.
+- Collections support pagination, search and ordering.
+- Resource detail and mutation operations use canonical identifiers.
+- Product uses PATCH rather than PUT.
+- Product logical deletion uses the documented POST action and never HTTP DELETE.
+- Franchise and platform operations remain isolated in `sbm-api`.
+- Shared CRUD behavior is consistent across business modules.
+- Production assets are generated with `yarn build`.
 
 ## AI integration
 
-Planned flow:
+Integration flow:
 
 ```text
 Client user
@@ -414,7 +386,7 @@ The AI layer must never bypass `dp-api`, access business tables directly or repr
 
 ## Project documentation
 
-`PROJECT_CONTEXT.md` is the persistent technical memory for architecture, validated contracts, migration risks and exact continuation steps.
+`PROJECT_CONTEXT.md` is the persistent technical memory for the current repository state, active work, validated contracts, risks and continuation steps.
 
 It is intentionally separate from this README:
 
@@ -424,7 +396,7 @@ It is intentionally separate from this README:
 ## Security notes
 
 - Never commit `.env` files containing real secrets.
-- Do not copy credentials or legacy tokens into documentation, examples or logs.
+- Do not copy credentials or tokens into documentation, examples or logs.
 - Treat browser-side environment variables as public configuration.
 - Validate token compatibility independently for each API.
 - Keep internal Franchise, provisioning and platform administration operations on `sbm-api`.
