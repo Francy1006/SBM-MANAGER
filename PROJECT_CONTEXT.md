@@ -11,6 +11,10 @@
 > **Accuracy note**
 >
 > This first version is based on direct read-only inspection of the local `SBM-MANAGER` repository on 2026-07-15 and on the validated Product contract in the neighboring `DP-API` repository. No frontend files were modified during this audit. Secret and credential values are intentionally omitted.
+>
+> **Implementation update — 2026-07-15**
+>
+> The first Product frontend cutover has now been implemented. `sbm-manager` has explicit `sbmApi` and `dpApi` Axios clients. Product list and detail use `dp-api`; Franchise, authentication and all default generic CRUD consumers remain on `sbm-api`. Product writes and legacy advanced configuration are intentionally disabled until the remaining contracts are validated. The frontend container build passed and the application responds on port 8080.
 
 ---
 
@@ -127,9 +131,9 @@ At the time of inspection:
 - No `AGENTS.md` was found.
 - The active Git branch was `feature/orders-module`.
 
-### 2.2 Existing local work that must be preserved
+### 2.2 Historical local-work snapshot
 
-The worktree was already dirty before the Product API migration audit.
+The worktree was already dirty before the initial Product API migration audit. The following list is historical context from that first inspection, not the current `git status`:
 
 Modified files:
 
@@ -155,10 +159,13 @@ These changes belong to the user. Do not reset, overwrite, reformat broadly, or 
 ```text
 Repository: active
 Frontend framework: Vue 3
-Product API migration: ready to begin in frontend
+Product API migration: list/detail cutover implemented; browser validation pending
 dp-api Product backend: validated
-sbm-api Product consumer: still present through shared API client
+dp-api Product consumer: active for Product list/detail
+sbm-api Product consumer: retained for legacy writes and downstream consumers
+Product writes: disabled in ProductView during transition
 Automated test suite: not confirmed
+Container production build: passed with bundle-size warnings
 Production hardening: pending
 ```
 
@@ -241,27 +248,40 @@ Most business routes use `meta.requiresAuth = true`.
 Current API-related files:
 
 ```text
+src/api/clients.js
 src/api/axios.js
 src/api/franchise.js
 ```
 
-`src/api/axios.js` currently creates one shared Axios instance for every domain.
+`src/api/clients.js` creates two explicit clients:
 
-Base URL selection:
-
-```javascript
-process.env.VUE_APP_API_URL || '/api/'
+```text
+sbmApi → VUE_APP_SBM_API_URL, with VUE_APP_API_URL as legacy fallback
+dpApi  → VUE_APP_DP_API_URL
 ```
 
-The shared client:
+`src/api/axios.js` re-exports `sbmApi` as its default export for backward compatibility. Existing imports therefore remain on the internal API unless a view explicitly injects another client.
 
-- Adds JSON and XMLHttpRequest headers.
-- May add Basic Authentication from environment variables.
-- Reads a Bearer token from `localStorage` for every request.
-- Clears authentication state and redirects to `/login` on HTTP 401.
-- Uses a 10-second timeout.
+Both clients use JSON headers and a 10-second timeout.
 
-This single-client design does not yet express the required `dp-api` versus `sbm-api` boundary.
+Authentication behavior is deliberately different:
+
+```text
+sbmApi → SBM Bearer token from localStorage; clears SBM session on HTTP 401
+dpApi  → Basic Authentication; never overwrites it with the SBM Bearer token
+```
+
+The current environment keys are:
+
+```text
+VUE_APP_API_URL
+VUE_APP_SBM_API_URL
+VUE_APP_DP_API_URL
+VUE_APP_API_USERNAME
+VUE_APP_API_PASSWORD
+```
+
+Do not point `VUE_APP_API_URL` globally to `dp-api`. It remains a transitional `sbm-api` fallback.
 
 ### 4.2 Authentication state
 
@@ -276,19 +296,21 @@ token
 
 Values are stored in `localStorage`.
 
-The Axios interceptor sends:
+The `sbmApi` interceptor sends:
 
 ```text
 Authorization: Bearer <token>
 ```
 
-Important current inconsistency:
+Validated transitional behavior:
 
-- `sbm-manager` sends Bearer tokens.
-- The inspected `dp-api` currently enables Session and Basic authentication globally.
-- `dp-api` exposes a token endpoint but TokenAuthentication is not globally enabled.
+- `sbmApi` sends the SBM Bearer token.
+- `dp-api` Product enables Session and Basic authentication with `IsAuthenticated`.
+- `dpApi` uses Basic Authentication and does not send the incompatible SBM Bearer token.
+- An anonymous request to `/api/products/` returns HTTP 403.
+- DP-API CORS permits `http://localhost:8080` and allows credentials.
 
-Authentication compatibility must be validated during integration. Do not assume the existing Bearer token is accepted by `dp-api`.
+Basic credentials in browser-delivered `VUE_APP_*` configuration are transitional development behavior, not the final production security model.
 
 ### 4.3 Google login
 
@@ -347,7 +369,21 @@ get-endpoint="products/"
 post-endpoint="products/"
 ```
 
-Because these are relative paths, all Product operations currently use the single shared Axios base URL.
+`ProductView.vue` now injects `dpApi` into the generic manager/grid for Product reads. The relative paths therefore resolve against `VUE_APP_DP_API_URL` for list and detail.
+
+The view also sets:
+
+```text
+rowKey="id"
+includeVisibleFilter=false
+showDeletedFilter=false
+allowCreate=false
+allowUpdate=false
+allowDelete=false
+enableExtendedProperties=false
+```
+
+This makes the first cutover intentionally read-only and prevents rows loaded from `dp-api` from being written accidentally to legacy `sbm-api` endpoints.
 
 ### 5.2 Product fields already aligned with dp-api
 
@@ -387,6 +423,8 @@ price
 price_gross_amount
 ```
 
+`ProductView.vue` now defines `price_gross_amount` as a formatted price field. The unsupported advanced pricing fields remain in the legacy field configuration but are not fabricated when absent from the DP-API response. Advanced Product configuration is disabled during this phase.
+
 It does not expose all of the combined Price/calculation fields above through `ProductSerializer`.
 
 This mismatch must be resolved explicitly. Do not fabricate missing fields in the frontend. Determine whether:
@@ -405,7 +443,7 @@ The ownership decision must remain consistent with the rule that client price co
 franchises/
 ```
 
-through the same Axios client.
+explicitly through `sbmApi`.
 
 Franchise creation and platform management belong to `sbm-api`. Product migration must not accidentally redirect Franchise operations to `dp-api`.
 
@@ -422,32 +460,30 @@ The Product screen may still read a permitted franchise/tenant context, but that
 
 This part is broadly compatible with `dp-api` pagination.
 
-Current incompatibility:
+Product-specific behavior now disables the legacy visibility parameter:
 
 ```text
-hideDeleted=true
-→ sends is_visible=true
+includeVisibleFilter=false
+→ does not send is_visible
 ```
 
 `dp-api` Product does not use `is_visible` for this flow. Normal Product querysets already exclude logically deleted rows.
 
 ### 5.6 Current Product identifiers
 
-`CRUDGridComponent.rowId()` prefers:
+`CRUDGridComponent.rowId()` still preserves the generic default:
 
 ```text
 code → id → sku
 ```
 
-Product selection therefore normally stores `Product.code`.
+It now accepts an optional `rowKey`. Product passes `rowKey="id"`, so Product selection and detail use the integer primary key without changing other CRUD consumers.
 
-Current detail behavior builds:
+Current Product detail behavior builds:
 
 ```text
-/products/{selectedId}/
+/api/products/{id}/
 ```
-
-Current update behavior also prefers Product `code` when the row has a SKU.
 
 The validated `dp-api` Product detail and PATCH endpoints currently use the Django primary key integer:
 
@@ -455,11 +491,11 @@ The validated `dp-api` Product detail and PATCH endpoints currently use the Djan
 /api/products/{id}/
 ```
 
-This identifier mismatch will cause HTTP 404 unless the frontend sends `id` or `dp-api` deliberately changes its lookup contract.
-
-Do not change the backend lookup field casually. Choose one canonical public identifier and test list, detail, PATCH, and logical delete consistently.
+The identifier contract for list selection and detail is resolved: use integer `id`. Future Product PATCH and logical delete must use the same identifier.
 
 ### 5.7 Current create behavior
+
+Product create is currently disabled in `ProductView.vue`. The following legacy incompatibilities remain to be resolved before enabling it.
 
 `CRUDManagerComponent` creates with POST and therefore already uses the correct HTTP method.
 
@@ -492,6 +528,8 @@ Before frontend migration, decide whether `dp-api` should generate Product code/
 
 ### 5.8 Current update behavior
 
+Product update is currently disabled in `ProductView.vue`. The generic manager still uses PATCH for existing consumers, but the Product-specific payload and audit identity remain pending.
+
 `CRUDManagerComponent` uses PATCH, which matches the permitted `dp-api` method.
 
 Current incompatibilities:
@@ -503,6 +541,8 @@ Current incompatibilities:
 The validated `dp-api` Product endpoint rejects PUT with HTTP 405.
 
 ### 5.9 Current delete behavior
+
+Product deletion is currently disabled in `ProductView.vue`. The generic grid retains the legacy collection action for existing consumers; Product must not enable it.
 
 `CRUDGridComponent.deleteSelected()` currently calls a collection action:
 
@@ -766,56 +806,52 @@ The final fix belongs to the authentication/security phase.
 
 ---
 
-## 7. API client separation target
+## 7. API client separation implementation
 
-### 7.1 Current problem
+### 7.1 Implemented boundary
 
-One Axios instance currently serves both client-owned and internal operations.
-
-Changing `VUE_APP_API_URL` globally from `sbm-api` to `dp-api` would break or misroute internal capabilities such as Franchise and authentication.
-
-### 7.2 Required design property
-
-The frontend must be able to select an API by domain ownership.
-
-Conceptual target:
+The frontend now exposes two explicit Axios clients from `src/api/clients.js`:
 
 ```text
-dpApi
-→ Ditaly Pasta client operations
-
-sbmApi
-→ internal and critical platform operations
+dpApi  → explicit client-facing operations
+sbmApi → default internal and legacy operations
 ```
 
-Likely environment variables:
+`src/api/axios.js` re-exports `sbmApi` as default. This preserved every existing import while allowing Product to opt into `dpApi` explicitly.
+
+### 7.2 Environment boundary
+
+Implemented variables:
 
 ```text
-VUE_APP_DP_API_URL
 VUE_APP_SBM_API_URL
+VUE_APP_DP_API_URL
 ```
 
-Exact names may be adjusted, but there must be two explicit bases. Do not hide the boundary behind one mutable global URL.
+Local development mapping:
 
-### 7.3 Reuse without global regression
+```text
+VUE_APP_SBM_API_URL → http://localhost:8082/api
+VUE_APP_DP_API_URL  → http://localhost:8081/api
+```
 
-Generic CRUD components currently import the shared client directly.
+`VUE_APP_API_URL` remains temporarily configured for `sbm-api` as a compatibility fallback. It must not be redirected globally to DP-API.
 
-Before editing, choose a low-risk integration pattern, for example:
+### 7.3 Generic-component integration
 
-- Inject an API client/domain key into generic CRUD components; or
-- Introduce resource-specific service adapters; or
-- Pass fully qualified endpoint/client configuration for Product only.
+`CRUDManagerComponent` and `CRUDGridComponent` now accept configuration with backward-compatible defaults:
 
-The chosen pattern must:
+```text
+apiClient
+rowKey
+includeVisibleFilter
+showDeletedFilter
+allowCreate
+allowUpdate
+allowDelete
+```
 
-- Avoid duplicating Product business logic across components.
-- Preserve all non-Product consumers.
-- Make API ownership visible in code.
-- Support future vertical migrations for Material and Service.
-- Keep internal Franchise operations on `sbm-api`.
-
-Do not perform a repository-wide replacement of Axios imports as the first change.
+Product injects `dpApi`, selects rows by `id`, omits `is_visible`, and disables writes. All other consumers retain `sbmApi` and their previous identifier/filter behavior.
 
 ---
 
@@ -823,23 +859,23 @@ Do not perform a repository-wide replacement of Axios imports as the first chang
 
 | Concern | Current sbm-manager behavior | Validated dp-api behavior | Required action |
 |---|---|---|---|
-| API base | One shared `VUE_APP_API_URL` | Separate client-facing API on port 8081 | Add explicit API boundary |
-| Product list | Relative `products/` | `/api/products/` | Route through dp-api client |
+| API base | Explicit `sbmApi` and `dpApi` clients | Separate client-facing API on port 8081 | ✅ Implemented |
+| Product list | `products/` through injected `dpApi` | `/api/products/` | ✅ Implemented; browser data validation pending |
 | Pagination | Supports `count` and `results` | `count`, `next`, `previous`, `results` | Preserve and verify |
-| Hidden deleted filter | Sends `is_visible=true` | Deleted rows excluded by queryset | Remove Product-only invalid filter |
-| Row identity | Prefers `code` | Detail currently uses integer `id` | Normalize Product operations to canonical identifier |
-| Detail | `/products/{code}/` in common case | `/api/products/{id}/` | Use row `id` or change contract deliberately |
-| Create | POST | POST | Preserve method |
+| Hidden deleted filter | Product omits `is_visible` | Deleted rows excluded by queryset | ✅ Implemented |
+| Row identity | Product passes `rowKey="id"` | Detail uses integer `id` | ✅ Implemented |
+| Detail | `/api/products/{id}/` through `dpApi` | `/api/products/{id}/` | ✅ Implemented; browser validation pending |
+| Create | Disabled during read cutover | POST | Resolve contract before enabling |
 | Create audit | Removes `created_by` | `created_by` required currently | Inject validated authenticated business user code |
 | Code/SKU | Not supplied by current form | Required currently | Decide server generation versus frontend input |
-| Update | PATCH | PATCH | Preserve method, correct identifier and payload |
+| Update | Disabled during read cutover | PATCH | Resolve payload and audit identity before enabling |
 | Update audit | Removes `updated_by` | `updated_by` required | Inject validated user code |
 | Full update | Generic architecture may support update concept | PUT rejected | Never use PUT for Product |
-| Logical delete | Collection `/soft_delete/` with `ids` | Detail `/{id}/delete/` with `deleted_by` | Add Product-specific delete adapter |
+| Logical delete | Disabled during read cutover | Detail `/{id}/delete/` with `deleted_by` | Add Product-specific delete adapter before enabling |
 | Physical delete | Not directly used in inspected Product path | HTTP DELETE rejected | Keep disabled |
 | Product price display | Expects multiple embedded price fields | Exposes `price` and `price_gross_amount` | Adapt UI or define additional dp-api projection |
 | Internal log | Field still listed in Product view configuration | Never exposed | Remove frontend dependency entirely |
-| Authentication | Bearer token from localStorage | Session/Basic currently configured | Validate compatibility before cutover |
+| Authentication | Product `dpApi` preserves Basic; SBM uses Bearer | Session/Basic with `IsAuthenticated` | ✅ Read transport configured; production auth redesign pending |
 
 ---
 
@@ -867,11 +903,11 @@ Authentication token and user identity fields are stored in `localStorage`.
 
 This is the current implementation, not a declaration that it is the final secure architecture.
 
-### 9.4 API authentication mismatch
+### 9.4 Transitional API authentication
 
-The frontend Bearer-token strategy and `dp-api` Session/Basic configuration are not currently proven compatible.
+The SBM Bearer token is not compatible with the validated DP-API Session/Basic configuration. The clients therefore use separate authentication behavior.
 
-An HTTP 401 during Product cutover must be diagnosed as an authentication contract issue, not bypassed by removing authorization or weakening API permissions.
+`dpApi` preserves Basic Authentication and does not clear SBM authentication state on DP-API authorization failures. This supports the current read validation, but client-bundled credentials must be replaced by an appropriate production identity contract.
 
 ---
 
@@ -892,6 +928,17 @@ The development command is:
 ```bash
 yarn serve
 ```
+
+Validation performed after the Product read cutover:
+
+- `docker compose config --quiet` passed.
+- DP-API route `/api/products/` was confirmed; singular `/api/product/` returns HTTP 404.
+- Anonymous Product access returns HTTP 403 because the view uses `IsAuthenticated`.
+- Effective Product authentication classes are Session and Basic.
+- CORS permits `http://localhost:8080` and allows credentials.
+- The production build passed inside `sbm_manager` with bundle-size warnings only.
+- The recreated frontend container responds HTTP 200 on port 8080.
+- The host `node_modules` installation is incomplete for `xlsx` and Chart dependencies; use the container build or reinstall local dependencies before relying on a host build.
 
 ### 10.2 Required Product migration tests
 
@@ -930,9 +977,15 @@ At minimum validate:
 
 - ✅ Validate Product backend contract in `dp-api`.
 - ✅ Audit current Product frontend integration points.
-- ⏳ Introduce explicit `dp-api` and `sbm-api` client boundaries.
-- ⏳ Route Product list and detail to `dp-api`.
-- ⏳ Resolve Product identifier contract.
+- ✅ Introduce explicit `dp-api` and `sbm-api` client boundaries.
+- ✅ Route Product list and detail to `dp-api`.
+- ✅ Resolve Product read identifier contract using integer `id`.
+- ✅ Preserve Franchise, login and default CRUD consumers on `sbm-api`.
+- ✅ Remove the invalid Product `is_visible` query parameter.
+- ✅ Disable Product writes and legacy advanced configuration during read validation.
+- ✅ Validate DP-API route, authentication classes and CORS.
+- ✅ Validate production build inside the frontend container.
+- ⏳ Validate Product list and detail interactively in the browser.
 - ⏳ Resolve Product price projection required by the UI.
 - ⏳ Resolve code/SKU generation ownership.
 - ⏳ Adapt Product create payload.
@@ -1005,80 +1058,58 @@ Client user
 
 ### 13.1 Exact objective
 
-Design the smallest safe API-client separation that routes only Product operations to `dp-api` while preserving Franchise, login, and all other internal operations on `sbm-api`.
+Validate the implemented Product list/detail cutover in the browser. Once the user confirms it with `ok`, design and implement the smallest safe Product CREATE adaptation for `dp-api` without re-enabling PATCH or delete.
 
 ### 13.2 First task in a new conversation
 
-Begin with an audit without modifications.
-
-Read completely:
+Read completely before editing:
 
 ```text
 PROJECT_CONTEXT.md
-package.json
-vue.config.js
+src/api/clients.js
 src/api/axios.js
-src/api/franchise.js
-src/composables/useAuth.js
 src/views/ProductView.vue
 src/components/CRUDManagerComponent.vue
 src/components/CRUDGridComponent.vue
 src/components/SimpleFormComponent.vue
-src/components/PropertiesComponent.vue
-src/components/CalculationComponent.vue
-src/router/index.js
-docker-compose.yml
+products serializer/viewset contract in DP-API
 ```
 
 Then determine:
 
-1. Which current calls are internal `sbm-api` calls.
-2. Which Product calls must move to `dp-api`.
-3. How a generic component can select the correct API without changing other screens.
-4. Whether the stored `uuid` is a valid `dp-api users.User.code`.
-5. Whether the current Bearer token is accepted by `dp-api`.
-6. Whether Product detail/update/delete should use integer ID or the API should deliberately expose code lookup.
-7. Whether Product code and SKU are generated by the API or entered by the frontend.
-8. Which price/calculation fields the Product UI truly requires on initial list versus advanced detail.
+1. Confirm Product list renders after selecting a Franchise.
+2. Confirm Properties loads general Product detail through integer `id` without legacy configuration requests.
+3. Confirm Network requests target port 8081 for Product and port 8082 for Franchise.
+4. Confirm search, ordering and pagination behavior.
+5. Determine whether Product code and SKU are generated by DP-API or entered by the frontend.
+6. Confirm whether stored SBM `uuid` equals the DP-API business `users.User.code` required for `created_by`.
+7. Define the writable Product POST projection and exclude pseudo/read-only fields.
 
-Report the exact files and proposed minimal change set before editing.
+### 13.3 Current implementation files
 
-### 13.3 Initial search terms
-
-Search the full repository for:
+The first cutover changed:
 
 ```text
-products/
-ProductView
-VUE_APP_API_URL
-axios
-franchises/
-soft_delete
-created_by
-updated_by
-deleted_by
-localStorage
-uuid
-price_configuration
-base_net_amount
-gross_amount
-price_gross_amount
-item_group
-group_name
-.put(
-.delete(
+src/api/clients.js
+src/api/axios.js
+src/views/ProductView.vue
+src/components/CRUDManagerComponent.vue
+src/components/CRUDGridComponent.vue
+src/components/PropertiesComponent.vue
+docker-compose.yml
+.env (ignored; URL keys only, never reproduce credential values)
 ```
 
-### 13.4 Initial acceptance criteria
+### 13.4 Read-cutover acceptance criteria
 
-The first implementation step is complete only when:
+The first implementation step is considered validated when:
 
-1. Product requests use the explicit `dp-api` client.
-2. Franchise and login still use `sbm-api`.
-3. No global base URL replacement occurred.
-4. Product list works with the validated pagination contract.
-5. Existing dirty-worktree changes remain intact.
-6. `yarn build` passes.
+1. Product list/detail requests use `dpApi` on port 8081.
+2. Franchise and login still use `sbmApi` on port 8082.
+3. Product list works with the validated pagination contract.
+4. Product detail uses integer `id`.
+5. No Product POST, PATCH, delete, config or price-history request is issued.
+6. Existing non-Product CRUD behavior remains unchanged.
 
 Do not proceed to create/update/delete adaptations until list and detail are validated.
 
@@ -1096,10 +1127,10 @@ it means the previous validation produced exactly the expected result. Continue 
 
 ## 14. Executive summary
 
-`sbm-manager` is the Vue 3 enterprise frontend for SBM Suite. It currently uses one shared Axios client, even though the platform now has two explicit API responsibilities: `dp-api` for Ditaly Pasta client operations and `sbm-api` for internal and critical platform operations.
+`sbm-manager` is the Vue 3 enterprise frontend for SBM Suite. It now has two explicit Axios clients: `dpApi` for Ditaly Pasta client operations and `sbmApi` for internal, critical and not-yet-migrated operations. The legacy `src/api/axios.js` default remains mapped to `sbmApi` to prevent global regressions.
 
-The first frontend migration is Product. The Product screen already uses some canonical fields such as `item_group` and `item_group_name`, and its generic grid supports standard DRF pagination. However, it still depends on the shared API base, uses Product code where `dp-api` currently expects integer ID, removes required audit user fields, calls an incompatible bulk soft-delete endpoint, and expects embedded pricing fields not present in the validated `dp-api` Product list response.
+The first frontend migration is Product. Product list and detail now use `dpApi`, select rows by integer `id`, omit the unsupported `is_visible` filter and expose `price_gross_amount`. Franchise selection remains on `sbmApi`. Product writes and legacy advanced configuration are disabled so a DP-API row cannot be mutated accidentally through the old SBM-API behavior.
 
-The immediate task is to introduce a visible, low-risk API-client boundary and move Product reads first, without changing Franchise, login, or other internal consumers. Product create, PATCH, and logical delete must migrate only after list and detail are validated. Existing local changes on the active Orders feature branch must be preserved.
+The immediate task is interactive browser validation of Product list/detail. After explicit user confirmation, the next vertical slice is Product CREATE: resolve code/SKU ownership, validate `created_by`, build a Product-specific writable payload and keep PATCH/delete disabled until their own validation phases.
 
 The long-term frontend target is a clear domain-oriented integration where every client operation reaches `dp-api`, every internal critical operation reaches `sbm-api`, and neither developers nor future AI-assisted workflows can accidentally cross that boundary through a single ambiguous base URL.

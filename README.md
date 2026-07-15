@@ -80,8 +80,10 @@ The two APIs are not interchangeable. SBM Manager must select the backend explic
 - Reusable CRUD grids, forms, property panels and calculation components available.
 - Orders module under active development.
 - Product is the first capability selected for vertical migration to `dp-api`.
-- Product currently still consumes the shared API client.
-- Explicit `dp-api` and `sbm-api` Axios clients are pending implementation.
+- Explicit `dpApi` and `sbmApi` Axios clients implemented.
+- Product list and detail now consume `dp-api` using integer `id` as the REST identifier.
+- Product create, update, delete and advanced configuration remain disabled until their contracts are validated.
+- Franchise, authentication and all non-Product CRUD consumers remain on `sbm-api`.
 - Automated test, lint and type-check scripts are not currently configured.
 - Production hardening is pending.
 
@@ -166,27 +168,41 @@ SBM-MANAGER/
 
 ### Current implementation
 
-`src/api/axios.js` currently exports one shared Axios instance based on:
+`src/api/clients.js` creates two explicit Axios clients:
+
+```text
+dpApi
+→ Product list and detail in DP-API
+
+sbmApi
+→ Franchise, authentication and existing internal consumers
+```
+
+`src/api/axios.js` remains as a backward-compatible export of `sbmApi`, so existing CRUD screens do not change backend implicitly.
+
+Current environment variables:
 
 ```text
 VUE_APP_API_URL
+VUE_APP_SBM_API_URL
+VUE_APP_DP_API_URL
 VUE_APP_API_USERNAME
 VUE_APP_API_PASSWORD
 ```
 
-The client:
+Both clients:
 
 - Uses JSON request and response headers.
-- Applies a 10-second timeout.
-- Reads the current token from `localStorage`.
-- Sends it as `Authorization: Bearer <token>`.
-- Clears local authentication data and redirects to login after HTTP 401.
+- Apply a 10-second timeout.
+- Normalize their API base URL with a trailing slash.
 
-This is transitional behavior. A single shared API client does not express the required domain boundary.
+`sbmApi` reads the current token from `localStorage`, sends it as `Authorization: Bearer <token>` and clears the SBM session after HTTP 401.
 
-### Target API boundary
+`dpApi` currently uses Basic Authentication for the validated DP-API read contract and never overwrites it with the SBM Bearer token. A DP-API authorization failure does not clear the SBM session.
 
-The frontend target is two explicit clients:
+### API boundary
+
+The frontend uses two explicit clients:
 
 ```text
 dpApi
@@ -194,13 +210,6 @@ dpApi
 
 sbmApi
 → internal and critical platform operations
-```
-
-Planned environment variables:
-
-```text
-VUE_APP_DP_API_URL
-VUE_APP_SBM_API_URL
 ```
 
 Existing consumers should continue using `sbmApi` by default while each client capability is migrated vertically and validated.
@@ -231,18 +240,21 @@ POST  /api/products/{id}/delete/
 
 Product deliberately does not use `PUT` or HTTP `DELETE`.
 
-The migration sequence is:
+Migration status:
 
-1. Introduce explicit `dpApi` and `sbmApi` clients.
-2. Route Product list and detail to `dp-api`.
-3. Keep Franchise and authentication on `sbm-api`.
-4. Normalize Product row identity and detail lookup to integer `id`.
-5. Resolve Product price projection and calculation data.
-6. Resolve authenticated audit identity.
-7. Resolve server or frontend ownership of Product code and SKU generation.
-8. Adapt Product create and PATCH payloads.
-9. Adapt logical delete to the detail action.
-10. Validate all non-Product CRUD screens before deprecating the old Product consumer.
+1. ✅ Introduce explicit `dpApi` and `sbmApi` clients.
+2. ✅ Route Product list and detail to `dp-api`.
+3. ✅ Keep Franchise and authentication on `sbm-api`.
+4. ✅ Normalize Product row identity and detail lookup to integer `id`.
+5. ✅ Stop sending the unsupported `is_visible` filter for Product.
+6. ✅ Disable Product writes and legacy advanced configuration during read validation.
+7. ⏳ Validate Product list and detail from the browser with real credentials and data.
+8. ⏳ Resolve Product price projection and calculation data.
+9. ⏳ Resolve authenticated audit identity.
+10. ⏳ Resolve server or frontend ownership of Product code and SKU generation.
+11. ⏳ Adapt Product create and PATCH payloads.
+12. ⏳ Adapt logical delete to the detail action.
+13. ⏳ Validate all non-Product CRUD screens before deprecating the old Product consumer.
 
 For detailed migration state, incompatibilities and validated Product contract, read `PROJECT_CONTEXT.md`.
 
@@ -257,9 +269,9 @@ name
 token
 ```
 
-The shared Axios interceptor sends the token using the Bearer scheme.
+`sbmApi` sends the stored token using the Bearer scheme.
 
-DP-API currently requires an explicit authentication compatibility decision. Its validated Session/Basic configuration must not be assumed to accept the existing SBM Bearer token. Authentication failures must be resolved through a valid shared identity contract, never by weakening permissions.
+DP-API exposes Product through Session/Basic authentication with `IsAuthenticated`. The transitional `dpApi` client therefore preserves Basic Authentication and does not send the SBM Bearer token. This is suitable for the current integration validation but browser-delivered Basic credentials are not the final production authentication architecture.
 
 The transitional Product audit fields are:
 
@@ -293,9 +305,20 @@ Current variables:
 
 ```text
 VUE_APP_API_URL
+VUE_APP_SBM_API_URL
+VUE_APP_DP_API_URL
 VUE_APP_API_USERNAME
 VUE_APP_API_PASSWORD
 ```
+
+Local API mapping:
+
+```text
+VUE_APP_SBM_API_URL=http://localhost:8082/api
+VUE_APP_DP_API_URL=http://localhost:8081/api
+```
+
+`VUE_APP_API_URL` remains temporarily as the legacy SBM-API fallback and must not point globally to DP-API.
 
 Never commit real credentials. Variables prefixed with `VUE_APP_` are bundled into browser-delivered frontend code and must not be treated as secret storage.
 

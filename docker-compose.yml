@@ -14,11 +14,11 @@ services:
       - ./.env
     environment:
       - VUE_APP_API_URL=${VUE_APP_API_URL}
+      - VUE_APP_SBM_API_URL=${VUE_APP_SBM_API_URL}
+      - VUE_APP_DP_API_URL=${VUE_APP_DP_API_URL}
       - VUE_APP_API_USERNAME=${VUE_APP_API_USERNAME}
       - VUE_APP_API_PASSWORD=${VUE_APP_API_PASSWORD}
 
 networks:
   sbm-network:
     external: true
-
-  

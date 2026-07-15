@@ -43,7 +43,7 @@
       <!-- GRID OPTIONS -->
       <div class="mb-4 p-4">
         <div class="d-flex flex-column gap-2">
-          <div class="form-check">
+          <div v-if="showDeletedFilter" class="form-check">
             <input class="form-check-input" type="checkbox" id="hideDeleted" v-model="hideDeleted"
               @change="fetchData" />
             <label class="form-check-label" for="hideDeleted">
@@ -51,7 +51,7 @@
             </label>
           </div>
 
-          <div class="form-check">
+          <div v-if="allowDelete" class="form-check">
             <input class="form-check-input" type="checkbox" id="blockGroupDelete" v-model="blockGroupDelete" />
             <label class="form-check-label" for="blockGroupDelete">
               Bloquear eliminar en grupo
@@ -79,14 +79,14 @@
               </button>
             </div>
 
-            <div>
+            <div v-if="allowUpdate">
               <button class="btn btn-outline-primary btn-sm rounded-pill px-3" @click="configureSelected"
                 :disabled="selectedCount !== 1">
                 <i class="fas fa-cog me-1"></i> Configurar
               </button>
             </div>
 
-            <div>
+            <div v-if="allowDelete">
               <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="deleteSelected"
                 :disabled="blockGroupDelete ? selectedCount > 1 : false">
                 <i class="fas fa-trash me-1"></i> Eliminar
@@ -140,14 +140,14 @@
 
             <template v-for="row in filteredRows" :key="rowId(row)">
               <tr :class="{
-                'table-primary fw-bold': selected.includes(String(row.code ?? row.id ?? row.sku)) || rowId(row) === editingRowId,
+                'table-primary fw-bold': selected.includes(rowId(row)) || rowId(row) === editingRowId,
                 'text-white': rowId(row) === editingRowId
               }">
 
                 <!-- SELECTION CHECKBOX -->
                 <td v-if="rows.length > 0" class="text-center">
-                  <input type="checkbox" :key="'checkbox-' + (row.code ?? row.id ?? row.sku)"
-                    :value="String(row.code ?? row.id ?? row.sku)" v-model="selected"
+                  <input type="checkbox" :key="'checkbox-' + rowId(row)"
+                    :value="rowId(row)" v-model="selected"
                     @change.stop="toggleRowSelection" />
                 </td>
 
@@ -318,6 +318,12 @@ export default {
   props: {
     resourceName: { type: String, required: true },
     endpoint: { type: String, required: true },
+    apiClient: { type: [Object, Function], default: () => api },
+    rowKey: { type: String, default: null },
+    includeVisibleFilter: { type: Boolean, default: true },
+    showDeletedFilter: { type: Boolean, default: true },
+    allowUpdate: { type: Boolean, default: true },
+    allowDelete: { type: Boolean, default: true },
     states: { type: [Array, Object], default: null },
     iconClass: { type: String, default: 'fas fa-list-alt me-2 text-secondary' },
     showPropertiesButton: { type: Boolean, default: true },
@@ -466,6 +472,9 @@ export default {
     ...mapActions([]),
 
     rowId(row) {
+      if (this.rowKey && row?.[this.rowKey] !== undefined && row?.[this.rowKey] !== null) {
+        return String(row[this.rowKey]);
+      }
       return String(row?.code ?? row?.id ?? row?.sku ?? '');
     },
 
@@ -521,7 +530,7 @@ export default {
 
       try {
         const base = this.endpoint.split('?')[0].split('/').filter(Boolean)[0];
-        const res = await api.get(`/${base}/${selectedId}/`);
+        const res = await this.apiClient.get(`${base}/${selectedId}/`);
         this.$emit('show-properties', res.data);
         this.selected = [];
       } catch (error) {
@@ -608,13 +617,13 @@ export default {
           params.append('search', this.searchTerm);
         }
 
-        if (this.hideDeleted) {
+        if (this.includeVisibleFilter && this.hideDeleted) {
           params.append('is_visible', 'true');
         }
 
         if (params.toString()) url += '?' + params.toString();
 
-        const res = await api.get(url);
+        const res = await this.apiClient.get(url);
 
         if (
           res.data.results &&

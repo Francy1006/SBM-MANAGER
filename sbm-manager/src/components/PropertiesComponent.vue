@@ -46,7 +46,7 @@
     </div>
 
     <!-- 2️⃣ AVANZADO -->
-    <div class="mb-5">
+    <div v-if="enableExtendedData" class="mb-5">
       <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-primary"
         style="cursor:pointer;" @click="toggleAdvanced">
         <h5 class="fw-bold mb-0 d-flex align-items-center">
@@ -71,7 +71,7 @@
     </div>
 
     <!-- 3️⃣ CONFIGURACIÓN -->
-    <div class="mb-4">
+    <div v-if="enableExtendedData" class="mb-4">
       <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-primary"
         style="cursor:pointer;" @click="toggleConfiguration">
         <h5 class="fw-bold mb-0 d-flex align-items-center">
@@ -203,7 +203,7 @@
     </div>
 
     <!-- BOTONES -->
-    <div v-if="configData" class="mt-4 pt-3">
+    <div v-if="enableExtendedData && configData" class="mt-4 pt-3">
       <div class="d-flex justify-content-end align-items-center gap-3">
 
         <button type="button" class="btn btn-outline-secondary btn-lg rounded-pill px-5" @click="resetLinkingEdits"
@@ -247,7 +247,8 @@ const props = defineProps({
   calculationVariableLabels: { type: Object, default: () => ({}) },
   extraVariables: { type: Object, default: () => ({}) },
   module_id: { type: Number, default: 0 },
-  calculationConfig: { type: Object, default: null }
+  calculationConfig: { type: Object, default: null },
+  enableExtendedData: { type: Boolean, default: true }
 })
 
 const emit = defineEmits(['close', 'load-advanced'])
@@ -523,6 +524,10 @@ function takeSnapshot() {
 watch(
   () => props.product?.[props.lookupField],
   (val) => {
+    if (!props.enableExtendedData) {
+      configData.value = null
+      return
+    }
     if (val && !configData.value) loadConfiguration()
     else configData.value = null
   },

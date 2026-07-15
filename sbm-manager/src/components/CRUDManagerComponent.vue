@@ -37,7 +37,7 @@
         <div class="d-flex align-items-center justify-content-between">
 
           <div class="mt-2 mb-2">
-            <button @click="showCreateForm" class="btn btn-success rounded-pill px-4 crud-btn">
+            <button v-if="allowCreate" @click="showCreateForm" class="btn btn-success rounded-pill px-4 crud-btn">
               <i class="fa-solid fa-plus me-2"></i> Crear {{ resourceName }}
             </button>
           </div>
@@ -67,6 +67,8 @@
 
     <CRUDGridComponent v-if="!showProperties" ref="crudGridRef" :resourceName="resourceName"
       :endpoint="finalGetEndpoint" :iconClass="iconClass" :showPropertiesButton="showPropertiesButton"
+      :apiClient="apiClient" :rowKey="rowKey" :includeVisibleFilter="includeVisibleFilter"
+      :showDeletedFilter="showDeletedFilter" :allowUpdate="allowUpdate" :allowDelete="allowDelete"
       :showOpenColumn="showOpenColumn" :openColumnLabel="openColumnLabel" :showDetailComponent="showDetailComponent"
       :detailTablesConfig="detailTablesConfig" :detailFieldsConfig="detailFieldsConfig"
       :detailExtraProps="detailExtraProps" v-bind="states ? { states } : {}" :fields="fields"
@@ -77,6 +79,7 @@
     <PropertiesComponent v-if="showProperties" :product="selectedRow" :fields="fields" :advancedData="advancedData"
       :calculationTitle="calculationTitle" :calculationDescription="calculationDescription"
       :configResource="configFormResourcePath" :lookupField="configFormLookupField"
+      :enableExtendedData="enableExtendedProperties"
       :hasItemConfiguration="showConfigForm" :extraVariables="buildCalculationVariables"
       :calculationConfig="props.calculationConfig" @close="onPropertiesClose" @load-advanced="loadAdvanced" />
 
@@ -98,6 +101,14 @@ const props = defineProps({
   componentTitle: { type: String, default: null },
   resourceName: { type: String, required: true },
   endpoint: { type: String, required: true },
+  apiClient: { type: [Object, Function], default: () => axios },
+  rowKey: { type: String, default: null },
+  includeVisibleFilter: { type: Boolean, default: true },
+  showDeletedFilter: { type: Boolean, default: true },
+  allowCreate: { type: Boolean, default: true },
+  allowUpdate: { type: Boolean, default: true },
+  allowDelete: { type: Boolean, default: true },
+  enableExtendedProperties: { type: Boolean, default: true },
   getEndpoint: { type: String, default: null },
   createEndpoint: { type: String, default: null },
   postEndpoint: { type: String, default: null },

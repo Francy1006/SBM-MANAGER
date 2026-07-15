@@ -19,7 +19,9 @@
 
     <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="Producto" endpoint="products/"
       get-endpoint="products/" post-endpoint="products/" iconClass="fas fa-dolly" :fields="fields"
-      :showPropertiesButton="true" :showCalculationComponent="true" :baseNetAmount="selectedBaseNetAmount"
+      :apiClient="dpApi" rowKey="id" :includeVisibleFilter="false" :showDeletedFilter="false"
+      :allowCreate="false" :allowUpdate="false" :allowDelete="false" :enableExtendedProperties="false"
+      :showPropertiesButton="true" :showCalculationComponent="false" :baseNetAmount="selectedBaseNetAmount"
       :netAmount="selectedNetAmount" :grossAmount="selectedGrossAmount" :ivaAmount="selectedIVAAmount"
       :additionalTaxAmount="selectedAditionalTaxAmount" :retentionAmount="selectedRetentionAmount"
       :calculationConfig="selectedCalculationConfig" :configFormResourcePath="'products'"
@@ -30,10 +32,9 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from '../api/axios'
+import { dpApi, sbmApi } from '../api/clients'
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue'
 import FranchiseSelector from '../components/FranchiseSelectorComponent.vue'
-import PropertiesComponent from '../components/PropertiesComponent.vue'
 
 /* =========================
    FRANCHISE STATE
@@ -97,6 +98,7 @@ const fields = ref([
   { key: 'retention_amount', hideInGrid: true, omitInForm: true },
 
   { key: 'price', hideInGrid: true, omitInForm: true },
+  { key: 'price_gross_amount', label: 'Precio Bruto', type: 'price', omitInForm: true },
 
   { key: 'obs', label: 'Observaciones', type: 'textarea', required: true },
   { key: 'package_unit', label: 'Unidades Empaque', type: 'number', required: true },
@@ -184,7 +186,7 @@ const handleProductSelected = product => {
 ========================= */
 
 onMounted(async () => {
-  const res = await axios.get('franchises/')
+  const res = await sbmApi.get('franchises/')
   franchises.value = res.data.results || res.data
 })
 </script>
