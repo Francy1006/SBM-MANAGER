@@ -21,12 +21,15 @@
       get-endpoint="products/" post-endpoint="products/" iconClass="fas fa-dolly" :fields="fields"
       :apiClient="dpApi" rowKey="id" :includeVisibleFilter="false" :showDeletedFilter="false"
       :allowCreate="false" :allowUpdate="false" :allowDelete="false" :enableExtendedProperties="false"
-      :showPropertiesButton="true" :showCalculationComponent="false" :baseNetAmount="selectedBaseNetAmount"
+      :showPropertiesButton="true" :showOpenColumn="false" :showCalculationComponent="false"
+      :propertiesEditable="true" :propertiesEditableFields="productEditableFields"
+      :propertiesReadOnlyFields="productReadOnlyFields" :propertiesUpdateAuditValue="getProductAuditUser"
+      :baseNetAmount="selectedBaseNetAmount"
       :netAmount="selectedNetAmount" :grossAmount="selectedGrossAmount" :ivaAmount="selectedIVAAmount"
       :additionalTaxAmount="selectedAditionalTaxAmount" :retentionAmount="selectedRetentionAmount"
       :calculationConfig="selectedCalculationConfig" :configFormResourcePath="'products'"
       :configFormLookupField="'code'" :detailExtraProps="extraVariables" @row-selected="handleProductSelected"
-      @refresh="handleRefresh" />
+    />
   </div>
 </template>
 
@@ -59,6 +62,26 @@ const selectedRetentionAmount = ref(null)
 const MODULE_ID = 1
 
 const selectedProduct = ref(null)
+
+const productEditableFields = [
+  'description',
+  'obs',
+  'package_unit',
+  'min_package_purchase',
+  'provider',
+  'type',
+  'item_group',
+  'category',
+  'url',
+  'package',
+  'is_active',
+  'is_deleted',
+  'is_confirmed'
+]
+
+const productReadOnlyFields = ['is_deleted']
+
+const getProductAuditUser = () => localStorage.getItem('uuid')
 
 /* =========================
    EXTRA VARIABLES
@@ -123,7 +146,7 @@ const fields = ref([
 
   { key: 'is_active', label: 'Activo', type: 'checkbox' },
   { key: 'is_confirmed', label: 'Confirmado', type: 'checkbox', hideInGrid: false, omitInForm: false },
-  { key: 'is_deleted', label: 'Eliminado', hideInGrid: false, omitInForm: true },
+  { key: 'is_deleted', label: 'Eliminado', type: 'checkbox', hideInGrid: false, omitInForm: true },
 
   { key: 'created_at', label: 'Fecha creación', hideInGrid: false, omitInForm: true },
   { key: 'updated_at', hideInGrid: true, omitInForm: true },

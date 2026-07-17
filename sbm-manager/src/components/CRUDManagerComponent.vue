@@ -57,6 +57,7 @@
 
     <SimpleFormComponent v-if="showForm && (!showConfigForm || !showConfigFormComponent) && !showProperties"
       :show="showForm" :is-edit="isEdit" :fields="formFields" :values="editingData" :loading="loading"
+      :title="isEdit ? `Actualizar ${resourceName}` : `Crear ${resourceName}`"
       :configureHeaderFields="configureHeaderFields" v-bind="states ? { states } : {}" @close="onClose"
       @save="onSave" />
 
@@ -80,8 +81,11 @@
       :calculationTitle="calculationTitle" :calculationDescription="calculationDescription"
       :configResource="configFormResourcePath" :lookupField="configFormLookupField"
       :enableExtendedData="enableExtendedProperties"
+      :editable="propertiesEditable" :editableFields="propertiesEditableFields"
+      :readOnlyFields="propertiesReadOnlyFields" :editLoading="loading" :apiClient="apiClient"
       :hasItemConfiguration="showConfigForm" :extraVariables="buildCalculationVariables"
-      :calculationConfig="props.calculationConfig" @close="onPropertiesClose" @load-advanced="loadAdvanced" />
+      :calculationConfig="props.calculationConfig" @close="onPropertiesClose" @load-advanced="loadAdvanced"
+      @save-edit="onPropertiesSave" />
 
   </div>
 </template>
@@ -109,6 +113,10 @@ const props = defineProps({
   allowUpdate: { type: Boolean, default: true },
   allowDelete: { type: Boolean, default: true },
   enableExtendedProperties: { type: Boolean, default: true },
+  propertiesEditable: { type: Boolean, default: false },
+  propertiesEditableFields: { type: Array, default: () => [] },
+  propertiesReadOnlyFields: { type: Array, default: () => [] },
+  propertiesUpdateAuditValue: { type: Function, default: null },
   getEndpoint: { type: String, default: null },
   createEndpoint: { type: String, default: null },
   postEndpoint: { type: String, default: null },
@@ -196,14 +204,10 @@ const totalDeleted = ref(0);
 
 watch(() => props.propertiesProduct, () => { });
 
-watch(() => selectedRow.value, () => {
-  showProperties.value = false;
-})
-
 const finalGetEndpoint = computed(() => props.getEndpoint || props.endpoint);
 const finalCreateEndpoint = computed(() => props.postEndpoint || props.createEndpoint || props.endpoint);
 
-const finalUpdateEndpoint = computed(() => props.endpoint);
+const finalUpdateEndpoint = computed(() => props.updateEndpoint || props.endpoint);
 
 const configureHeaderFields = computed(() => {
   return props.fields
@@ -437,7 +441,11 @@ function onConfigFormUpdated() {
 }
 
 function onShowProperties(row) {
+  if (!row) return;
+
   selectedRow.value = row;
+  showForm.value = false;
+  showConfigFormComponent.value = false;
   showProperties.value = true;
 }
 
@@ -466,6 +474,51 @@ async function loadAdvanced() {
 function onPropertiesClose() {
   showProperties.value = false;
   selectedRow.value = null;
+}
+
+async function onPropertiesSave(data) {
+  const row = selectedRow.value
+  const identifierKey = props.rowKey || 'id'
+  const identifier = row?.[identifierKey]
+  if (!row || identifier === null || identifier === undefined || identifier === '') return
+
+  const actor = props.propertiesUpdateAuditValue?.()
+  if (!actor) {
+    alert(`No fue posible identificar al usuario que actualiza ${props.resourceName}.`)
+    return
+  }
+
+  const writableKeys = new Set(
+    props.propertiesEditableFields.filter(key => !props.propertiesReadOnlyFields.includes(key))
+  )
+  const payload = Object.fromEntries(
+    Object.entries(data || {}).filter(([key]) => writableKeys.has(key))
+  )
+  payload.updated_by = actor
+
+  loading.value = true
+  try {
+    const response = await props.apiClient.patch(
+      `${finalUpdateEndpoint.value}${identifier}/`,
+      payload
+    )
+    selectedRow.value = response.data
+    emit('row-selected', response.data)
+    emit('updated', identifier)
+    alert(`${props.resourceName} actualizado exitosamente!`)
+  } catch (error) {
+    const responseData = error.response?.data
+    const detail = responseData?.detail || responseData?.message
+    const fieldErrors = responseData && typeof responseData === 'object'
+      ? Object.entries(responseData)
+        .filter(([key]) => !['detail', 'message'].includes(key))
+        .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+        .join('\n')
+      : ''
+    alert(`Error al guardar ${props.resourceName}: ${detail || fieldErrors || error.message}`)
+  } finally {
+    loading.value = false
+  }
 }
 
 function handleImport() {

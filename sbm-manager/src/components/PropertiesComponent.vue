@@ -2,17 +2,28 @@
   <div class="properties-container">
 
     <!-- HEADER -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
       <h3 class="properties-title mb-0">
         {{ computedTitle }}
       </h3>
-      <button @click="$emit('close')" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-        <i class="fas fa-arrow-left me-1"></i> Volver
-      </button>
+      <div class="d-flex align-items-center gap-2">
+        <button v-if="editable && !showEditForm" type="button" class="btn btn-primary btn-sm rounded-pill px-3"
+          @click="showEditForm = true">
+          <i class="fas fa-pen-to-square me-1"></i> Modificar
+        </button>
+        <button @click="$emit('close')" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+          <i class="fas fa-arrow-left me-1"></i> Volver
+        </button>
+      </div>
     </div>
 
+    <SimpleFormComponent v-if="showEditForm" :show="showEditForm" :is-edit="true" :fields="editableFormFields"
+      :values="product" :loading="editLoading" :api-client="apiClient" title="Modificar Producto"
+      description="Actualiza la información pública del producto." @close="showEditForm = false"
+      @save="emit('save-edit', $event)" />
+
     <!-- 1️⃣ INFORMACIÓN GENERAL -->
-    <div class="mb-5">
+    <div v-if="!showEditForm" class="mb-5">
       <div class="row g-3">
         <div v-for="field in visibleFields" :key="field.key" class="col-12 col-md-6">
           <label class="form-label fw-semibold">
@@ -46,7 +57,7 @@
     </div>
 
     <!-- 2️⃣ AVANZADO -->
-    <div v-if="enableExtendedData" class="mb-5">
+    <div v-if="!showEditForm && enableExtendedData" class="mb-5">
       <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-primary"
         style="cursor:pointer;" @click="toggleAdvanced">
         <h5 class="fw-bold mb-0 d-flex align-items-center">
@@ -71,7 +82,7 @@
     </div>
 
     <!-- 3️⃣ CONFIGURACIÓN -->
-    <div v-if="enableExtendedData" class="mb-4">
+    <div v-if="!showEditForm && enableExtendedData" class="mb-4">
       <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-primary"
         style="cursor:pointer;" @click="toggleConfiguration">
         <h5 class="fw-bold mb-0 d-flex align-items-center">
@@ -203,7 +214,7 @@
     </div>
 
     <!-- BOTONES -->
-    <div v-if="enableExtendedData && configData" class="mt-4 pt-3">
+    <div v-if="!showEditForm && enableExtendedData && configData" class="mt-4 pt-3">
       <div class="d-flex justify-content-end align-items-center gap-3">
 
         <button type="button" class="btn btn-outline-secondary btn-lg rounded-pill px-5" @click="resetLinkingEdits"
@@ -229,6 +240,7 @@ import axios from '../api/axios'
 import ConfigLinkTableComponent from './ConfigLinkTableComponent.vue'
 import CalculationComponent from './CalculationComponent.vue'
 import StatsComponent from './StatsComponent.vue'
+import SimpleFormComponent from './SimpleFormComponent.vue'
 
 /* =========================
    PROPS
@@ -248,10 +260,15 @@ const props = defineProps({
   extraVariables: { type: Object, default: () => ({}) },
   module_id: { type: Number, default: 0 },
   calculationConfig: { type: Object, default: null },
-  enableExtendedData: { type: Boolean, default: true }
+  enableExtendedData: { type: Boolean, default: true },
+  editable: { type: Boolean, default: false },
+  editableFields: { type: Array, default: () => [] },
+  readOnlyFields: { type: Array, default: () => [] },
+  editLoading: { type: Boolean, default: false },
+  apiClient: { type: [Object, Function], default: () => axios }
 })
 
-const emit = defineEmits(['close', 'load-advanced'])
+const emit = defineEmits(['close', 'load-advanced', 'save-edit'])
 
 /* =========================
    UI STATE
@@ -260,6 +277,7 @@ const emit = defineEmits(['close', 'load-advanced'])
 const showAdvanced = ref(false)
 const advancedLoaded = ref(false)
 const showConfiguration = ref(false)
+const showEditForm = ref(false)
 
 /* =========================
    CONFIG STATE
@@ -344,6 +362,24 @@ const visibleFields = computed(() => {
     props.product[f.key] !== undefined &&
     !f.hideInGrid
   )
+})
+
+const editableFormFields = computed(() => {
+  const allowed = new Set(props.editableFields)
+  const readOnly = new Set(props.readOnlyFields)
+
+  return (props.fields || [])
+    .filter(field => allowed.has(field.key))
+    .map(field => ({
+      ...field,
+      omitInForm: false,
+      hideInForm: false,
+      readOnlyOnConfigure: readOnly.has(field.key),
+      disabled: readOnly.has(field.key),
+      helpText: readOnly.has(field.key)
+        ? 'Este estado se administra mediante la eliminación lógica del producto.'
+        : field.helpText
+    }))
 })
 
 const safeCalculationProps = computed(() => {
@@ -532,6 +568,13 @@ watch(
     else configData.value = null
   },
   { immediate: true }
+)
+
+watch(
+  () => props.product,
+  (current, previous) => {
+    if (previous && current !== previous) showEditForm.value = false
+  }
 )
 
 watch(
