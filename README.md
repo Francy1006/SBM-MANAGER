@@ -76,6 +76,7 @@ The two APIs are not interchangeable. SBM Manager must select the backend explic
 
 - Authenticated dashboard and protected business routes.
 - Product, material, service and catalog management.
+- Product property inspection and modification with domain-backed relation selectors.
 - Order creation, detail management and calculations.
 - Provider, client, menu and fiscal configuration interfaces.
 - Franchise and platform administration.
@@ -125,8 +126,8 @@ The application is built around shared management components:
 |---|---|
 | `CRUDManagerComponent.vue` | Coordinates list, create, update, properties and configuration flows |
 | `CRUDGridComponent.vue` | Search, sorting, pagination, selection, detail and logical deletion |
-| `SimpleFormComponent.vue` | Generic forms and dynamic selectors |
-| `PropertiesComponent.vue` | General, advanced, configuration, linking and price information |
+| `SimpleFormComponent.vue` | Generic forms, reactive dynamic selectors and injected API clients |
+| `PropertiesComponent.vue` | General information, controlled modification, advanced configuration, linking and pricing |
 | `CalculationComponent.vue` | Formula variables and calculated results |
 | `ConfigFormComponent.vue` | Resource-specific configuration forms |
 | `ConfigLinkTableComponent.vue` | Product, material and service linking |
@@ -188,7 +189,7 @@ VUE_APP_API_PASSWORD
 
 Both clients:
 
-- Uses JSON request and response headers.
+- Use JSON request and response headers.
 - Apply a 10-second timeout.
 - Normalize their API base URL with a trailing slash.
 
@@ -235,6 +236,18 @@ POST  /api/products/{id}/delete/
 Product deliberately does not use `PUT` or HTTP `DELETE`.
 
 Product supports paginated lists, detail retrieval, creation, partial updates, price information and logical deletion. Deleted rows are excluded from normal queries by DP-API.
+
+The Product Properties panel provides controlled modification through `SimpleFormComponent`. Partial updates use the integer Product `id`, submit the Product audit identity and keep relation selection connected to DP-API:
+
+```text
+Provider → /api/providers/
+Type     → /api/item-types/
+Group    → /api/item-groups/
+Category → /api/item-categories/
+Package  → /api/packages/
+```
+
+Dynamic selectors support direct collections and paginated API responses while preserving the selected foreign-key value.
 
 ## Authentication
 
@@ -363,6 +376,7 @@ yarn build
 - Business routes require authentication.
 - Collections support pagination, search and ordering.
 - Resource detail and mutation operations use canonical identifiers.
+- Product Properties provides controlled partial editing and DP-API relation selectors.
 - Product uses PATCH rather than PUT.
 - Product logical deletion uses the documented POST action and never HTTP DELETE.
 - Franchise and platform operations remain isolated in `sbm-api`.
@@ -395,14 +409,14 @@ It is intentionally separate from this README:
 
 ## Security notes
 
-- Never commit `.env` files containing real secrets.
-- Do not copy credentials or tokens into documentation, examples or logs.
-- Treat browser-side environment variables as public configuration.
-- Validate token compatibility independently for each API.
-- Keep internal Franchise, provisioning and platform administration operations on `sbm-api`.
-- Add explicit authorization for tenant, franchise, client and module scope.
-- Do not expose or reconstruct hidden Product audit logs in the frontend.
-- Audit all AI-triggered write operations.
+- `.env` files containing real secrets are excluded from version control.
+- Credentials and tokens are excluded from documentation, examples and logs.
+- Browser-side environment variables are treated as public configuration.
+- Token compatibility is evaluated independently for each API.
+- Internal Franchise, provisioning and platform administration operations remain on `sbm-api`.
+- Tenant, franchise, client and module scopes use explicit authorization.
+- Hidden Product audit logs are not exposed or reconstructed in the frontend.
+- AI-triggered write operations are audited.
 
 ## License
 

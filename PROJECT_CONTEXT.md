@@ -15,6 +15,10 @@
 > **Implementation update — 2026-07-15**
 >
 > The first Product frontend cutover has now been implemented. `sbm-manager` has explicit `sbmApi` and `dpApi` Axios clients. Product list and detail use `dp-api`; Franchise, authentication and all default generic CRUD consumers remain on `sbm-api`. Product writes and legacy advanced configuration are intentionally disabled until the remaining contracts are validated. The frontend container build passed and the application responds on port 8080.
+>
+> **Implementation update — 2026-07-17**
+>
+> Product list, detail and the Properties flow have been validated interactively. Properties can now open `SimpleFormComponent` in modification mode and submit a restricted Product PATCH through `dpApi` using the integer Product `id`. The adapter adds `updated_by` from the authenticated SBM `uuid`, while the remaining generic CRUD consumers keep their previous `sbmApi` behavior. Product create, price modification and logical delete remain disabled. Dynamic Product selectors load their options through `dpApi` and keep those options in reactive form state.
 
 ---
 
@@ -159,11 +163,14 @@ These changes belong to the user. Do not reset, overwrite, reformat broadly, or 
 ```text
 Repository: active
 Frontend framework: Vue 3
-Product API migration: list/detail cutover implemented; browser validation pending
+Product API migration: list/detail and restricted Properties PATCH implemented
 dp-api Product backend: validated
-dp-api Product consumer: active for Product list/detail
-sbm-api Product consumer: retained for legacy writes and downstream consumers
-Product writes: disabled in ProductView during transition
+dp-api Product consumer: active for Product list/detail and restricted Properties update
+sbm-api Product consumer: retained for non-migrated and downstream consumers
+Product create: disabled
+Product partial update: implemented from Properties; live PATCH validation pending
+Product price update: deferred
+Product logical delete: disabled pending detail-action adapter
 Automated test suite: not confirmed
 Container production build: passed with bundle-size warnings
 Production hardening: pending
@@ -381,9 +388,10 @@ allowCreate=false
 allowUpdate=false
 allowDelete=false
 enableExtendedProperties=false
+propertiesEditable=true
 ```
 
-This makes the first cutover intentionally read-only and prevents rows loaded from `dp-api` from being written accidentally to legacy `sbm-api` endpoints.
+The generic create, configure and delete actions remain disabled. Product modification is exposed only through the explicit Properties adapter, which uses `dpApi`, integer `id`, an allowlist of fields and the Product audit identity resolver. This prevents a DP-API row from being written through the legacy generic SBM-API path.
 
 ### 5.2 Product fields already aligned with dp-api
 
@@ -516,7 +524,7 @@ updated_by on PATCH
 deleted_by on logical delete
 ```
 
-`sbm-manager` has a `uuid` in `localStorage`, but it is not currently injected into Product create/update/delete payloads by the generic CRUD flow.
+`sbm-manager` has a `uuid` in `localStorage`. The restricted Product Properties update now injects it as `updated_by`; Product create and logical delete still do not have their audit adapters implemented. The stored SBM `uuid` must exist as `users.User.code` in DP-API or PATCH will be rejected.
 
 Additional create mismatch:
 
@@ -528,19 +536,59 @@ Before frontend migration, decide whether `dp-api` should generate Product code/
 
 ### 5.8 Current update behavior
 
-Product update is currently disabled in `ProductView.vue`. The generic manager still uses PATCH for existing consumers, but the Product-specific payload and audit identity remain pending.
+The generic grid update action remains disabled with `allowUpdate=false`. Product modification is available only from `PropertiesComponent` through a dedicated `propertiesEditable` path that reuses `SimpleFormComponent`.
 
-`CRUDManagerComponent` uses PATCH, which matches the permitted `dp-api` method.
+`CRUDManagerComponent.onPropertiesSave()`:
 
-Current incompatibilities:
+- Uses the injected `dpApi` client.
+- Sends `PATCH /api/products/{id}/` using `rowKey="id"`.
+- Filters the payload through `propertiesEditableFields`.
+- Excludes keys declared in `propertiesReadOnlyFields`.
+- Adds `updated_by` using the resolver passed by `ProductView.vue`.
+- Replaces the selected Product with the PATCH response after success.
 
-- It may use Product code instead of integer ID in the URL.
-- `updated_by` is removed from the payload.
-- Generic field cleaning may send fields that are not writable in `dp-api`.
+Current editable fields:
+
+```text
+description
+obs
+package_unit
+min_package_purchase
+provider
+type
+item_group
+category
+url
+package
+is_active
+is_confirmed
+```
+
+`price_gross_amount` is intentionally excluded because it is a derived/read-only projection and price modification requires a separate pricing contract.
+
+`is_deleted` is displayed in the modification form but disabled. DP-API declares it read-only in `ProductCommandSerializer`; it must only change through the logical delete action.
+
+The Product PATCH adapter is implemented and the container build passes. A successful live PATCH with a DP-API-recognized audit user remains to be validated interactively.
 
 The validated `dp-api` Product endpoint rejects PUT with HTTP 405.
 
-### 5.9 Current delete behavior
+### 5.9 Product modification selectors
+
+The Product modification form loads these relations from DP-API:
+
+```text
+provider   → /api/providers/
+type       → /api/item-types/
+item_group → /api/item-groups/
+category   → /api/item-categories/
+package    → /api/packages/
+```
+
+`SimpleFormComponent` now accepts an `apiClient` prop. Dynamic options and loading flags are stored in internal reactive state rather than being added to field objects. This is required because the Properties form builds its field allowlist from a computed value; mutating those computed field clones did not trigger a Vue render even when the network request returned data.
+
+The loader supports direct arrays and paginated response bodies under `results` or `data`. The `/api/providers/` response was verified as a standard paginated response containing `id` and `provider`.
+
+### 5.10 Current delete behavior
 
 Product deletion is currently disabled in `ProductView.vue`. The generic grid retains the legacy collection action for existing consumers; Product must not enable it.
 
@@ -849,9 +897,13 @@ showDeletedFilter
 allowCreate
 allowUpdate
 allowDelete
+propertiesEditable
+propertiesEditableFields
+propertiesReadOnlyFields
+propertiesUpdateAuditValue
 ```
 
-Product injects `dpApi`, selects rows by `id`, omits `is_visible`, and disables writes. All other consumers retain `sbmApi` and their previous identifier/filter behavior.
+Product injects `dpApi`, selects rows by `id`, omits `is_visible`, disables the generic write actions and enables only the restricted Properties PATCH adapter. All other consumers retain `sbmApi` and their previous identifier/filter behavior.
 
 ---
 
@@ -860,20 +912,21 @@ Product injects `dpApi`, selects rows by `id`, omits `is_visible`, and disables 
 | Concern | Current sbm-manager behavior | Validated dp-api behavior | Required action |
 |---|---|---|---|
 | API base | Explicit `sbmApi` and `dpApi` clients | Separate client-facing API on port 8081 | ✅ Implemented |
-| Product list | `products/` through injected `dpApi` | `/api/products/` | ✅ Implemented; browser data validation pending |
+| Product list | `products/` through injected `dpApi` | `/api/products/` | ✅ Implemented and interactively validated |
 | Pagination | Supports `count` and `results` | `count`, `next`, `previous`, `results` | Preserve and verify |
 | Hidden deleted filter | Product omits `is_visible` | Deleted rows excluded by queryset | ✅ Implemented |
 | Row identity | Product passes `rowKey="id"` | Detail uses integer `id` | ✅ Implemented |
-| Detail | `/api/products/{id}/` through `dpApi` | `/api/products/{id}/` | ✅ Implemented; browser validation pending |
+| Detail | `/api/products/{id}/` through `dpApi` | `/api/products/{id}/` | ✅ Implemented and interactively validated |
 | Create | Disabled during read cutover | POST | Resolve contract before enabling |
 | Create audit | Removes `created_by` | `created_by` required currently | Inject validated authenticated business user code |
 | Code/SKU | Not supplied by current form | Required currently | Decide server generation versus frontend input |
-| Update | Disabled during read cutover | PATCH | Resolve payload and audit identity before enabling |
-| Update audit | Removes `updated_by` | `updated_by` required | Inject validated user code |
+| Update | Restricted Properties form uses `dpApi`, integer `id` and an allowlisted payload | PATCH | ✅ Implemented; validate a successful live PATCH |
+| Update audit | Properties adapter injects stored SBM `uuid` as `updated_by` | `updated_by` required and must match a DP-API user code | Validate cross-API identity mapping |
 | Full update | Generic architecture may support update concept | PUT rejected | Never use PUT for Product |
 | Logical delete | Disabled during read cutover | Detail `/{id}/delete/` with `deleted_by` | Add Product-specific delete adapter before enabling |
 | Physical delete | Not directly used in inspected Product path | HTTP DELETE rejected | Keep disabled |
 | Product price display | Expects multiple embedded price fields | Exposes `price` and `price_gross_amount` | Adapt UI or define additional dp-api projection |
+| Product relation selectors | Load through injected `dpApi` with reactive option state | Standard arrays or paginated `results` | ✅ Implemented; Provider response shape verified |
 | Internal log | Field still listed in Product view configuration | Never exposed | Remove frontend dependency entirely |
 | Authentication | Product `dpApi` preserves Basic; SBM uses Bearer | Session/Basic with `IsAuthenticated` | ✅ Read transport configured; production auth redesign pending |
 
@@ -985,11 +1038,16 @@ At minimum validate:
 - ✅ Disable Product writes and legacy advanced configuration during read validation.
 - ✅ Validate DP-API route, authentication classes and CORS.
 - ✅ Validate production build inside the frontend container.
-- ⏳ Validate Product list and detail interactively in the browser.
+- ✅ Validate Product list and detail interactively in the browser.
+- ✅ Restore the Product Properties flow.
+- ✅ Add restricted Product modification from Properties using `SimpleFormComponent`.
+- ✅ Route Product PATCH and relation selectors through `dpApi`.
+- ✅ Use integer Product `id` and inject `updated_by` in the restricted PATCH adapter.
+- ✅ Fix reactive dynamic options for Provider, Type, Group, Category and Package selectors.
+- ⏳ Validate a successful Product PATCH against a DP-API-recognized user code.
 - ⏳ Resolve Product price projection required by the UI.
 - ⏳ Resolve code/SKU generation ownership.
 - ⏳ Adapt Product create payload.
-- ⏳ Adapt Product PATCH payload.
 - ⏳ Adapt Product logical delete action.
 - ⏳ Validate authentication compatibility.
 - ⏳ Add Product regression coverage.
@@ -1058,7 +1116,7 @@ Client user
 
 ### 13.1 Exact objective
 
-Validate the implemented Product list/detail cutover in the browser. Once the user confirms it with `ok`, design and implement the smallest safe Product CREATE adaptation for `dp-api` without re-enabling PATCH or delete.
+Validate the restricted Product Properties PATCH end to end, including the DP-API audit identity mapping. Confirm that all five relation selectors render their options and that a saved change refreshes the selected Product. Keep price modification, create and logical delete outside this validation slice.
 
 ### 13.2 First task in a new conversation
 
@@ -1080,10 +1138,11 @@ Then determine:
 1. Confirm Product list renders after selecting a Franchise.
 2. Confirm Properties loads general Product detail through integer `id` without legacy configuration requests.
 3. Confirm Network requests target port 8081 for Product and port 8082 for Franchise.
-4. Confirm search, ordering and pagination behavior.
-5. Determine whether Product code and SKU are generated by DP-API or entered by the frontend.
-6. Confirm whether stored SBM `uuid` equals the DP-API business `users.User.code` required for `created_by`.
-7. Define the writable Product POST projection and exclude pseudo/read-only fields.
+4. Confirm Provider, Type, Group, Category and Package selectors display the DP-API options.
+5. Save one allowed Product field and confirm PATCH uses `/api/products/{id}/`.
+6. Confirm whether stored SBM `uuid` equals the DP-API business `users.User.code` required for `updated_by`.
+7. Confirm `price_gross_amount` is absent from the PATCH payload and `is_deleted` remains disabled.
+8. After PATCH validation, determine whether Product code and SKU are generated by DP-API or entered by the frontend for the later create slice.
 
 ### 13.3 Current implementation files
 
@@ -1096,22 +1155,26 @@ src/views/ProductView.vue
 src/components/CRUDManagerComponent.vue
 src/components/CRUDGridComponent.vue
 src/components/PropertiesComponent.vue
+src/components/SimpleFormComponent.vue
 docker-compose.yml
 .env (ignored; URL keys only, never reproduce credential values)
 ```
 
-### 13.4 Read-cutover acceptance criteria
+### 13.4 Current Properties-update acceptance criteria
 
-The first implementation step is considered validated when:
+The current implementation step is considered validated when:
 
 1. Product list/detail requests use `dpApi` on port 8081.
 2. Franchise and login still use `sbmApi` on port 8082.
-3. Product list works with the validated pagination contract.
-4. Product detail uses integer `id`.
-5. No Product POST, PATCH, delete, config or price-history request is issued.
-6. Existing non-Product CRUD behavior remains unchanged.
+3. Product list works with the validated pagination contract and detail uses integer `id`.
+4. Properties opens `SimpleFormComponent` in modification mode.
+5. Relation selectors display their DP-API options.
+6. PATCH uses `dpApi`, integer Product `id`, the field allowlist and `updated_by`.
+7. Price fields and `is_deleted` are not sent in PATCH.
+8. No Product POST, logical delete, legacy config or price-history request is issued.
+9. Existing non-Product CRUD behavior remains unchanged.
 
-Do not proceed to create/update/delete adaptations until list and detail are validated.
+Do not enable Product create, price modification or logical delete until each contract is adapted and validated as its own vertical slice.
 
 ### 13.5 Interaction rule
 
@@ -1129,8 +1192,8 @@ it means the previous validation produced exactly the expected result. Continue 
 
 `sbm-manager` is the Vue 3 enterprise frontend for SBM Suite. It now has two explicit Axios clients: `dpApi` for Ditaly Pasta client operations and `sbmApi` for internal, critical and not-yet-migrated operations. The legacy `src/api/axios.js` default remains mapped to `sbmApi` to prevent global regressions.
 
-The first frontend migration is Product. Product list and detail now use `dpApi`, select rows by integer `id`, omit the unsupported `is_visible` filter and expose `price_gross_amount`. Franchise selection remains on `sbmApi`. Product writes and legacy advanced configuration are disabled so a DP-API row cannot be mutated accidentally through the old SBM-API behavior.
+The first frontend migration is Product. Product list and detail use `dpApi`, select rows by integer `id`, omit the unsupported `is_visible` filter and expose `price_gross_amount`. Franchise selection remains on `sbmApi`. Product now has a restricted Properties modification flow that reuses `SimpleFormComponent`, sends an allowlisted PATCH through `dpApi` and adds `updated_by` from the authenticated SBM `uuid`. Generic create, configure and delete actions remain disabled.
 
-The immediate task is interactive browser validation of Product list/detail. After explicit user confirmation, the next vertical slice is Product CREATE: resolve code/SKU ownership, validate `created_by`, build a Product-specific writable payload and keep PATCH/delete disabled until their own validation phases.
+The immediate task is interactive validation of the restricted PATCH and cross-API audit identity. Price modification and logical delete remain separate pending slices. Product CREATE also remains pending until code/SKU ownership and `created_by` identity are resolved.
 
 The long-term frontend target is a clear domain-oriented integration where every client operation reaches `dp-api`, every internal critical operation reaches `sbm-api`, and neither developers nor future AI-assisted workflows can accidentally cross that boundary through a single ambiguous base URL.
