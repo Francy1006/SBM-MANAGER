@@ -22,6 +22,7 @@
       :apiClient="dpApi" rowKey="id" :includeVisibleFilter="false" :showDeletedFilter="false"
       :allowCreate="false" :allowUpdate="false" :allowDelete="false" :enableExtendedProperties="false"
       :showPropertiesButton="true" :showOpenColumn="false" :showCalculationComponent="false"
+      :optionsProps="productOptions"
       :propertiesEditable="true" :propertiesEditableFields="productEditableFields"
       :propertiesReadOnlyFields="productReadOnlyFields" :propertiesUpdateAuditValue="getProductAuditUser"
       :baseNetAmount="selectedBaseNetAmount"
@@ -62,6 +63,21 @@ const selectedRetentionAmount = ref(null)
 const MODULE_ID = 1
 
 const selectedProduct = ref(null)
+
+const productOptions = {
+  showToggleButton: true,
+  toggleButtonText: '',
+  toggleIconClass: '',
+  iconHide: 'fas fa-eye',
+  iconShow: 'fas fa-eye-slash',
+  toggleClassWhenShown: 'btn-danger text-white',
+  toggleClassWhenHidden: 'btn-warning text-dark',
+  showImportButton: false,
+  showExportButton: true,
+  exportButtonClass: 'btn-outline-primary',
+  exportButtonText: 'Exportar',
+  exportIcon: 'fas fa-file-export'
+}
 
 const productEditableFields = [
   'description',

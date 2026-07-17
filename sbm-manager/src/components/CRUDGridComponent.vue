@@ -1,5 +1,5 @@
 <template>
-  <div class="mb-4 p-4 rounded shadow-sm bg-white">
+  <div class="crud-grid mb-4 p-4 rounded shadow-sm bg-white">
 
     <!-- HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
@@ -98,7 +98,7 @@
       </div>
 
       <!-- TABLE -->
-      <div class="table-responsive" style="overflow-x: auto; width: calc(100vw - 250px - 1rem); margin-right: 1rem;">
+      <div class="table-responsive crud-table-scroll">
         <table class="table table-hover align-middle table-bordered" :key="tableKey">
 
           <!-- HEAD -->
@@ -1035,3 +1035,16 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.crud-grid {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.crud-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+</style>

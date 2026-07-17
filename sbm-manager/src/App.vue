@@ -1,9 +1,9 @@
 <template>
   <div>
     <!-- Layout principal solo si está autenticado -->
-    <div v-if="isAuthenticated" style="display:flex;">
+    <div v-if="isAuthenticated" class="app-layout">
       <SidebarComponent />
-      <div style="flex:1; min-height:100vh; display:flex; flex-direction:column;">
+      <div class="app-main">
         <HeaderComponent />
         <router-view />
         <FooterComponent />
@@ -30,4 +30,20 @@ const route = useRoute();
 const shouldShowLayout = computed(() => {
   return isAuthenticated.value && route.path !== '/login';
 });
-</script> 
+</script>
+
+<style scoped>
+.app-layout {
+  display: flex;
+  width: 100%;
+  max-width: 100vw;
+}
+
+.app-main {
+  display: flex;
+  min-width: 0;
+  min-height: 100vh;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+</style>
