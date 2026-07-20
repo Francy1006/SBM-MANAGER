@@ -346,29 +346,27 @@ export default {
     onSave() {
       const payload = {};
 
-      (this.fields || []).forEach(field => {
-        // Ojo: aunque esté omitInForm, igual se incluye en payload si tiene valor.
-        // Eso es útil para campos hidden/defaults; si no lo quieres, lo excluimos acá.
-        // Por defecto NO lo excluyo para no romper tu flujo actual.
+      this.visibleFields
+        .filter(field => !this.isFieldDisabled(field))
+        .forEach(field => {
+          let value = this.form[field.key];
 
-        let value = this.form[field.key];
+          if (field.type === 'price') {
+            value = value ? parseInt(value.toString().replace(/\D/g, ''), 10) : null;
+          }
 
-        if (field.type === 'price') {
-          value = value ? parseInt(value.toString().replace(/\D/g, ''), 10) : null;
-        }
+          if (field.type === 'dynamic-select') {
+            if (value === '' || value === undefined || value === null) value = null;
+            else value = String(value);
+          }
 
-        if (field.type === 'dynamic-select') {
-          if (value === '' || value === undefined || value === null) value = null;
-          else value = String(value);
-        }
-
-        if (field.formGroup) {
-          if (!payload[field.formGroup]) payload[field.formGroup] = {};
-          payload[field.formGroup][field.key] = value;
-        } else {
-          payload[field.key] = value;
-        }
-      });
+          if (field.formGroup) {
+            if (!payload[field.formGroup]) payload[field.formGroup] = {};
+            payload[field.formGroup][field.key] = value;
+          } else {
+            payload[field.key] = value;
+          }
+        });
 
       this.$emit('save', payload);
     },

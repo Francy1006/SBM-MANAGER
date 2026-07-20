@@ -1,5 +1,9 @@
 <template>
-  <div class="crud-grid mb-4 p-4 rounded shadow-sm bg-white">
+  <ConfirmComponent v-if="showDeleteConfirmation" :message="deleteConfirmationMessage"
+    title="Confirmar eliminación" confirmText="Sí, eliminar" :loading="deleting"
+    @confirm="confirmDelete" @cancel="cancelDelete" />
+
+  <div v-else class="crud-grid mb-4 p-4 rounded shadow-sm bg-white">
 
     <!-- HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
@@ -51,7 +55,7 @@
             </label>
           </div>
 
-          <div v-if="allowDelete" class="form-check">
+          <div v-if="allowDelete && !detailDeleteEndpoint" class="form-check">
             <input class="form-check-input" type="checkbox" id="blockGroupDelete" v-model="blockGroupDelete" />
             <label class="form-check-label" for="blockGroupDelete">
               Bloquear eliminar en grupo
@@ -87,8 +91,8 @@
             </div>
 
             <div v-if="allowDelete">
-              <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @click="deleteSelected"
-                :disabled="blockGroupDelete ? selectedCount > 1 : false">
+              <button class="btn btn-danger btn-sm rounded-pill px-3" @click="deleteSelected"
+                :disabled="detailDeleteEndpoint ? selectedCount !== 1 : (blockGroupDelete ? selectedCount > 1 : false)">
                 <i class="fas fa-trash me-1"></i> Eliminar
               </button>
             </div>
@@ -310,11 +314,12 @@ import api from '../api/axios';
 import { mapGetters, mapActions } from 'vuex';
 import OptionsComponent from './OptionsComponent.vue';
 import GridDetailContainerComponent from './GridDetailContainerComponent.vue'
+import ConfirmComponent from './ConfirmComponent.vue'
 import * as XLSX from 'xlsx';
 
 export default {
   name: 'CRUDGridComponent',
-  components: { OptionsComponent, GridDetailContainerComponent },
+  components: { OptionsComponent, GridDetailContainerComponent, ConfirmComponent },
   props: {
     resourceName: { type: String, required: true },
     endpoint: { type: String, required: true },
@@ -324,6 +329,9 @@ export default {
     showDeletedFilter: { type: Boolean, default: true },
     allowUpdate: { type: Boolean, default: true },
     allowDelete: { type: Boolean, default: true },
+    detailDeleteEndpoint: { type: String, default: null },
+    deleteAuditValue: { type: Function, default: null },
+    deleteAuditField: { type: String, default: 'deleted_by' },
     states: { type: [Array, Object], default: null },
     iconClass: { type: String, default: 'fas fa-list-alt me-2 text-secondary' },
     showPropertiesButton: { type: Boolean, default: true },
@@ -389,6 +397,10 @@ export default {
       blockGroupDelete: true,
       sortKey: 'created_at',
       sortDirection: 'desc',
+      dynamicSelectOptions: {},
+      showDeleteConfirmation: false,
+      deleteConfirmationMessage: '',
+      deleting: false,
     };
   },
   computed: {
@@ -561,9 +573,14 @@ export default {
       await this.fetchData();
     },
 
-    async deleteSelected() {
+    deleteSelected() {
       if (this.selected.length === 0) {
         alert('Por favor selecciona al menos un item para eliminar');
+        return;
+      }
+
+      if (this.detailDeleteEndpoint && this.selected.length !== 1) {
+        alert('Selecciona un solo item para eliminar');
         return;
       }
 
@@ -572,14 +589,47 @@ export default {
         return;
       }
 
-      const confirmMessage =
+      this.deleteConfirmationMessage =
         this.selected.length === 1
-          ? '¿Estás seguro de que quieres eliminar este item?'
-          : `¿Estás seguro de que quieres eliminar estos ${this.selected.length} items?`;
+          ? `¿Estás seguro de que quieres eliminar este ${this.resourceName.toLowerCase()}? Esta acción no se puede deshacer.`
+          : `¿Estás seguro de que quieres eliminar estos ${this.selected.length} items? Esta acción no se puede deshacer.`;
+      this.showDeleteConfirmation = true;
+    },
 
-      if (!confirm(confirmMessage)) return;
+    cancelDelete() {
+      if (this.deleting) return;
+      this.showDeleteConfirmation = false;
+      this.deleteConfirmationMessage = '';
+    },
 
+    async confirmDelete() {
+      if (!this.showDeleteConfirmation || this.deleting) return;
+
+      this.deleting = true;
       try {
+        if (this.detailDeleteEndpoint) {
+          const actor = this.deleteAuditValue?.();
+          if (!actor) {
+            alert(`No fue posible identificar al usuario que elimina ${this.resourceName}.`);
+            return;
+          }
+
+          const selectedId = this.selected[0];
+          const endpoint = this.detailDeleteEndpoint.replace(
+            '{id}',
+            encodeURIComponent(selectedId)
+          );
+
+          await this.apiClient.post(endpoint, {
+            [this.deleteAuditField]: actor
+          });
+
+          alert(`${this.capitalizedResourceName} eliminado exitosamente`);
+          this.selected = [];
+          await this.fetchData();
+          return;
+        }
+
         const base = this.endpoint.split('?')[0].split('/').filter(Boolean)[0];
 
         await api.post(`/${base}/soft_delete/`, {
@@ -594,11 +644,17 @@ export default {
         console.error('Status:', error.response?.status);
         console.error('Data:', error.response?.data);
         alert('Error al eliminar item: ' + (error.response?.data?.detail || error.message));
+      } finally {
+        this.deleting = false;
+        this.showDeleteConfirmation = false;
+        this.deleteConfirmationMessage = '';
       }
     },
 
     async fetchData() {
       this.loading = true;
+      const dynamicSelectOptionsPromise = this.loadDynamicSelectOptions();
+
       try {
         let url = this.endpoint;
         const params = new URLSearchParams();
@@ -677,6 +733,8 @@ export default {
         if (!this.searchTerm.trim()) {
           this.searchTerm = '';
         }
+
+        await dynamicSelectOptionsPromise;
       } catch (e) {
         this.error = 'Error al cargar los datos';
         this.rows = [];
@@ -700,6 +758,10 @@ export default {
     formatValue(val, col) {
       const field = this.fields.find(f => f.key === col);
 
+      if (field?.type === 'dynamic-select') {
+        return this.getDynamicSelectLabel(field, val);
+      }
+
       // 💰 PRICE
       if (field && field.type === 'price') {
         if (val === null || val === undefined || isNaN(val)) return '-';
@@ -722,6 +784,59 @@ export default {
       }
 
       return val;
+    },
+
+    getDynamicSelectLabel(field, value) {
+      if (value === null || value === undefined || value === '') return '-';
+
+      const valueKey = field.valueKey || 'id';
+      const labelKey = field.labelKey || 'name';
+      const option = (this.dynamicSelectOptions[field.key] || []).find(
+        item => String(item?.[valueKey]) === String(value)
+      );
+
+      if (!option) return value;
+
+      return option[labelKey]
+        ?? option.name
+        ?? option.description
+        ?? option.code
+        ?? value;
+    },
+
+    async loadDynamicSelectOptions() {
+      const fieldsToLoad = this.fields.filter(field =>
+        field.type === 'dynamic-select'
+        && field.endpoint
+        && !field.hideInGrid
+        && field.resolveLabelInGrid === true
+        && !Object.prototype.hasOwnProperty.call(this.dynamicSelectOptions, field.key)
+      );
+
+      await Promise.all(fieldsToLoad.map(async field => {
+        try {
+          const response = await this.apiClient.get(field.endpoint);
+          const payload = response.data;
+          const options = Array.isArray(payload)
+            ? payload
+            : Array.isArray(payload?.results)
+              ? payload.results
+              : Array.isArray(payload?.data)
+                ? payload.data
+                : [];
+
+          this.dynamicSelectOptions = {
+            ...this.dynamicSelectOptions,
+            [field.key]: options,
+          };
+        } catch (error) {
+          console.error(`Error cargando opciones para ${field.key}:`, error);
+          this.dynamicSelectOptions = {
+            ...this.dynamicSelectOptions,
+            [field.key]: [],
+          };
+        }
+      }));
     },
 
     capitalize(val) {
@@ -803,6 +918,10 @@ export default {
           if (field?.type === 'price') {
             const n = Number(value);
             return isNaN(n) ? '' : n;
+          }
+
+          if (field?.type === 'dynamic-select') {
+            return this.getDynamicSelectLabel(field, value);
           }
 
           return value;

@@ -57,6 +57,7 @@
 
     <SimpleFormComponent v-if="showForm && (!showConfigForm || !showConfigFormComponent) && !showProperties"
       :show="showForm" :is-edit="isEdit" :fields="formFields" :values="editingData" :loading="loading"
+      :apiClient="apiClient"
       :title="isEdit ? `Actualizar ${resourceName}` : `Crear ${resourceName}`"
       :configureHeaderFields="configureHeaderFields" v-bind="states ? { states } : {}" @close="onClose"
       @save="onSave" />
@@ -70,6 +71,8 @@
       :endpoint="finalGetEndpoint" :iconClass="iconClass" :showPropertiesButton="showPropertiesButton"
       :apiClient="apiClient" :rowKey="rowKey" :includeVisibleFilter="includeVisibleFilter"
       :showDeletedFilter="showDeletedFilter" :allowUpdate="allowUpdate" :allowDelete="allowDelete"
+      :detail-delete-endpoint="detailDeleteEndpoint" :delete-audit-value="deleteAuditValue"
+      :delete-audit-field="deleteAuditField"
       :showOpenColumn="showOpenColumn" :openColumnLabel="openColumnLabel" :showDetailComponent="showDetailComponent"
       :detailTablesConfig="detailTablesConfig" :detailFieldsConfig="detailFieldsConfig"
       :detailExtraProps="detailExtraProps" v-bind="states ? { states } : {}" :fields="fields"
@@ -81,7 +84,7 @@
       :calculationTitle="calculationTitle" :calculationDescription="calculationDescription"
       :configResource="configFormResourcePath" :lookupField="configFormLookupField"
       :enableExtendedData="enableExtendedProperties"
-      :editable="propertiesEditable" :editableFields="propertiesEditableFields"
+      :editable="propertiesEditable"
       :readOnlyFields="propertiesReadOnlyFields" :editLoading="loading" :apiClient="apiClient"
       :hasItemConfiguration="showConfigForm" :extraVariables="buildCalculationVariables"
       :calculationConfig="props.calculationConfig" @close="onPropertiesClose" @load-advanced="loadAdvanced"
@@ -112,9 +115,11 @@ const props = defineProps({
   allowCreate: { type: Boolean, default: true },
   allowUpdate: { type: Boolean, default: true },
   allowDelete: { type: Boolean, default: true },
+  detailDeleteEndpoint: { type: String, default: null },
+  deleteAuditValue: { type: Function, default: null },
+  deleteAuditField: { type: String, default: 'deleted_by' },
   enableExtendedProperties: { type: Boolean, default: true },
   propertiesEditable: { type: Boolean, default: false },
-  propertiesEditableFields: { type: Array, default: () => [] },
   propertiesReadOnlyFields: { type: Array, default: () => [] },
   propertiesUpdateAuditValue: { type: Function, default: null },
   getEndpoint: { type: String, default: null },
@@ -281,7 +286,10 @@ function showCreateForm() {
 async function onSave(data) {
   loading.value = true;
   try {
-    const cleanedData = cleanData(data);
+    const sourceData = isEdit.value
+      ? data
+      : { ...editingData.value, ...data };
+    const cleanedData = cleanData(sourceData);
     if (isEdit.value && editingData.value.sku) {
       await axios.patch(
         `${finalUpdateEndpoint.value}${editingData.value.code ?? editingData.value.id ?? editingData.value.sku}/`,
@@ -295,7 +303,7 @@ async function onSave(data) {
       alert(`${props.resourceName} actualizado exitosamente!`);
     } else {
       console.log('PAYLOAD CREATE JSON:', JSON.stringify(cleanedData, null, 2));
-      const response = await axios.post(finalCreateEndpoint.value, cleanedData);
+      const response = await props.apiClient.post(finalCreateEndpoint.value, cleanedData);
       emit('created', response.data);
       alert(`${props.resourceName} creado exitosamente!`);
     }
@@ -323,7 +331,7 @@ async function onSave(data) {
 function cleanData(data) {
   const omitKeys = [
     'log', 'version', 'created_at', 'updated_at', 'deleted_at', 'confirmed_at',
-    'created_by', 'updated_by', 'deleted_by', 'confirmed_by',
+    'updated_by', 'deleted_by', 'confirmed_by',
     'url',
   ];
 
@@ -476,6 +484,32 @@ function onPropertiesClose() {
   selectedRow.value = null;
 }
 
+function getPropertiesWritableFieldKeys() {
+  const readOnlyKeys = new Set(props.propertiesReadOnlyFields || [])
+
+  return (props.fields || [])
+    .filter(field => {
+      if (field.omitInForm === true) return false
+      if (field.readOnlyOnConfigure) return false
+      if (field.disabled) return false
+      if (readOnlyKeys.has(field.key)) return false
+      return true
+    })
+    .map(field => field.key)
+}
+
+function propertyValuesAreEqual(currentValue, nextValue) {
+  const currentIsEmpty = currentValue === null || currentValue === undefined || currentValue === ''
+  const nextIsEmpty = nextValue === null || nextValue === undefined || nextValue === ''
+
+  if (currentIsEmpty || nextIsEmpty) return currentIsEmpty && nextIsEmpty
+  if (typeof currentValue === 'boolean' || typeof nextValue === 'boolean') {
+    return currentValue === nextValue
+  }
+
+  return String(currentValue) === String(nextValue)
+}
+
 async function onPropertiesSave(data) {
   const row = selectedRow.value
   const identifierKey = props.rowKey || 'id'
@@ -488,11 +522,11 @@ async function onPropertiesSave(data) {
     return
   }
 
-  const writableKeys = new Set(
-    props.propertiesEditableFields.filter(key => !props.propertiesReadOnlyFields.includes(key))
-  )
+  const writableKeys = new Set(getPropertiesWritableFieldKeys())
   const payload = Object.fromEntries(
-    Object.entries(data || {}).filter(([key]) => writableKeys.has(key))
+    Object.entries(data || {}).filter(([key, value]) =>
+      writableKeys.has(key) && !propertyValuesAreEqual(row[key], value)
+    )
   )
   payload.updated_by = actor
 

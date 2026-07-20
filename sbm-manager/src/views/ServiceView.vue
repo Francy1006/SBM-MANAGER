@@ -59,7 +59,7 @@ const fields = ref([
 
   { key: 'description', label: 'Descripción', type: 'textarea', required: true, readOnlyOnConfigure: true },
 
-  { key: 'price_configuration_input', label: 'Configuración Precio', type: 'dynamic-select', labelKey: 'price_configuration', valueKey: 'code', endpoint: '/price-configurations/', required: true, quickConfigure: false },
+  { key: 'price_configuration_input', label: 'Configuración Precio', type: 'dynamic-select', labelKey: 'price_configuration', valueKey: 'code', endpoint: '/price-configuration/', required: true, quickConfigure: false },
 
   { key: 'price_configuration', hideInGrid: true, omitInForm: true },
   { key: 'price_configuration_label', hideInGrid: true, omitInForm: true },

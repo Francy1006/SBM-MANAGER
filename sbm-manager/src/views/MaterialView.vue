@@ -56,7 +56,7 @@ const fields = ref([
 { key: 'id', hideInGrid: true, omitInForm: true },
   { key: 'sku', label: 'SKU', type: 'text', omitInForm: true, readOnlyOnConfigure: true },
   { key: 'description', label: 'Descripción', type: 'textarea', required: true, readOnlyOnConfigure: true },
-  { key: 'price_configuration_input', label: 'Configuración Precio', type: 'dynamic-select', labelKey: 'price_configuration', valueKey: 'code', endpoint: '/price-configurations/', required: true, quickConfigure: false },
+  { key: 'price_configuration_input', label: 'Configuración Precio', type: 'dynamic-select', labelKey: 'price_configuration', valueKey: 'code', endpoint: '/price-configuration/', required: true, quickConfigure: false },
   { key: 'price_configuration', hideInGrid: true, omitInForm: true },
   { key: 'price_configuration_label', hideInGrid: true, omitInForm: true },
   { key: 'base_net_amount', label: 'Valor Base NETO', type: 'number', hideInGrid: true, omitInForm: true },

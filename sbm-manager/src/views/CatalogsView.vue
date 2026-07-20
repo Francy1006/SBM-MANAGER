@@ -136,7 +136,7 @@ const fields = ref([
     key: 'price_configuration',
     label: 'Configuración de Precio',
     type: 'dynamic-select',
-    endpoint: '/price-configurations/',
+    endpoint: '/price-configuration/',
     labelKey: 'price_configuration',
     valueKey: 'code',
     formGroup: 'price_data',   // 🔥 ESTO ES LA CLAVE

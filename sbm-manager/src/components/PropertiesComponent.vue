@@ -262,7 +262,6 @@ const props = defineProps({
   calculationConfig: { type: Object, default: null },
   enableExtendedData: { type: Boolean, default: true },
   editable: { type: Boolean, default: false },
-  editableFields: { type: Array, default: () => [] },
   readOnlyFields: { type: Array, default: () => [] },
   editLoading: { type: Boolean, default: false },
   apiClient: { type: [Object, Function], default: () => axios }
@@ -365,21 +364,21 @@ const visibleFields = computed(() => {
 })
 
 const editableFormFields = computed(() => {
-  const allowed = new Set(props.editableFields)
-  const readOnly = new Set(props.readOnlyFields)
+  const readOnly = new Set(props.readOnlyFields || [])
 
   return (props.fields || [])
-    .filter(field => allowed.has(field.key))
-    .map(field => ({
-      ...field,
-      omitInForm: false,
-      hideInForm: false,
-      readOnlyOnConfigure: readOnly.has(field.key),
-      disabled: readOnly.has(field.key),
-      helpText: readOnly.has(field.key)
-        ? 'Este estado se administra mediante la eliminación lógica del producto.'
-        : field.helpText
-    }))
+    .filter(field => field.omitInForm !== true)
+    .map(field => {
+      const isReadOnly = readOnly.has(field.key)
+      return {
+        ...field,
+        readOnlyOnConfigure: Boolean(field.readOnlyOnConfigure || isReadOnly),
+        disabled: Boolean(field.disabled || isReadOnly),
+        helpText: isReadOnly
+          ? 'Este estado se administra mediante la eliminación lógica del producto.'
+          : field.helpText
+      }
+    })
 })
 
 const safeCalculationProps = computed(() => {
