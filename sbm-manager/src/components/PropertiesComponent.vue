@@ -18,8 +18,8 @@
     </div>
 
     <SimpleFormComponent v-if="showEditForm" :show="showEditForm" :is-edit="true" :fields="editableFormFields"
-      :values="product" :loading="editLoading" :api-client="apiClient" title="Modificar Producto"
-      description="Actualiza la información pública del producto." @close="showEditForm = false"
+      :values="product" :loading="editLoading" :api-client="apiClient" :title="editTitle"
+      :description="editDescription" @close="showEditForm = false"
       @save="emit('save-edit', $event)" />
 
     <!-- 1️⃣ INFORMACIÓN GENERAL -->
@@ -264,6 +264,8 @@ const props = defineProps({
   editable: { type: Boolean, default: false },
   readOnlyFields: { type: Array, default: () => [] },
   editLoading: { type: Boolean, default: false },
+  editTitle: { type: String, default: 'Modificar registro' },
+  editDescription: { type: String, default: 'Actualiza la información pública del registro.' },
   apiClient: { type: [Object, Function], default: () => axios }
 })
 

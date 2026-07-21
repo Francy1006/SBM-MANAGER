@@ -126,6 +126,7 @@ The application is built around shared management components:
 |---|---|
 | `CRUDManagerComponent.vue` | Coordinates list, create, update, properties and configuration flows |
 | `CRUDGridComponent.vue` | Search, sorting, pagination, selection, detail and logical deletion |
+| `ConfirmComponent.vue` | Reusable blocking confirmation for destructive or sensitive actions |
 | `SimpleFormComponent.vue` | Generic forms, reactive dynamic selectors and injected API clients |
 | `PropertiesComponent.vue` | General information, controlled modification, advanced configuration, linking and pricing |
 | `CalculationComponent.vue` | Formula variables and calculated results |
@@ -237,6 +238,8 @@ Product deliberately does not use `PUT` or HTTP `DELETE`.
 
 Product supports paginated lists, detail retrieval, creation, partial updates, price information and logical deletion. Deleted rows are excluded from normal queries by DP-API.
 
+Logical deletion requires explicit confirmation through `ConfirmComponent`; cancelling restores the grid without issuing a request.
+
 The Product Properties panel provides controlled modification through `SimpleFormComponent`. Partial updates use the integer Product `id`, submit the Product audit identity and keep relation selection connected to DP-API:
 
 ```text
@@ -248,6 +251,25 @@ Package  → /api/packages/
 ```
 
 Dynamic selectors support direct collections and paginated API responses while preserving the selected foreign-key value.
+
+## Material integration
+
+Material operations are served by DP-API and use the integer `id` as the REST identifier:
+
+```text
+GET     /api/materials/
+GET     /api/materials/{id}/
+POST    /api/materials/
+PATCH   /api/materials/{id}/
+POST    /api/materials/{id}/delete/
+GET     /api/materials/active/
+HEAD    /api/materials/
+OPTIONS /api/materials/
+```
+
+Create generates the Material business `code` in the frontend, submits `created_by`, and leaves SKU generation to DP-API. Properties performs changed-field PATCH requests with `updated_by`; Provider is immutable after creation. Material price configuration options are restricted to confirmed `record_type=2` rows, while the grid displays the embedded `price_configuration_label`. Logical deletion posts `deleted_by` only after confirmation through `ConfirmComponent`.
+
+Legacy Materials may have no price projection. They can still update unrelated fields; assigning a price requires both `base_net_amount` and `price_configuration`.
 
 ## Authentication
 
@@ -379,6 +401,8 @@ yarn build
 - Product Properties provides controlled partial editing and DP-API relation selectors.
 - Product uses PATCH rather than PUT.
 - Product logical deletion uses the documented POST action and never HTTP DELETE.
+- Material uses DP-API for list, detail, create, PATCH and confirmed logical deletion.
+- Material pricing uses confirmed `record_type=2` configurations and displays the API-provided label.
 - Franchise and platform operations remain isolated in `sbm-api`.
 - Shared CRUD behavior is consistent across business modules.
 - Production assets are generated with `yarn build`.

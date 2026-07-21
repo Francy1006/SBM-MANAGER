@@ -82,6 +82,7 @@
 
     <PropertiesComponent v-if="showProperties" :product="selectedRow" :fields="fields" :advancedData="advancedData"
       :calculationTitle="calculationTitle" :calculationDescription="calculationDescription"
+      :edit-title="`Modificar ${resourceName}`" :edit-description="`Actualiza la información pública del ${resourceName.toLowerCase()}.`"
       :configResource="configFormResourcePath" :lookupField="configFormLookupField"
       :enableExtendedData="enableExtendedProperties"
       :editable="propertiesEditable"
@@ -314,11 +315,20 @@ async function onSave(data) {
     refreshGrid();
     emit('refresh');
   } catch (error) {
+    const responseData = error.response?.data;
+    const fieldErrors = responseData && typeof responseData === 'object'
+      ? Object.entries(responseData)
+        .filter(([key]) => !['detail', 'message'].includes(key))
+        .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+        .join('\n')
+      : '';
     let errorMessage = `Error al guardar ${props.resourceName}: `;
-    if (error.response?.data?.detail) {
-      errorMessage += error.response.data.detail;
-    } else if (error.response?.data?.message) {
-      errorMessage += error.response.data.message;
+    if (responseData?.detail) {
+      errorMessage += responseData.detail;
+    } else if (responseData?.message) {
+      errorMessage += responseData.message;
+    } else if (fieldErrors) {
+      errorMessage += fieldErrors;
     } else {
       errorMessage += error.message;
     }
@@ -332,7 +342,6 @@ function cleanData(data) {
   const omitKeys = [
     'log', 'version', 'created_at', 'updated_at', 'deleted_at', 'confirmed_at',
     'updated_by', 'deleted_by', 'confirmed_by',
-    'url',
   ];
 
   const cleaned = {};

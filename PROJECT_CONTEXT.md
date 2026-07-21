@@ -10,15 +10,27 @@
 >
 > **Accuracy note**
 >
-> This first version is based on direct read-only inspection of the local `SBM-MANAGER` repository on 2026-07-15 and on the validated Product contract in the neighboring `DP-API` repository. No frontend files were modified during this audit. Secret and credential values are intentionally omitted.
+> This context began with a read-only audit on 2026-07-15 and was updated on 2026-07-21 after inspecting the current `SBM-MANAGER` and `DP-API` repositories to define the Product frontend QA and SonarQube implementation. Secret and credential values are intentionally omitted.
 >
-> **Implementation update — 2026-07-15**
+> **Implementation update — 2026-07-15 (historical)**
 >
 > The first Product frontend cutover has now been implemented. `sbm-manager` has explicit `sbmApi` and `dpApi` Axios clients. Product list and detail use `dp-api`; Franchise, authentication and all default generic CRUD consumers remain on `sbm-api`. Product writes and legacy advanced configuration are intentionally disabled until the remaining contracts are validated. The frontend container build passed and the application responds on port 8080.
 >
-> **Implementation update — 2026-07-17**
+> **Implementation update — 2026-07-17 (historical)**
 >
 > Product list, detail and the Properties flow have been validated interactively. Properties can now open `SimpleFormComponent` in modification mode and submit a restricted Product PATCH through `dpApi` using the integer Product `id`. The adapter adds `updated_by` from the authenticated SBM `uuid`, while the remaining generic CRUD consumers keep their previous `sbmApi` behavior. Product create, price modification and logical delete remain disabled. Dynamic Product selectors load their options through `dpApi` and keep those options in reactive form state.
+
+> **Implementation update — 2026-07-20 (Product)**
+>
+> The Product vertical migration is concluded. Product list/detail, creation, Properties modification (including Product price configuration), and logical deletion are active through `dpApi`. Product uses integer `id`, generates the create `code` in the frontend, injects `created_by`/`updated_by`/`deleted_by` from the authenticated SBM `uuid`, displays `price_configuration_label`, filters Product price configurations by `record_type=1`, sends changed PATCH fields only, and deletes through `POST /api/products/{id}/delete/`. `ConfirmComponent` now blocks the CRUD grid until delete is explicitly confirmed or cancelled. Product never uses PUT or HTTP DELETE. The Product flow was validated interactively and the frontend production build passes.
+>
+> **Implementation update — 2026-07-20 (Material, current)**
+>
+> Material was audited against the new DP-API hexagonal implementation and migrated to `dpApi` for list, detail, create, PATCH and logical delete. It uses integer `id`, generates `code` in the frontend, receives server-generated SKU, injects `created_by`/`updated_by`/`deleted_by`, displays `price_configuration_label`, and loads confirmed Material configurations with `record_type=2`. Provider is immutable after creation. Logical deletion uses `POST /api/materials/{id}/delete/` behind `ConfirmComponent`; Material never uses PUT or HTTP DELETE. Backend Material tests and the frontend production build pass. Read behavior and the HTTP route contract were validated; interactive create/PATCH/delete validation remains the next acceptance step.
+
+> **Planning update — 2026-07-21 (current objective)**
+>
+> Product remains the active reference vertical. Before replicating its structure to Material, Service, or another module, `sbm-manager` must receive a formal frontend QA foundation: Vitest, Vue Test Utils, jsdom, deterministic Axios/component mocks, Product-focused unit and component tests, reproducible coverage, SonarScanner configuration, and a combined QA script. The current repository has only `serve` and `build` scripts and contains no test runner, coverage configuration, SonarQube project, or frontend test hierarchy. Material code already present in the worktree must be preserved but is outside the authorized implementation scope unless a shared-component correction is strictly required for Product tests.
 
 ---
 
@@ -87,19 +99,24 @@ Examples of internal or critical operations that remain in `sbm-api`:
 
 ### 1.4 Current migration strategy
 
-The API separation is migrated vertically, one complete capability at a time.
+The platform is migrated vertically, but each reference capability must be completed across implementation, QA, static analysis, documentation, and consumer retirement before its pattern is replicated.
 
-The first capability is `Product`:
+The active sequence is now:
 
 ```text
-dp-api Product contract
-→ sbm-manager Product consumer
-→ frontend validation
-→ regression tests
-→ deprecate old sbm-api Product consumer
+Product functional flow in dp-api and sbm-manager
+→ Product frontend unit/component tests
+→ reproducible frontend coverage
+→ SonarQube analysis and Quality Gate
+→ Product regression and documentation closure
+→ audit/deprecate duplicate sbm-api Product consumer
+→ only then replicate the complete pattern to Material
 ```
 
-Do not migrate Material, Service, or another resource until the Product frontend flow is stable.
+Product functional behavior is implemented and interactively validated. Product QA and SonarQube are the current unfinished part of the same vertical.
+
+Material implementation already exists in the supplied worktree and must not be deleted or casually rewritten, but it is not the current development objective. Do not continue Material acceptance, Service migration, or another module until Product frontend QA is complete and stable.
+
 
 ---
 
@@ -163,16 +180,18 @@ These changes belong to the user. Do not reset, overwrite, reformat broadly, or 
 ```text
 Repository: active
 Frontend framework: Vue 3
-Product API migration: list/detail and restricted Properties PATCH implemented
-dp-api Product backend: validated
-dp-api Product consumer: active for Product list/detail and restricted Properties update
-sbm-api Product consumer: retained for non-migrated and downstream consumers
-Product create: disabled
-Product partial update: implemented from Properties; live PATCH validation pending
-Product price update: deferred
-Product logical delete: disabled pending detail-action adapter
-Automated test suite: not confirmed
+Product API migration: concluded and interactively validated
+dp-api Product consumer: active for list/detail/create/PATCH/logical delete
+Product create: active with generated code and created_by audit identity
+Product partial/price update: active from Properties with changed-field PATCH payloads
+Product logical delete: active through the detail POST action and ConfirmComponent
+Material API migration: code present; intentionally paused while Product QA is completed
+dp-api Material consumer: active for list/detail/create/PATCH/logical delete
+Material pricing: confirmed record_type=2 selector; legacy null-price rows supported
+Material provider: writable on create and immutable on PATCH
+Frontend automated testing: not configured; this is the current implementation objective
 Container production build: passed with bundle-size warnings
+Frontend SonarQube integration: not configured; current implementation objective
 Production hardening: pending
 ```
 
@@ -352,7 +371,9 @@ Do not assume global API or Product state is managed by Vuex.
 
 ---
 
-## 5. Current Product frontend flow
+## 5. Completed Product frontend flow
+
+> This section records the concluded Product vertical. Any older staged-cutover wording that remains elsewhere in the historical audit is superseded by the 2026-07-20 implementation update and the current matrix in section 8.
 
 ### 5.1 Product route and view
 
@@ -376,7 +397,7 @@ get-endpoint="products/"
 post-endpoint="products/"
 ```
 
-`ProductView.vue` now injects `dpApi` into the generic manager/grid for Product reads. The relative paths therefore resolve against `VUE_APP_DP_API_URL` for list and detail.
+`ProductView.vue` injects `dpApi` into the generic manager/grid for every Product operation. Relative paths resolve against `VUE_APP_DP_API_URL`.
 
 The view also sets:
 
@@ -384,14 +405,14 @@ The view also sets:
 rowKey="id"
 includeVisibleFilter=false
 showDeletedFilter=false
-allowCreate=false
+allowCreate=true
 allowUpdate=false
-allowDelete=false
+allowDelete=true
 enableExtendedProperties=false
 propertiesEditable=true
 ```
 
-The generic create, configure and delete actions remain disabled. Product modification is exposed only through the explicit Properties adapter, which uses `dpApi`, integer `id`, an allowlist of fields and the Product audit identity resolver. This prevents a DP-API row from being written through the legacy generic SBM-API path.
+Product creation is enabled. The generic configure action remains disabled; modification is exposed through Properties. Logical deletion uses the configurable detail-action adapter rather than the legacy collection soft-delete action. All Product writes use `dpApi`, integer `id` where applicable, and the authenticated audit identity resolver.
 
 ### 5.2 Product fields already aligned with dp-api
 
@@ -406,42 +427,25 @@ category_name
 package_description
 ```
 
-This partially matches the validated `dp-api` response contract.
+These relation projections match the validated `dp-api` response contract.
 
-### 5.3 Product fields that do not match the current dp-api list contract
+### 5.3 Product pricing projection
 
-`ProductView.vue` currently expects Product rows to include pricing/calculation fields such as:
+The Product response contract now includes the price projection consumed by the grid and Properties flow:
 
 ```text
-price_configuration
-price_configuration_label
+price
 base_net_amount
 net_amount
 gross_amount
 iva_amount
 aditional_tax_amount
 retention_amount
-calculation
+price_configuration
+price_configuration_label
 ```
 
-The validated `dp-api` Product list currently exposes:
-
-```text
-price
-price_gross_amount
-```
-
-`ProductView.vue` now defines `price_gross_amount` as a formatted price field. The unsupported advanced pricing fields remain in the legacy field configuration but are not fabricated when absent from the DP-API response. Advanced Product configuration is disabled during this phase.
-
-It does not expose all of the combined Price/calculation fields above through `ProductSerializer`.
-
-This mismatch must be resolved explicitly. Do not fabricate missing fields in the frontend. Determine whether:
-
-1. Product list needs only `price_gross_amount` and advanced pricing remains a separate endpoint; or
-2. `dp-api` must expose a documented read-only Product pricing projection; or
-3. calculation/configuration functionality remains temporarily on a separate internal endpoint during staged migration.
-
-The ownership decision must remain consistent with the rule that client price configuration belongs functionally to `dp-api`.
+`price_configuration` is the UUID used for writes. `price_configuration_label` is the descriptive grid value. The frontend must not fetch price-configuration options merely to render the grid; the dynamic selector loads options only when a form is mounted. Product selectors request confirmed configurations with `record_type=1`.
 
 ### 5.4 Franchise selector dependency
 
@@ -503,36 +507,15 @@ The identifier contract for list selection and detail is resolved: use integer `
 
 ### 5.7 Current create behavior
 
-Product create is currently disabled in `ProductView.vue`. The following legacy incompatibilities remain to be resolved before enabling it.
-
-`CRUDManagerComponent` creates with POST and therefore already uses the correct HTTP method.
-
-However, `cleanData()` currently removes:
+Product create is enabled and posts through the injected `dpApi` client.
 
 ```text
-created_by
-updated_by
-deleted_by
-confirmed_by
+POST /api/products/
 ```
 
-The current transitional `dp-api` Product contract requires:
+The frontend generates `code` with `crypto.randomUUID()` and injects `created_by` from `localStorage.uuid` through `createDefaults`. `CRUDManagerComponent` merges hidden create defaults into the outgoing payload. Product SKU remains server-generated and is omitted from the form.
 
-```text
-created_by on POST
-updated_by on PATCH
-deleted_by on logical delete
-```
-
-`sbm-manager` has a `uuid` in `localStorage`. The restricted Product Properties update now injects it as `updated_by`; Product create and logical delete still do not have their audit adapters implemented. The stored SBM `uuid` must exist as `users.User.code` in DP-API or PATCH will be rejected.
-
-Additional create mismatch:
-
-- Product `sku` is marked `omitInForm`.
-- No Product `code` form field is configured.
-- The validated `dp-api` serializer currently requires `code` and `sku`.
-
-Before frontend migration, decide whether `dp-api` should generate Product code/SKU or whether the frontend must supply them. Prefer server-owned identifier generation when business rules belong to the API.
+The authenticated SBM `uuid` must exist as `users.User.code` in DP-API. The create form loads relation selectors only while the form component is mounted.
 
 ### 5.8 Current update behavior
 
@@ -542,12 +525,14 @@ The generic grid update action remains disabled with `allowUpdate=false`. Produc
 
 - Uses the injected `dpApi` client.
 - Sends `PATCH /api/products/{id}/` using `rowKey="id"`.
-- Filters the payload through `propertiesEditableFields`.
-- Excludes keys declared in `propertiesReadOnlyFields`.
+- Derives writable fields from the Product field configuration.
+- Excludes omitted, disabled, read-only and unchanged fields.
 - Adds `updated_by` using the resolver passed by `ProductView.vue`.
 - Replaces the selected Product with the PATCH response after success.
 
-Current editable fields:
+Current editable fields include normal Product attributes and Product-owned price inputs permitted by DP-API. Relation and audit constraints remain enforced by the backend.
+
+Representative fields:
 
 ```text
 description
@@ -562,13 +547,15 @@ url
 package
 is_active
 is_confirmed
+base_net_amount
+price_configuration
 ```
 
-`price_gross_amount` is intentionally excluded because it is a derived/read-only projection and price modification requires a separate pricing contract.
+Derived price fields remain read-only. When `base_net_amount` or `price_configuration` changes, DP-API recalculates/version-controls the Product price. Product configuration options are filtered to confirmed `record_type=1` rows.
 
 `is_deleted` is displayed in the modification form but disabled. DP-API declares it read-only in `ProductCommandSerializer`; it must only change through the logical delete action.
 
-The Product PATCH adapter is implemented and the container build passes. A successful live PATCH with a DP-API-recognized audit user remains to be validated interactively.
+The Product PATCH adapter and price-configuration modification have been validated interactively. The container build passes.
 
 The validated `dp-api` Product endpoint rejects PUT with HTTP 405.
 
@@ -590,29 +577,41 @@ The loader supports direct arrays and paginated response bodies under `results` 
 
 ### 5.10 Current delete behavior
 
-Product deletion is currently disabled in `ProductView.vue`. The generic grid retains the legacy collection action for existing consumers; Product must not enable it.
-
-`CRUDGridComponent.deleteSelected()` currently calls a collection action:
-
-```text
-POST /products/soft_delete/
-body: { ids: [...] }
-```
-
-The validated `dp-api` Product contract uses a detail action:
+Product logical deletion is enabled and uses the validated DP-API detail action:
 
 ```text
 POST /api/products/{id}/delete/
 body: { deleted_by: <user_code> }
 ```
 
-Additional differences:
+`ProductView.vue` configures `detail-delete-endpoint="products/{id}/delete/"` and obtains `deleted_by` from the same authenticated user resolver used for create/update auditing. Only one Product can be deleted at a time.
 
-- The generic grid can select multiple rows.
-- Product group deletion is visually blocked by default, but the generic action still models bulk deletion.
-- Selected identifiers normally contain Product codes, while `dp-api` currently expects integer IDs.
+`ConfirmComponent.vue` replaces the CRUD grid after the user requests deletion. Cancelling restores the grid without a network call. Confirming is the only path that issues the POST; buttons are locked while the request is in flight. Deleted Products disappear from normal list queries.
 
 HTTP DELETE is intentionally disabled for Product and must never be introduced in the frontend Product flow.
+
+---
+
+## Material frontend implementation
+
+`MaterialView.vue` now uses `dpApi` for the complete Material lifecycle and keeps Franchise loading on `sbmApi`. The canonical routes are:
+
+```text
+GET   /api/materials/
+GET   /api/materials/{id}/
+POST  /api/materials/
+PATCH /api/materials/{id}/
+POST  /api/materials/{id}/delete/
+GET   /api/materials/active/
+HEAD  /api/materials/
+OPTIONS /api/materials/
+```
+
+Material rows use integer `id` as the REST identity. Create supplies a frontend-generated UUID `code` and `created_by`; SKU is generated by DP-API. Properties sends only changed writable fields plus `updated_by`. Provider is disabled in modification mode because DP-API treats it as immutable. Delete supplies `deleted_by` and requires explicit confirmation.
+
+The price selector writes the configuration UUID from `price_configuration` and the grid reads `price_configuration_label`. Options come from `/api/price-configuration/?record_type=2&is_confirmed=true`. Derived price amounts are read-only. Legacy rows may return a null price projection; modification does not require pricing unless the user changes it, while price repair requires both `base_net_amount` and `price_configuration` according to DP-API validation.
+
+The Material backend suite passed 11 tests. The route contract, paginated list and available price configuration were checked read-only, and the frontend production build passed with the existing bundle-size warnings. No real Material create/PATCH/delete was executed during automated validation.
 
 ---
 
@@ -903,7 +902,7 @@ propertiesReadOnlyFields
 propertiesUpdateAuditValue
 ```
 
-Product injects `dpApi`, selects rows by `id`, omits `is_visible`, disables the generic write actions and enables only the restricted Properties PATCH adapter. All other consumers retain `sbmApi` and their previous identifier/filter behavior.
+Product injects `dpApi`, selects rows by `id`, omits `is_visible`, enables its adapted create/Properties PATCH/detail-delete flows, and leaves generic configure disabled. All non-migrated consumers retain `sbmApi` and their previous identifier/filter behavior until their own vertical migration.
 
 ---
 
@@ -913,21 +912,21 @@ Product injects `dpApi`, selects rows by `id`, omits `is_visible`, disables the 
 |---|---|---|---|
 | API base | Explicit `sbmApi` and `dpApi` clients | Separate client-facing API on port 8081 | ✅ Implemented |
 | Product list | `products/` through injected `dpApi` | `/api/products/` | ✅ Implemented and interactively validated |
-| Pagination | Supports `count` and `results` | `count`, `next`, `previous`, `results` | Preserve and verify |
+| Pagination | Supports `count` and `results` | `count`, `next`, `previous`, `results` | ✅ Validated |
 | Hidden deleted filter | Product omits `is_visible` | Deleted rows excluded by queryset | ✅ Implemented |
 | Row identity | Product passes `rowKey="id"` | Detail uses integer `id` | ✅ Implemented |
 | Detail | `/api/products/{id}/` through `dpApi` | `/api/products/{id}/` | ✅ Implemented and interactively validated |
-| Create | Disabled during read cutover | POST | Resolve contract before enabling |
-| Create audit | Removes `created_by` | `created_by` required currently | Inject validated authenticated business user code |
-| Code/SKU | Not supplied by current form | Required currently | Decide server generation versus frontend input |
-| Update | Restricted Properties form uses `dpApi`, integer `id` and an allowlisted payload | PATCH | ✅ Implemented; validate a successful live PATCH |
-| Update audit | Properties adapter injects stored SBM `uuid` as `updated_by` | `updated_by` required and must match a DP-API user code | Validate cross-API identity mapping |
+| Create | `POST products/` through `dpApi` | POST | ✅ Implemented and validated |
+| Create audit | Injects stored SBM `uuid` | `created_by` required | ✅ Implemented |
+| Code/SKU | Frontend generates UUID code; SKU omitted | Code required; SKU server-generated | ✅ Contract aligned |
+| Update | Properties uses `dpApi`, integer `id` and changed-field payloads | PATCH | ✅ Implemented and validated |
+| Update audit | Injects stored SBM `uuid` as `updated_by` | Valid DP-API user code required | ✅ Implemented |
 | Full update | Generic architecture may support update concept | PUT rejected | Never use PUT for Product |
-| Logical delete | Disabled during read cutover | Detail `/{id}/delete/` with `deleted_by` | Add Product-specific delete adapter before enabling |
+| Logical delete | Detail POST with explicit `ConfirmComponent` | Detail `/{id}/delete/` with `deleted_by` | ✅ Implemented and validated |
 | Physical delete | Not directly used in inspected Product path | HTTP DELETE rejected | Keep disabled |
-| Product price display | Expects multiple embedded price fields | Exposes `price` and `price_gross_amount` | Adapt UI or define additional dp-api projection |
+| Product price display/update | Uses embedded projection plus UUID/label pair | DP-API exposes calculated price projection | ✅ Implemented and validated |
 | Product relation selectors | Load through injected `dpApi` with reactive option state | Standard arrays or paginated `results` | ✅ Implemented; Provider response shape verified |
-| Internal log | Field still listed in Product view configuration | Never exposed | Remove frontend dependency entirely |
+| Internal log | Not used by Product UI | Never exposed | ✅ Preserved |
 | Authentication | Product `dpApi` preserves Basic; SBM uses Bearer | Session/Basic with `IsAuthenticated` | ✅ Read transport configured; production auth redesign pending |
 
 ---
@@ -964,236 +963,475 @@ The SBM Bearer token is not compatible with the validated DP-API Session/Basic c
 
 ---
 
-## 10. Testing state
+## 10. Testing, coverage and SonarQube
 
-### 10.1 Current state
+### 10.1 Verified current state
 
-No automated test script was defined in `package.json` during inspection.
+The inspected frontend currently has no automated QA foundation. `sbm-manager/package.json` defines only:
 
-The build command is available:
-
-```bash
-yarn build
+```text
+serve
+build
 ```
 
-The development command is:
+The repository currently has no verified:
 
-```bash
-yarn serve
+- Vitest dependency or configuration;
+- Vue Test Utils dependency;
+- jsdom test environment;
+- `test`, `test:unit`, `test:coverage`, or `qa` npm script;
+- frontend test directory;
+- coverage output;
+- `sonar-project.properties`;
+- SonarScanner script;
+- combined coverage-and-analysis script;
+- CI/CD Quality Gate enforcement.
+
+The existing production build remains an important regression check but is not a substitute for automated tests.
+
+### 10.2 Current QA objective
+
+Create the first standardized frontend QA slice using Product as the reference capability. The implementation must cover Product behavior and the reusable components exercised by Product without attempting to test every module in the repository.
+
+Recommended test stack for this Vue 3 / Vue CLI 5 project:
+
+```text
+Vitest
+@vue/test-utils
+jsdom
+@vitest/coverage-v8
 ```
 
-Validation performed after the Product read cutover:
+Use native Vitest mocks first. Do not introduce MSW during this initial slice unless repository inspection proves that network-level request interception is materially simpler than mocking the explicit Axios clients.
 
-- `docker compose config --quiet` passed.
-- DP-API route `/api/products/` was confirmed; singular `/api/product/` returns HTTP 404.
-- Anonymous Product access returns HTTP 403 because the view uses `IsAuthenticated`.
-- Effective Product authentication classes are Session and Basic.
-- CORS permits `http://localhost:8080` and allows credentials.
-- The production build passed inside `sbm_manager` with bundle-size warnings only.
-- The recreated frontend container responds HTTP 200 on port 8080.
-- The host `node_modules` installation is incomplete for `xlsx` and Chart dependencies; use the container build or reinstall local dependencies before relying on a host build.
+### 10.3 Required scripts
 
-### 10.2 Required Product migration tests
+Add clear package scripts equivalent to:
 
-At minimum validate:
+```text
+test:unit      → execute Product tests once
+test:watch     → optional local watch mode
+test:coverage  → execute Product tests and generate coverage
+build          → preserve existing production build
+```
 
-1. Product route remains protected.
-2. Product HEAD collection succeeds against `dp-api`.
-3. Product list renders standard DRF pagination.
-4. Search and ordering use supported query parameters.
-5. Product detail uses the correct identifier.
-6. Create sends only writable fields and the required audit user code.
-7. PATCH uses the correct integer ID and includes `updated_by`.
-8. Product never sends PUT.
-9. Logical delete calls `POST /api/products/{id}/delete/` with `deleted_by`.
-10. Product never sends HTTP DELETE.
-11. Removed Product rows disappear from the normal grid.
-12. The hidden database log never appears in UI state or requests.
-13. Franchise and authentication calls still use `sbm-api`.
-14. Non-Product CRUD screens remain unaffected.
-15. Production build succeeds.
+At repository root, create executable operational scripts following the working DP-API convention:
+
+```text
+scripts/coverage.sh
+scripts/sonar-scan.sh
+scripts/qa-check.sh
+```
+
+Expected flow:
+
+```text
+coverage.sh
+→ install/use frontend dependencies in the official runtime
+→ run Product-focused Vitest suite with coverage
+→ produce machine-readable coverage artifact
+
+sonar-scan.sh
+→ run disposable SonarScanner container
+→ mount repository at a stable path
+→ load SONAR_HOST_URL and SONAR_TOKEN from ignored environment configuration
+→ upload analysis
+
+qa-check.sh
+→ coverage.sh
+→ production build
+→ sonar-scan.sh
+→ stop immediately on any failure
+```
+
+Do not hardcode SonarQube tokens, passwords, or host credentials.
+
+### 10.4 Test location and scope
+
+Use a module-oriented hierarchy under the Vue source tree:
+
+```text
+sbm-manager/src/
+├── views/
+│   └── __tests__/
+│       └── ProductView.spec.js
+├── components/
+│   └── __tests__/
+│       ├── CRUDManagerComponent.spec.js
+│       ├── CRUDGridComponent.spec.js
+│       ├── SimpleFormComponent.spec.js
+│       ├── PropertiesComponent.spec.js
+│       └── ConfirmComponent.spec.js
+└── api/
+    └── __tests__/
+        └── clients.spec.js
+```
+
+Only create files that exercise Product behavior or a shared boundary Product depends on. A smaller set is acceptable if it provides equivalent coverage without duplicating assertions.
+
+### 10.5 Product behaviors that must be protected
+
+#### API boundary
+
+- Product explicitly receives and uses `dpApi`.
+- Franchise, login, and default legacy consumers remain on `sbmApi`.
+- `src/api/axios.js` continues exporting `sbmApi` as the backward-compatible default.
+- A DP-API authorization error must not clear the SBM session.
+- No real HTTP request is made during unit tests.
+
+#### Product list and detail
+
+- Product requests `products/` through `dpApi`.
+- Standard DRF pagination (`count`, `results`) is handled.
+- Product uses integer `id` as row/detail identity.
+- Unsupported `is_visible` or equivalent legacy filters are not sent.
+- Deleted rows are not expected in the normal list.
+- Canonical labels such as `price_configuration_label`, `provider_name`, `type_name`, `item_group_name`, and `category_name` are displayed or passed correctly.
+- Stale names such as `group`, `group_name`, and `price_description` do not return.
+
+#### Product creation
+
+- Create uses POST through `dpApi`.
+- The frontend creates the current UUID `code` according to the accepted transitional contract.
+- SKU remains omitted/read-only because it is generated by the backend/database.
+- `created_by` is derived from the currently stored authenticated SBM user identifier.
+- Product price configuration options are restricted to confirmed Product configurations (`record_type=1`).
+- Only writable fields are included.
+- Loading, success, validation-error, and generic-error states are deterministic.
+
+#### Product modification
+
+- Modification uses PATCH to the integer Product `id`.
+- PUT is never called.
+- `updated_by` is injected.
+- Unchanged fields are not sent.
+- Provider immutability and read-only fields remain respected by the form configuration.
+- Changing `base_net_amount` or `price_configuration` uses the accepted Product contract.
+- Dynamic selectors load through `dpApi` and support both arrays and paginated `results` where the implementation permits them.
+
+#### Product logical deletion
+
+- Deletion requires `ConfirmComponent`.
+- Cancelling emits no request.
+- Confirming sends POST to `products/{id}/delete/`.
+- The payload contains `deleted_by`.
+- HTTP DELETE is never called.
+- A successful deletion refreshes or removes the row according to the current component flow.
+- Failure leaves the UI in a recoverable state.
+
+#### Internal data and security regressions
+
+- The hidden Product `log` field is neither displayed nor submitted.
+- Audit fields controlled by the backend are not copied blindly into create/PATCH payloads.
+- Tests use fake values and never read or print real `.env` credentials.
+- Existing localStorage behavior may be mocked, but tests must document it as transitional rather than secure final architecture.
+
+### 10.6 Mocking strategy
+
+Use deterministic mocks at explicit boundaries:
+
+```text
+dpApi.get / post / patch
+sbmApi.get / post / interceptors
+localStorage
+window.alert
+Vue Router when required
+child components only when the test is about parent orchestration
+```
+
+Prefer mounting real Product-related components when their interaction is the behavior under test. Avoid shallow tests that merely assert implementation details or duplicate Vue internals.
+
+### 10.7 Coverage requirements
+
+Generate LCOV for SonarQube and a human-readable terminal report. The expected artifact is:
+
+```text
+sbm-manager/coverage/lcov.info
+```
+
+Initial thresholds should be realistic and enforceable for the explicitly tested Product scope. Recommended first gate:
+
+```text
+lines       >= 70%
+statements  >= 70%
+functions   >= 70%
+branches    >= 60%
+```
+
+Do not exclude application files merely to inflate coverage. Exclude only generated/build assets, dependencies, static assets, and test files. Raise thresholds after the first reliable baseline.
+
+### 10.8 SonarQube configuration
+
+Create a distinct local project:
+
+```text
+Display name: SBM-MANAGER
+Project key:  SBM-MANAGER
+```
+
+Recommended initial scanner scope:
+
+```text
+sonar.sources=sbm-manager/src
+sonar.tests=sbm-manager/src
+sonar.test.inclusions=**/__tests__/**/*.spec.js
+sonar.javascript.lcov.reportPaths=sbm-manager/coverage/lcov.info
+sonar.sourceEncoding=UTF-8
+```
+
+Exclude at minimum:
+
+```text
+**/node_modules/**
+**/dist/**
+**/coverage/**
+**/assets/**
+**/*.spec.js
+```
+
+Test files must be identified as tests rather than analyzed as production sources. Confirm exact property compatibility with the installed SonarQube Community Build before finalizing.
+
+### 10.9 Quality priorities
+
+After the first successful analysis:
+
+1. Resolve Reliability issues affecting Product behavior.
+2. Resolve Security issues or hotspots with concrete risk.
+3. Remove meaningful duplication in Product/shared components without speculative rewrites.
+4. Address maintainability findings.
+5. Increase coverage toward 80% after the baseline is stable.
+
+Passing a Quality Gate does not authorize production deployment or prove complete security.
+
+### 10.10 Definition of done for Product frontend QA
+
+The current Product QA phase is complete only when:
+
+1. Vitest and Vue Test Utils are configured reproducibly.
+2. Product-focused tests pass in the official Docker/local runtime.
+3. All existing frontend production code continues building.
+4. Coverage is generated at the documented path.
+5. SonarScanner imports the LCOV report.
+6. The `SBM-MANAGER` Quality Gate passes or every blocking issue is explicitly reported.
+7. Product's POST/PATCH/logical-delete and API-boundary rules are protected.
+8. No real API, PostgreSQL data, or persistent business record is mutated by unit tests.
+9. No secret is committed or printed.
+10. Existing Material and other user changes are preserved.
+11. README receives only the commands required to execute tests, coverage, scanner, and the combined QA flow.
+12. `PROJECT_CONTEXT.md` is updated with exact results and remaining gaps.
+
 
 ---
 
-## 11. Migration sequence
+## 11. Migration and quality sequence
 
 ### Phase 0 — Verified foundation
 
-- ✅ Vue 3 application exists.
-- ✅ Vue Router authentication guards exist.
-- ✅ Reusable CRUD components exist.
-- ✅ Shared Axios client exists.
-- ✅ Product view and route exist.
-- ✅ Docker local development exists.
+- ✅ Vue 3 / Vue CLI 5 application.
+- ✅ Vue Router guards and reusable CRUD components.
+- ✅ Explicit `sbmApi` and `dpApi` clients.
+- ✅ Docker development runtime.
 
-### Phase 1 — Product API boundary
+### Phase 1 — Product functional vertical
 
-- ✅ Validate Product backend contract in `dp-api`.
-- ✅ Audit current Product frontend integration points.
-- ✅ Introduce explicit `dp-api` and `sbm-api` client boundaries.
-- ✅ Route Product list and detail to `dp-api`.
-- ✅ Resolve Product read identifier contract using integer `id`.
-- ✅ Preserve Franchise, login and default CRUD consumers on `sbm-api`.
-- ✅ Remove the invalid Product `is_visible` query parameter.
-- ✅ Disable Product writes and legacy advanced configuration during read validation.
-- ✅ Validate DP-API route, authentication classes and CORS.
-- ✅ Validate production build inside the frontend container.
-- ✅ Validate Product list and detail interactively in the browser.
-- ✅ Restore the Product Properties flow.
-- ✅ Add restricted Product modification from Properties using `SimpleFormComponent`.
-- ✅ Route Product PATCH and relation selectors through `dpApi`.
-- ✅ Use integer Product `id` and inject `updated_by` in the restricted PATCH adapter.
-- ✅ Fix reactive dynamic options for Provider, Type, Group, Category and Package selectors.
-- ⏳ Validate a successful Product PATCH against a DP-API-recognized user code.
-- ⏳ Resolve Product price projection required by the UI.
-- ⏳ Resolve code/SKU generation ownership.
-- ⏳ Adapt Product create payload.
-- ⏳ Adapt Product logical delete action.
-- ⏳ Validate authentication compatibility.
-- ⏳ Add Product regression coverage.
-- ⏳ Validate production build.
-- ⏳ Deprecate old Product consumer only after validation.
+- ✅ Product list and detail through `dpApi`.
+- ✅ Product create, PATCH, price configuration, and logical deletion.
+- ✅ Integer Product identity.
+- ✅ Audit adapters and explicit confirmation.
+- ✅ Product production build and interactive acceptance.
 
-### Phase 2 — Remaining client domains
+### Phase 2 — Product frontend QA and SonarQube (current)
 
-Proceed only after Product is stable:
+- ⏳ Add Vitest, Vue Test Utils, jsdom, and coverage dependencies.
+- ⏳ Add Product-focused unit/component tests.
+- ⏳ Add reproducible LCOV generation.
+- ⏳ Configure `SBM-MANAGER` in SonarQube.
+- ⏳ Add scanner and combined QA scripts.
+- ⏳ Run production build as part of QA.
+- ⏳ Fix blocking Quality Gate findings.
+- ⏳ Document exact metrics and remaining gaps.
 
-1. Material.
-2. Service.
-3. Catalog and item configuration.
-4. Pricing and permitted commercial configuration.
-5. Providers.
-6. Branches.
-7. Tickets.
-8. Clients and orders after confirming ownership and contracts.
+### Phase 3 — Product closure
 
-### Phase 3 — Authentication and security hardening
+- ⏳ Audit remaining Product consumers.
+- ⏳ Deprecate/remove duplicate `sbm-api` Product endpoint only after consumer verification.
+- ⏳ Add CI/CD Quality Gate enforcement in a separate authorized phase.
+- ⏳ Consider E2E Product flow with Playwright after unit/component QA is stable.
 
-- Map authenticated identity to business user code.
-- Remove client-controlled audit attribution.
-- Review localStorage token strategy.
-- Review tenant and franchise context.
-- Review object-level authorization.
-- Separate internal and client administrator access.
+### Phase 4 — Replicate to Material
 
-### Phase 4 — AI integration
+Only after Product phases 2 and 3 are stable:
 
-Do not integrate AI workflows before the Product frontend and API contracts are stable.
+- use Product tests and QA scripts as the template;
+- validate Material-specific rules rather than copying Product assumptions;
+- preserve Material record type, legacy-price compatibility, provider rules, and endpoint contracts;
+- extend SonarQube scope intentionally.
 
-Future AI flow:
+### Phase 5 — Remaining domains
 
-```text
-Client user
-→ sbm-manager or external channel
-→ sbm-ai-assistant
-→ dp-api Tool
-→ validated business operation
-```
+Proceed vertically:
+
+1. Service.
+2. Catalog and item configuration.
+3. Pricing and permitted commercial configuration.
+4. Providers.
+5. Branches.
+6. Tickets.
+7. Clients and orders after ownership review.
+
+### Phase 6 — Authentication, security and AI
+
+Authentication mapping, tenant isolation, object permissions, DevSecOps, and AI Tools remain later cross-cutting phases. Do not use the QA task as authorization to redesign identity or integrate AI.
+
 
 ---
 
 ## 12. Rules that must remain stable
 
-1. `sbm-manager` uses `dp-api` for normal Ditaly Pasta client operations.
-2. `sbm-api` remains the internal API for critical platform operations.
-3. Never globally redirect all frontend requests to `dp-api`.
-4. Franchise creation and provisioning remain internal.
-5. Product is the first vertical frontend migration.
-6. Do not migrate Material or Service before Product is stable.
-7. Product uses PATCH, not PUT.
-8. Product uses logical delete through POST, never HTTP DELETE.
-9. The Product audit log is hidden and must not be exposed or generated by the frontend.
-10. Do not remove the old `sbm-api` Product path until all consumers migrate and regression checks pass.
-11. Preserve existing user changes in the dirty worktree.
-12. Do not copy credentials from `.env` or legacy documentation.
-13. Authentication failures must be fixed through a valid contract, not permission bypasses.
-14. Client and internal API ownership must be visible in frontend code.
-15. Changes must be incremental and validated one step at a time.
+1. Product is the active reference vertical until frontend QA and SonarQube are complete.
+2. Do not continue Material, Service, or another module as part of this implementation.
+3. Preserve all existing user changes, especially current Material and shared-component edits.
+4. Inspect `git status` before modifying files and never reset or discard changes.
+5. `sbm-manager` uses `dp-api` for Product and other authorized client operations.
+6. `sbm-api` remains the default internal/legacy API; never globally redirect all requests to `dp-api`.
+7. Product uses POST for create, PATCH for update, and POST detail action for logical deletion.
+8. Product never uses PUT or HTTP DELETE.
+9. Product uses integer `id`; SKU remains server/database generated.
+10. The hidden Product `log` field must not enter frontend state, payloads, tests, or reports.
+11. Unit/component tests must not call real APIs or mutate persistent data.
+12. Use fake credentials and mocked localStorage values only.
+13. Do not commit `.env`, Sonar tokens, generated coverage, scanner cache, or build output.
+14. Do not lower Quality Gate or hide source files merely to obtain a pass.
+15. Keep test configuration compatible with Vue 3, Vue CLI 5, and the current CommonJS-style project unless a minimal required configuration change is proven.
+16. Do not perform broad component refactors merely to make tests easier; extract logic only when it improves real design and preserves behavior.
+17. Validate incrementally: focused tests, full Product suite, production build, coverage, scanner.
+18. Update README and context after implementation with exact commands and measured results.
+19. Do not perform Git commits, pushes, rebases, or destructive operations without explicit authorization.
+20. When the user responds only `ok`, advance to the next validation step without repeating the prior question.
+
 
 ---
 
-## 13. Immediate next step
+## 13. Immediate next step for Codex
 
-### 13.1 Exact objective
+### 13.1 Objective
 
-Validate the restricted Product Properties PATCH end to end, including the DP-API audit identity mapping. Confirm that all five relation selectors render their options and that a saved change refreshes the selected Product. Keep price modification, create and logical delete outside this validation slice.
+Implement Product-focused unit/component tests, coverage generation, and local SonarQube integration for `sbm-manager`, using the validated DP-API QA workflow as an operational reference while adapting it correctly to Vue/JavaScript.
 
-### 13.2 First task in a new conversation
+### 13.2 Mandatory preflight
 
-Read completely before editing:
+Before changing any file, Codex must:
+
+1. Read this complete `PROJECT_CONTEXT.md`.
+2. Read the root `README.md`, `docker-compose.yml`, `.gitignore`, and any repository instructions.
+3. Run `git status` and preserve every existing change.
+4. Inventory the repository with `rg --files`, excluding `.git`, dependencies, build, coverage, and scanner caches.
+5. Read completely:
 
 ```text
+sbm-manager/package.json
+sbm-manager/vue.config.js
+sbm-manager/src/api/clients.js
+sbm-manager/src/api/axios.js
+sbm-manager/src/views/ProductView.vue
+sbm-manager/src/components/CRUDManagerComponent.vue
+sbm-manager/src/components/CRUDGridComponent.vue
+sbm-manager/src/components/SimpleFormComponent.vue
+sbm-manager/src/components/PropertiesComponent.vue
+sbm-manager/src/components/ConfirmComponent.vue
+sbm-manager/src/composables/useAuth.js
+```
+
+6. Inspect the working DP-API QA files only as reference:
+
+```text
+sonar-project.properties
+scripts/coverage.sh
+scripts/sonar-scan.sh
+scripts/qa-check.sh
+```
+
+7. Confirm npm versus yarn lockfile implications and use one deterministic package manager. Do not regenerate both lockfiles casually.
+8. Report the proposed files and dependency changes before implementation.
+
+### 13.3 Authorized implementation scope
+
+Codex may modify or create only what is necessary for Product frontend QA and SonarQube, expected to include:
+
+```text
+sbm-manager/package.json
+one existing lockfile selected consistently
+sbm-manager/vitest.config.* or equivalent minimal configuration
+sbm-manager/src/**/__tests__/*.spec.js
+sonar-project.properties
+scripts/coverage.sh
+scripts/sonar-scan.sh
+scripts/qa-check.sh
+.gitignore
+README.md
 PROJECT_CONTEXT.md
-src/api/clients.js
-src/api/axios.js
-src/views/ProductView.vue
-src/components/CRUDManagerComponent.vue
-src/components/CRUDGridComponent.vue
-src/components/SimpleFormComponent.vue
-products serializer/viewset contract in DP-API
+Docker/config files only if required for reproducible test execution
 ```
 
-Then determine:
+Shared Product components may be changed only to fix a behavior revealed by a valid test or to expose a clean testable boundary without changing public behavior.
 
-1. Confirm Product list renders after selecting a Franchise.
-2. Confirm Properties loads general Product detail through integer `id` without legacy configuration requests.
-3. Confirm Network requests target port 8081 for Product and port 8082 for Franchise.
-4. Confirm Provider, Type, Group, Category and Package selectors display the DP-API options.
-5. Save one allowed Product field and confirm PATCH uses `/api/products/{id}/`.
-6. Confirm whether stored SBM `uuid` equals the DP-API business `users.User.code` required for `updated_by`.
-7. Confirm `price_gross_amount` is absent from the PATCH payload and `is_deleted` remains disabled.
-8. After PATCH validation, determine whether Product code and SKU are generated by DP-API or entered by the frontend for the later create slice.
+### 13.4 Explicitly out of scope
 
-### 13.3 Current implementation files
+Do not:
 
-The first cutover changed:
+- continue Material implementation or acceptance;
+- migrate Service or another domain;
+- change DP-API business contracts;
+- modify PostgreSQL, Flyway, DBML, or backend migrations;
+- redesign authentication or tenant isolation;
+- add Playwright/E2E in this first unit-test slice;
+- add CI/CD pipelines yet;
+- configure cloud SonarQube/SonarCloud;
+- introduce TypeScript;
+- replace Vue CLI with Vite;
+- perform broad styling or UX changes;
+- expose secrets;
+- perform Git operations without authorization.
 
-```text
-src/api/clients.js
-src/api/axios.js
-src/views/ProductView.vue
-src/components/CRUDManagerComponent.vue
-src/components/CRUDGridComponent.vue
-src/components/PropertiesComponent.vue
-src/components/SimpleFormComponent.vue
-docker-compose.yml
-.env (ignored; URL keys only, never reproduce credential values)
-```
+### 13.5 Required validation order
 
-### 13.4 Current Properties-update acceptance criteria
+Execute and report one stage at a time:
 
-The current implementation step is considered validated when:
+1. Dependency/configuration validation.
+2. Smallest focused Product test.
+3. Complete Product frontend unit/component suite.
+4. Production build.
+5. Coverage generation and threshold validation.
+6. SonarScanner upload.
+7. Quality Gate and issue summary.
+8. Combined `qa-check.sh` execution.
 
-1. Product list/detail requests use `dpApi` on port 8081.
-2. Franchise and login still use `sbmApi` on port 8082.
-3. Product list works with the validated pagination contract and detail uses integer `id`.
-4. Properties opens `SimpleFormComponent` in modification mode.
-5. Relation selectors display their DP-API options.
-6. PATCH uses `dpApi`, integer Product `id`, the field allowlist and `updated_by`.
-7. Price fields and `is_deleted` are not sent in PATCH.
-8. No Product POST, logical delete, legacy config or price-history request is issued.
-9. Existing non-Product CRUD behavior remains unchanged.
+Do not claim SonarQube success unless the server accepted the analysis and the resulting project/Quality Gate was inspected.
 
-Do not enable Product create, price modification or logical delete until each contract is adapted and validated as its own vertical slice.
+### 13.6 Final implementation report
 
-### 13.5 Interaction rule
+Codex must finish by reporting:
 
-When the user responds only with:
+- files created, modified, moved, or removed;
+- dependencies added and the selected lockfile;
+- exact test commands;
+- test count and result;
+- production build result;
+- line, statement, function, and branch coverage;
+- LCOV path;
+- SonarQube project key and analyzed scope;
+- Reliability, Security, Maintainability, duplication, coverage, hotspots, and Quality Gate state;
+- warnings or unsupported scanner properties;
+- remaining Product QA gaps;
+- confirmation that Material and unrelated user changes were preserved.
 
-```text
-ok
-```
-
-it means the previous validation produced exactly the expected result. Continue directly to the next incremental step without asking for the same output again.
 
 ---
 
 ## 14. Executive summary
 
-`sbm-manager` is the Vue 3 enterprise frontend for SBM Suite. It now has two explicit Axios clients: `dpApi` for Ditaly Pasta client operations and `sbmApi` for internal, critical and not-yet-migrated operations. The legacy `src/api/axios.js` default remains mapped to `sbmApi` to prevent global regressions.
+`sbm-manager` is the Vue 3 enterprise frontend for SBM Suite. It separates `dpApi` client-facing operations from `sbmApi` internal and legacy operations. Product is functionally implemented through `dpApi` for list, detail, create, PATCH, pricing configuration, and confirmed logical deletion, while preserving the backend-controlled SKU, integer Product identity, audit adapter behavior, and the prohibition on PUT and HTTP DELETE.
 
-The first frontend migration is Product. Product list and detail use `dpApi`, select rows by integer `id`, omit the unsupported `is_visible` filter and expose `price_gross_amount`. Franchise selection remains on `sbmApi`. Product now has a restricted Properties modification flow that reuses `SimpleFormComponent`, sends an allowlisted PATCH through `dpApi` and adds `updated_by` from the authenticated SBM `uuid`. Generic create, configure and delete actions remain disabled.
+The repository currently has no frontend test runner, unit/component tests, coverage report, SonarQube project, scanner script, or combined QA command. The immediate objective is therefore not Material: it is to finish Product as the complete reference vertical by establishing Vitest + Vue Test Utils, Product-focused deterministic tests, LCOV coverage, local SonarQube analysis, a Quality Gate, and documented repeatable scripts.
 
-The immediate task is interactive validation of the restricted PATCH and cross-API audit identity. Price modification and logical delete remain separate pending slices. Product CREATE also remains pending until code/SKU ownership and `created_by` identity are resolved.
-
-The long-term frontend target is a clear domain-oriented integration where every client operation reaches `dp-api`, every internal critical operation reaches `sbm-api`, and neither developers nor future AI-assisted workflows can accidentally cross that boundary through a single ambiguous base URL.
+Material code present in the worktree must be preserved but paused. Once Product QA is stable, its verified structure—not merely its UI implementation—becomes the template for Material and later modules.

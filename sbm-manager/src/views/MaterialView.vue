@@ -11,116 +11,288 @@
       <div class="row">
         <div class="col-1"></div>
         <div class="col-10 w-100 text-center">
-          <FranchiseSelector v-model="selectedFranchise" :franchises="franchises" @change="onFranchiseChange" />
+          <FranchiseSelector v-model="selectedFranchise" :franchises="franchises" />
         </div>
       </div>
+
       <br />
     </div>
 
     <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="Material" endpoint="materials/"
       get-endpoint="materials/" post-endpoint="materials/" iconClass="fas fa-spoon" :fields="fields"
-      :showPropertiesButton="true" :showCalculationComponent="true" :calculationCode="selectedPriceConfiguration"
-      :baseNetAmount="selectedBaseNetAmount" :netAmount="selectedNetAmount" :grossAmount="selectedGrossAmount"
-      :ivaAmount="selectedIVAAmount" :additionalTaxAmount="selectedAditionalTaxAmount"
-      :retentionAmount="selectedRetentionAmount" :configFormResourcePath="'materials'" :configFormLookupField="'code'"
-      @row-selected="handleMaterialSelected" @refresh="handleRefresh">
-      <template #properties>
-        <PropertiesComponent :product="selectedMaterial" :fields="fields" title="Propiedades del Material"
-          configResource="materials" lookupField="code" />
-      </template>
-    </CRUDManagerComponent>
+      :apiClient="dpApi" rowKey="id" :includeVisibleFilter="false" :showDeletedFilter="false"
+      :allowCreate="true" :allowUpdate="false" :allowDelete="true"
+      detail-delete-endpoint="materials/{id}/delete/" :delete-audit-value="getMaterialAuditUser"
+      :enableExtendedProperties="false" :showPropertiesButton="true" :showOpenColumn="false"
+      :showCalculationComponent="false" :optionsProps="materialOptions" :propertiesEditable="true"
+      :createDefaults="getMaterialCreateDefaults" :propertiesUpdateAuditValue="getMaterialAuditUser"
+      configFormResourcePath="materials" configFormLookupField="code" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import axios from "../api/axios";
-import CRUDManagerComponent from "../components/CRUDManagerComponent.vue";
-import FranchiseSelector from "../components/FranchiseSelectorComponent.vue";
-import PropertiesComponent from "../components/PropertiesComponent.vue";
+import { onMounted, ref } from 'vue'
 
-const franchises = ref([]);
-const selectedFranchise = ref("");
-const selectedFranchiseCode = ref("");
+import { dpApi, sbmApi } from '../api/clients'
+import CRUDManagerComponent from '../components/CRUDManagerComponent.vue'
+import FranchiseSelector from '../components/FranchiseSelectorComponent.vue'
 
-const selectedPriceConfiguration = ref(null);
-const selectedBaseNetAmount = ref(null);
-const selectedNetAmount = ref(null);
-const selectedGrossAmount = ref(null);
-const selectedIVAAmount = ref(null);
-const selectedAditionalTaxAmount = ref(null);
-const selectedRetentionAmount = ref(null);
-const selectedMaterial = ref(null);
+const franchises = ref([])
+const selectedFranchise = ref('')
 
-const fields = ref([
-{ key: 'id', hideInGrid: true, omitInForm: true },
-  { key: 'sku', label: 'SKU', type: 'text', omitInForm: true, readOnlyOnConfigure: true },
-  { key: 'description', label: 'Descripción', type: 'textarea', required: true, readOnlyOnConfigure: true },
-  { key: 'price_configuration_input', label: 'Configuración Precio', type: 'dynamic-select', labelKey: 'price_configuration', valueKey: 'code', endpoint: '/price-configuration/', required: true, quickConfigure: false },
-  { key: 'price_configuration', hideInGrid: true, omitInForm: true },
-  { key: 'price_configuration_label', hideInGrid: true, omitInForm: true },
-  { key: 'base_net_amount', label: 'Valor Base NETO', type: 'number', hideInGrid: true, omitInForm: true },
-  { key: 'base_net_amount_input', label: 'Valor Base NETO', type: 'number', required: true, quickConfigure: false },
-  { key: 'net_amount', label: 'Costo NETO', type: 'price', hideInGrid: false, omitInForm: true, secretField: true, quickConfigure: false },
-  { key: 'gross_amount', label: 'Costo BRUTO', type: 'price', hideInGrid: false, omitInForm: true, secretField: true },
-  { key: 'iva_amount', label: 'IVA Compra', type: 'price', hideInGrid: false, omitInForm: true, secretField: true },
-  { key: 'aditional_tax_amount', hideInGrid: true, omitInForm: true },
-  { key: 'retention_amount', hideInGrid: true, omitInForm: true },
+const materialOptions = {
+  showToggleButton: true,
+  toggleButtonText: '',
+  toggleIconClass: '',
+  iconHide: 'fas fa-eye',
+  iconShow: 'fas fa-eye-slash',
+  toggleClassWhenShown: 'btn-danger text-white',
+  toggleClassWhenHidden: 'btn-warning text-dark',
+  showImportButton: false,
+  showExportButton: true,
+  exportButtonClass: 'btn-outline-primary',
+  exportButtonText: 'Exportar',
+  exportIcon: 'fas fa-file-export'
+}
+
+const fields = [
+  { key: 'id', hideInGrid: true, omitInForm: true },
+  { key: 'code', hideInGrid: true, omitInForm: true },
+  {
+    key: 'sku',
+    label: 'SKU',
+    type: 'text',
+    omitInForm: true,
+    readOnlyOnConfigure: true
+  },
+  {
+    key: 'description',
+    label: 'Descripción',
+    type: 'textarea',
+    required: true
+  },
+  {
+    key: 'obs',
+    label: 'Observaciones',
+    type: 'textarea',
+    required: true
+  },
+  {
+    key: 'base_net_amount',
+    label: 'Valor Base Neto',
+    type: 'number',
+    min: 0.01,
+    required: true,
+    requiredOnCreate: true,
+    hideInGrid: true
+  },
+  {
+    key: 'price_configuration',
+    label: 'Configuración de precio',
+    type: 'dynamic-select',
+    labelKey: 'price_configuration',
+    valueKey: 'code',
+    endpoint: '/price-configuration/?record_type=2&is_confirmed=true',
+    required: true,
+    requiredOnCreate: true,
+    hideInGrid: true
+  },
+  {
+    key: 'price_configuration_label',
+    label: 'Configuración de precio',
+    omitInForm: true
+  },
+  {
+    key: 'net_amount',
+    label: 'Costo neto',
+    type: 'price',
+    omitInForm: true,
+    secretField: true
+  },
+  {
+    key: 'iva_amount',
+    label: 'IVA compra',
+    type: 'price',
+    omitInForm: true,
+    secretField: true
+  },
+  {
+    key: 'aditional_tax_amount',
+    label: 'Impuesto adicional',
+    type: 'price',
+    omitInForm: true,
+    secretField: true
+  },
+  {
+    key: 'retention_amount',
+    label: 'Retención',
+    type: 'price',
+    omitInForm: true,
+    secretField: true
+  },
+  {
+    key: 'gross_amount',
+    label: 'Costo bruto',
+    type: 'price',
+    omitInForm: true,
+    secretField: true
+  },
   { key: 'price', hideInGrid: true, omitInForm: true },
-  { key: 'obs', label: 'Observaciones', type: 'textarea', required: true },
-  { key: 'package_unit', label: 'Unidades Empaque', type: 'number', required: true},
-  { key: 'min_package_purchase', label: 'Mínimo Compra', type: 'number', required: true },
-  { key: 'provider', label: 'Proveedor', type: 'dynamic-select', labelKey: 'provider', valueKey: 'id', endpoint: '/providers/', hideInGrid: true, omitInForm: false, required: true, readOnlyOnConfigure: true },
-  { key: 'provider_name', label: 'Proveedor', hideInGrid: false, omitInForm: true, secretField: true },
-  { key: 'type', label: 'Tipo', type: 'dynamic-select', labelKey: 'type', valueKey: 'id', endpoint: '/item-types/', hideInGrid: true, omitInForm: false, required: true },
-  { key: 'type_name', label: 'Tipo', hideInGrid: false, omitInForm: true },
-  { key: 'item_group', label: 'Grupo', type: 'dynamic-select', labelKey: 'group_name', valueKey: 'id', endpoint: '/item-groups/', hideInGrid: true, omitInForm: false, required: true },
-  { key: 'item_group_name', label: 'Grupo', hideInGrid: false, omitInForm: true },
-  { key: 'category', label: 'Categoría', type: 'dynamic-select', labelKey: 'category', valueKey: 'id', endpoint: '/item-categories/', hideInGrid: true, omitInForm: false, required: true },
-  { key: 'category_name', label: 'Categoría', hideInGrid: false, omitInForm: true },
-  { key: 'url', label: 'URL', type: 'text' },
-  { key: 'package', label: 'Empaque', type: 'dynamic-select', labelKey: 'description', valueKey: 'id', endpoint: '/packages/', hideInGrid: true, omitInForm: false, required: true },
-  { key: 'package_description', label: 'Embalaje', hideInGrid: false, omitInForm: true },
-  { key: 'is_active', label: 'Activo', type: 'checkbox' },
-  { key: 'is_confirmed', label: 'Confirmado', type: 'checkbox', hideInGrid: false, omitInForm: false },
-  { key: 'is_deleted', label: 'Eliminado', hideInGrid: false, omitInForm: true },
-  { key: 'created_at', label: 'Fecha creación', hideInGrid: false, omitInForm: true },
-  { key: 'updated_at', hideInGrid: true, omitInForm: true },
-  { key: 'confirmed_at', hideInGrid: true, omitInForm: true },
-  { key: 'deleted_at', hideInGrid: true, omitInForm: true },
+  {
+    key: 'package_unit',
+    label: 'Unidades de empaque',
+    type: 'number',
+    min: 1,
+    required: true
+  },
+  {
+    key: 'min_package_purchase',
+    label: 'Mínimo de compra',
+    type: 'number',
+    min: 1,
+    required: true
+  },
+  {
+    key: 'provider',
+    label: 'Proveedor',
+    type: 'dynamic-select',
+    labelKey: 'provider',
+    valueKey: 'id',
+    endpoint: '/providers/',
+    required: true,
+    hideInGrid: true,
+    readOnlyOnConfigure: true
+  },
+  {
+    key: 'provider_name',
+    label: 'Proveedor',
+    omitInForm: true
+  },
+  {
+    key: 'type',
+    label: 'Tipo',
+    type: 'dynamic-select',
+    labelKey: 'type',
+    valueKey: 'id',
+    endpoint: '/item-types/',
+    required: true,
+    hideInGrid: true
+  },
+  {
+    key: 'type_name',
+    label: 'Tipo',
+    omitInForm: true
+  },
+  {
+    key: 'item_group',
+    label: 'Grupo',
+    type: 'dynamic-select',
+    labelKey: 'group_name',
+    valueKey: 'id',
+    endpoint: '/item-groups/',
+    required: true,
+    hideInGrid: true
+  },
+  {
+    key: 'item_group_name',
+    label: 'Grupo',
+    omitInForm: true
+  },
+  {
+    key: 'category',
+    label: 'Categoría',
+    type: 'dynamic-select',
+    labelKey: 'category',
+    valueKey: 'id',
+    endpoint: '/item-categories/',
+    required: true,
+    hideInGrid: true
+  },
+  {
+    key: 'category_name',
+    label: 'Categoría',
+    omitInForm: true
+  },
+  {
+    key: 'package',
+    label: 'Empaque',
+    type: 'dynamic-select',
+    labelKey: 'description',
+    valueKey: 'id',
+    endpoint: '/packages/',
+    required: true,
+    hideInGrid: true
+  },
+  {
+    key: 'package_description',
+    label: 'Empaque',
+    omitInForm: true
+  },
+  {
+    key: 'url',
+    label: 'URL',
+    type: 'url'
+  },
+  {
+    key: 'is_active',
+    label: 'Activo',
+    type: 'checkbox'
+  },
+  {
+    key: 'is_confirmed',
+    label: 'Confirmado',
+    type: 'checkbox'
+  },
+  {
+    key: 'is_deleted',
+    label: 'Eliminado',
+    type: 'checkbox',
+    hideInGrid: true,
+    omitInForm: true
+  },
+  {
+    key: 'created_at',
+    label: 'Fecha de creación',
+    omitInForm: true
+  },
+  {
+    key: 'updated_at',
+    label: 'Fecha de actualización',
+    omitInForm: true
+  },
+  {
+    key: 'confirmed_at',
+    label: 'Fecha de confirmación',
+    omitInForm: true
+  },
+  {
+    key: 'deleted_at',
+    label: 'Fecha de eliminación',
+    omitInForm: true
+  },
   { key: 'created_by', hideInGrid: true, omitInForm: true },
   { key: 'confirmed_by', hideInGrid: true, omitInForm: true },
   { key: 'updated_by', hideInGrid: true, omitInForm: true },
   { key: 'deleted_by', hideInGrid: true, omitInForm: true },
-  { key: 'log', hideInGrid: true, omitInForm: true },
-  { key: 'version', hideInGrid: true, omitInForm: true },
-]);
+  { key: 'version', hideInGrid: true, omitInForm: true }
+]
 
-const onFranchiseChange = payload => {
-  selectedFranchiseCode.value = payload.code;
-};
+const getMaterialAuditUser = () => localStorage.getItem('uuid')
 
-const handleMaterialSelected = material => {
-  if (!material) {
-    selectedMaterial.value = null;
-    return;
+const getMaterialCreateDefaults = () => ({
+  code: crypto.randomUUID(),
+  created_by: getMaterialAuditUser()
+})
+
+const loadFranchises = async () => {
+  try {
+    const response = await sbmApi.get('franchises/')
+    franchises.value = response.data?.results ?? response.data ?? []
+  } catch (error) {
+    console.error('No fue posible cargar las franquicias.', error)
+    franchises.value = []
   }
+}
 
-  selectedMaterial.value = material;
-
-  selectedPriceConfiguration.value = material.price_configuration;
-  selectedBaseNetAmount.value = material.base_net_amount;
-  selectedNetAmount.value = material.net_amount;
-  selectedGrossAmount.value = material.gross_amount;
-  selectedIVAAmount.value = material.iva_amount;
-  selectedAditionalTaxAmount.value = material.aditional_tax_amount;
-  selectedRetentionAmount.value = material.retention_amount;
-};
-
-const handleRefresh = () => window.location.reload();
-
-onMounted(async () => {
-  const res = await axios.get("franchises/");
-  franchises.value = res.data.results || res.data;
-});
+onMounted(loadFranchises)
 </script>

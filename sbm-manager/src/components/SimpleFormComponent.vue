@@ -54,7 +54,7 @@
                   <div>
                     <label :for="fieldId(field)" class="form-label fw-semibold mb-1">
                       {{ field.label }}
-                      <span v-if="field.required" class="required-mark">*</span>
+                      <span v-if="isFieldRequired(field)" class="required-mark">*</span>
                     </label>
                     <div class="small text-secondary">
                       {{ form[field.key] ? 'Habilitado' : 'Deshabilitado' }}
@@ -71,21 +71,21 @@
             <div v-else class="field-panel h-100">
               <label :for="fieldId(field)" class="form-label fw-semibold text-dark mb-2">
                 {{ field.label }}
-                <span v-if="field.required" class="required-mark">*</span>
+                <span v-if="isFieldRequired(field)" class="required-mark">*</span>
               </label>
 
               <div v-if="['text', 'email', 'url'].includes(field.type)" class="input-group form-control-group">
                 <span class="input-group-text"><i :class="fieldIcon(field)"></i></span>
                 <input :id="fieldId(field)" :type="field.type" class="form-control form-control-lg"
                   :value="form[field.key]" @input="handleInputUppercase(field, $event)"
-                  :required="field.required" :maxlength="field.maxlength" :disabled="isFieldDisabled(field)"
+                  :required="isFieldRequired(field)" :maxlength="field.maxlength" :disabled="isFieldDisabled(field)"
                   :placeholder="field.placeholder || `Ingresa ${String(field.label || '').toLowerCase()}`" />
               </div>
 
               <div v-else-if="field.type === 'number'" class="input-group form-control-group">
                 <span class="input-group-text"><i :class="fieldIcon(field)"></i></span>
                 <input :id="fieldId(field)" v-model.number="form[field.key]" type="number"
-                  class="form-control form-control-lg" :required="field.required" :min="field.min"
+                  class="form-control form-control-lg" :required="isFieldRequired(field)" :min="field.min"
                   :max="field.max" :step="field.step || 'any'" :disabled="isFieldDisabled(field)"
                   :placeholder="field.placeholder || '0'" />
                 <span v-if="field.suffix" class="input-group-text field-suffix">{{ field.suffix }}</span>
@@ -94,7 +94,7 @@
               <div v-else-if="field.type === 'textarea'" class="textarea-control position-relative">
                 <span class="textarea-icon"><i :class="fieldIcon(field)"></i></span>
                 <textarea :id="fieldId(field)" class="form-control form-control-lg" :value="form[field.key]"
-                  @input="handleInputUppercase(field, $event)" :required="field.required" :rows="field.rows || 4"
+                  @input="handleInputUppercase(field, $event)" :required="isFieldRequired(field)" :rows="field.rows || 4"
                   :disabled="isFieldDisabled(field)"
                   :placeholder="field.placeholder || `Escribe ${String(field.label || '').toLowerCase()}`"></textarea>
               </div>
@@ -102,7 +102,7 @@
               <div v-else-if="field.type === 'select'" class="input-group form-control-group">
                 <span class="input-group-text"><i :class="fieldIcon(field)"></i></span>
                 <select :id="fieldId(field)" v-model="form[field.key]" class="form-select form-select-lg"
-                  :required="field.required" :disabled="isFieldDisabled(field)">
+                  :required="isFieldRequired(field)" :disabled="isFieldDisabled(field)">
                   <option :value="null" disabled>Selecciona una opción...</option>
                   <option v-for="option in getOptions(field)" :key="option.id" :value="option.id">
                     {{ option.state || option.label || option.name }}
@@ -116,7 +116,7 @@
                   <i v-else :class="fieldIcon(field)"></i>
                 </span>
                 <select :id="fieldId(field)" v-model="form[field.key]" class="form-select form-select-lg"
-                  :required="field.required" :disabled="isFieldDisabled(field) || isDynamicLoading(field)">
+                  :required="isFieldRequired(field)" :disabled="isFieldDisabled(field) || isDynamicLoading(field)">
                   <option :value="null" disabled>{{ isDynamicLoading(field) ? 'Cargando opciones...' : 'Selecciona una opción...' }}</option>
                   <option v-for="option in getDynamicOptions(field)"
                     :key="option[field.valueKey || 'id'] ?? option.code ?? option.id"
@@ -142,7 +142,7 @@
               <div v-else-if="field.type === 'price'" class="input-group form-control-group">
                 <span class="input-group-text"><i :class="fieldIcon(field)"></i></span>
                 <input :id="fieldId(field)" v-model="form[field.key]" type="text"
-                  class="form-control form-control-lg" @input="onPriceInput(field)" :required="field.required"
+                  class="form-control form-control-lg" @input="onPriceInput(field)" :required="isFieldRequired(field)"
                   :maxlength="field.maxlength" :disabled="isFieldDisabled(field)" placeholder="$0" />
               </div>
 
@@ -223,7 +223,7 @@ export default {
         .filter(value => value !== null && value !== undefined && value !== '');
     },
     requiredFieldsCount() {
-      return this.visibleFields.filter(field => field.required).length;
+      return this.visibleFields.filter(field => this.isFieldRequired(field)).length;
     },
   },
   mounted() {
@@ -284,6 +284,9 @@ export default {
     },
     isFieldDisabled(field) {
       return Boolean(field.disabled || (this.isEdit && field.readOnlyOnConfigure));
+    },
+    isFieldRequired(field) {
+      return Boolean(field.required && !(this.isEdit && field.requiredOnCreate));
     },
     fieldIcon(field) {
       if (field.iconClass) return field.iconClass;
