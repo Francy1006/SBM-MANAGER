@@ -395,17 +395,157 @@ yarn build
 
 ## Quality assurance
 
-- Business routes require authentication.
-- Collections support pagination, search and ordering.
-- Resource detail and mutation operations use canonical identifiers.
-- Product Properties provides controlled partial editing and DP-API relation selectors.
-- Product uses PATCH rather than PUT.
-- Product logical deletion uses the documented POST action and never HTTP DELETE.
-- Material uses DP-API for list, detail, create, PATCH and confirmed logical deletion.
-- Material pricing uses confirmed `record_type=2` configurations and displays the API-provided label.
-- Franchise and platform operations remain isolated in `sbm-api`.
-- Shared CRUD behavior is consistent across business modules.
-- Production assets are generated with `yarn build`.
+The first automated frontend QA vertical covers Product and the shared components used by its current flow. It uses Vitest, Vue Test Utils, jsdom and V8 coverage.
+
+The mandatory execution policy is container-only:
+
+```text
+Node/Yarn dependencies and commands → frontend container
+Python dependencies and commands   → project container or dedicated virtual environment
+Host package managers/runtimes      → prohibited
+```
+
+### Requirements
+
+- Docker and Docker Compose.
+- External `sbm-network` network already created.
+- The `app` image built from the current `package.json` and `yarn.lock`.
+- A running SonarQube instance only when static analysis is required.
+
+No host Node, npm, npx or Yarn installation is required or permitted.
+
+### Install dependencies
+
+Dependency installation occurs while building the image:
+
+```bash
+docker compose build app
+```
+
+For an already running development container whose anonymous dependency volume must be synchronized:
+
+```bash
+docker compose exec app yarn install --frozen-lockfile
+```
+
+Never run `npm install`, `yarn install`, Vitest or Vue CLI directly on the host.
+
+### Run tests
+
+Run the deterministic Product suite once:
+
+```bash
+docker compose exec app yarn test:run
+```
+
+Run a specific test file:
+
+```bash
+docker compose exec app yarn test:run src/views/__tests__/ProductView.spec.js
+```
+
+### Watch mode
+
+With the development container running:
+
+```bash
+docker compose exec app yarn test
+```
+
+Stop watch mode with `Ctrl+C`.
+
+### Coverage
+
+From the repository root:
+
+```bash
+./scripts/coverage.sh
+```
+
+The script validates Docker and the QA dependencies, runs tests non-interactively in an ephemeral container, enforces thresholds and checks the LCOV artifact.
+
+Generated reports are ignored by Git:
+
+```text
+sbm-manager/coverage/lcov.info
+sbm-manager/coverage/cobertura-coverage.xml
+sbm-manager/coverage/index.html
+```
+
+Current Product gate:
+
+```text
+statements >= 70%
+lines      >= 70%
+functions  >= 70%
+branches   >= 60%
+```
+
+Validated baseline (2026-07-21): 40/40 tests passed; Vitest reported 70.03% statements, 70.03% lines, 72.83% functions and 66.90% branches.
+
+### SonarQube variables
+
+Configure both variables in the selected ignored environment file. During the current transition the default is `.env`; once `.env.dev` exists, it becomes the automatic default. Do not commit or print the token:
+
+```bash
+SONAR_HOST_URL=http://host.docker.internal:9000
+SONAR_TOKEN=<configured-locally>
+```
+
+On macOS, a SonarQube server running on the host is normally reached from the scanner container through `host.docker.internal`. The scanner never hardcodes this URL.
+
+### Run SonarScanner
+
+Generate coverage first, then run:
+
+```bash
+./scripts/sonar-scan.sh
+```
+
+Select another environment explicitly when required:
+
+```bash
+ENV_FILE=.env.prod ./scripts/sonar-scan.sh
+```
+
+`ENV_FILE` only selects the file passed to the disposable scanner container; Node, Yarn and SonarScanner are never installed on the host.
+
+The scanner uses a disposable Docker container, mounts the repository read-only as analysis input, imports `sbm-manager/coverage/lcov.info`, uses explicit `linux/amd64` compatibility on Mac ARM and caches downloaded analyzer plugins under the ignored `.sonar/` directory.
+
+### Run the complete QA flow
+
+```bash
+./scripts/qa-check.sh
+```
+
+The order is fixed and fail-fast:
+
+```text
+tests and coverage
+→ SonarScanner
+→ SonarQube Quality Gate processing
+```
+
+### Common errors
+
+- `faltan dependencias QA en la imagen`: rebuild with `docker compose build app`.
+- `SONAR_HOST_URL no está definida` or `SONAR_TOKEN no está definida`: add the missing variable to the environment file selected by `ENV_FILE`.
+- `falta .../coverage/lcov.info`: run `./scripts/coverage.sh` first.
+- SonarScanner `Connection reset` while downloading the JavaScript plugin: inspect SonarQube resources/logs and retry after the server can deliver the analyzer. The scanner cache preserves plugins downloaded successfully.
+- Sonar JavaScript bridge `unresponsive` or `Connection refused`: increase the memory assigned to Docker Desktop. This project failed with about 4 GB shared by all containers and completed with about 6 GB; the scanner's Node bridge runs only during analysis.
+- Bundle-size and outdated Browserslist warnings do not fail the current production build; they remain documented technical debt.
+
+Validated local SonarQube baseline (2026-07-21): Quality Gate passed, 69.6% Sonar coverage, Reliability C (10 open bugs), Security A (0 vulnerabilities and 0 hotspots), Maintainability A (52 code smells), and 1.9% duplicated lines. The current gate has no blocking conditions for these overall-code findings; passing it does not erase that debt.
+
+### Product guarantees covered
+
+- Product CRUD uses `dpApi`; Franchise loading remains on `sbmApi`.
+- Lists, search, ordering, pagination, empty/loading/error states and integer detail identity are verified.
+- Creation uses POST with trusted `code` and `created_by`; SKU, Price, calculated amounts and internal log data cannot be injected from the form.
+- Modification uses changed-field PATCH with `updated_by`; PUT is never used.
+- Logical deletion requires confirmation and uses POST `products/{id}/delete/`; HTTP DELETE is never used.
+- Product relation selectors and confirmed `record_type=1` price configuration load through the injected DP client without real HTTP traffic in tests.
+- Production assets continue to build inside the frontend container.
 
 ## AI integration
 

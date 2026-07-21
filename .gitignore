@@ -1,6 +1,9 @@
 sbm-manager/.DS_Store
 sbm-manager/node_modules
 sbm-manager/dist
+coverage/
+.sonar/
+.scannerwork/
 
 
 # local env files

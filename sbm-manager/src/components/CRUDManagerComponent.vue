@@ -287,10 +287,10 @@ function showCreateForm() {
 async function onSave(data) {
   loading.value = true;
   try {
-    const sourceData = isEdit.value
-      ? data
-      : { ...editingData.value, ...data };
-    const cleanedData = cleanData(sourceData);
+    const cleanedData = cleanData(data);
+    if (!isEdit.value) {
+      Object.assign(cleanedData, editingData.value);
+    }
     if (isEdit.value && editingData.value.sku) {
       await axios.patch(
         `${finalUpdateEndpoint.value}${editingData.value.code ?? editingData.value.id ?? editingData.value.sku}/`,
@@ -303,7 +303,6 @@ async function onSave(data) {
       emit('updated', editingData.value.id);
       alert(`${props.resourceName} actualizado exitosamente!`);
     } else {
-      console.log('PAYLOAD CREATE JSON:', JSON.stringify(cleanedData, null, 2));
       const response = await props.apiClient.post(finalCreateEndpoint.value, cleanedData);
       emit('created', response.data);
       alert(`${props.resourceName} creado exitosamente!`);
@@ -349,7 +348,7 @@ function cleanData(data) {
 
   props.fields.forEach(field => {
     const key = field.key;
-    if (omitKeys.includes(key)) return;
+    if (field.omitInForm === true || omitKeys.includes(key)) return;
 
     if (field.formGroup) {
       if (!grouped[field.formGroup]) grouped[field.formGroup] = {};
