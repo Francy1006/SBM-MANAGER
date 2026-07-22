@@ -1,9 +1,9 @@
 {
   "workbench.colorTheme": "Default Dark+",
   "workbench.colorCustomizations": {
-    "titleBar.activeBackground": "#4B0082", // morado intenso
-    "titleBar.activeForeground": "#ffffff",
-    "titleBar.inactiveBackground": "#2E003E", // morado apagado
-    "titleBar.inactiveForeground": "#cccccc"
+    "titleBar.activeBackground": "#2E7D32",
+    "titleBar.activeForeground": "#FFFFFF",
+    "titleBar.inactiveBackground": "#1B4332",
+    "titleBar.inactiveForeground": "#CCCCCC"
   }
 }
