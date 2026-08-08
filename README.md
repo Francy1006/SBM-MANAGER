@@ -141,7 +141,7 @@ These components provide consistent behavior across Franchise, Catalog, Order, P
 
 ```text
 SBM-MANAGER/
-├── .env
+├── .env.dev
 ├── docker-compose.yml
 ├── PROJECT_CONTEXT.md
 ├── README.md
@@ -592,3 +592,66 @@ Private portfolio and development project unless a separate license is added.
 Signed by Conker
 SBM Suite
 ```
+
+## Context lifecycle
+
+Canonical project contexts:
+
+```text
+context/PROJECT_CONTEXT.md
+context/QA_CONTEXT.md
+context/DEPLOY_CONTEXT.md
+```
+
+Lifecycle scripts:
+
+```text
+scripts/context-deploy.sh
+scripts/context-upgrade.sh
+scripts/documentation-deploy.sh
+scripts/documentation-upgrade.sh
+scripts/qa-check.sh
+```
+
+Required `.env.dev` variables:
+
+```text
+DOPPLER_PROJECT=sbm-manager
+AI_ASSISTANT_URL=http://localhost:8000
+SBM_SUITE_ROOT=../..
+```
+
+Context lifecycle:
+
+```bash
+./scripts/context-deploy.sh planning-activation <objective_id> "<user_prompt>"
+./scripts/context-deploy.sh implementation-progress <objective_id>
+./scripts/context-deploy.sh implementation-closure <objective_id>
+./scripts/context-upgrade.sh
+```
+
+Documentation lifecycle:
+
+```bash
+./scripts/documentation-deploy.sh
+./scripts/documentation-upgrade.sh
+```
+
+Generated QA evidence:
+
+```text
+context/qa-results.md
+```
+
+Suite-global exchange paths from this repository:
+
+```text
+../../context/output/context-deploy-package.zip
+../../context/input/context-upgrade.zip
+../../context/output/context-upgrade-response.json
+../../context/documentation/output/documentation-package.zip
+../../context/documentation/input/documentation-upgrade.zip
+../../context/documentation/output/documentation-upgrade-response.json
+```
+
+The lifecycle scripts intentionally require `sbm-manager` to be present in the `sbm-ai-assistant` canonical project contract before context or documentation export is accepted.

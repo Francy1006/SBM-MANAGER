@@ -11,7 +11,7 @@ services:
     networks:
       - sbm-network
     env_file:
-      - ./.env
+      - ./.env.dev
     environment:
       - VUE_APP_API_URL=${VUE_APP_API_URL}
       - VUE_APP_SBM_API_URL=${VUE_APP_SBM_API_URL}

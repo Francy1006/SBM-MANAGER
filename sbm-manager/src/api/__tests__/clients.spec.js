@@ -24,6 +24,8 @@ async function loadClients() {
   process.env.VUE_APP_DP_API_URL = 'http://dp.test/api'
   process.env.VUE_APP_API_USERNAME = 'fake-user'
   process.env.VUE_APP_API_PASSWORD = 'fake-password'
+  process.env.VUE_APP_DP_API_USERNAME = 'fake-user'
+  process.env.VUE_APP_DP_API_PASSWORD = 'fake-password'
   return import('../clients')
 }
 
@@ -91,6 +93,8 @@ describe('clientes HTTP por dominio', () => {
     delete process.env.VUE_APP_DP_API_URL
     delete process.env.VUE_APP_API_USERNAME
     delete process.env.VUE_APP_API_PASSWORD
+    delete process.env.VUE_APP_DP_API_USERNAME
+    delete process.env.VUE_APP_DP_API_PASSWORD
 
     await import('../clients')
 

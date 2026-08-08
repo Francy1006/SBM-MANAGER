@@ -3,53 +3,76 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-LCOV_REPORT="${PROJECT_ROOT}/sbm-manager/coverage/lcov.info"
+ENV_FILE="${PROJECT_ROOT}/.env.dev"
+REPORT_FILE="${PROJECT_ROOT}/report-task.txt"
 
-cd "${PROJECT_ROOT}"
+[[ -f "${ENV_FILE}" ]] || { echo "ERROR: No existe ${ENV_FILE}" >&2; exit 1; }
 
-if [[ -n "${ENV_FILE:-}" ]]; then
-  SBM_MANAGER_ENV_PATH="${ENV_FILE}"
-elif [[ -f "${PROJECT_ROOT}/.env.dev" ]]; then
-  SBM_MANAGER_ENV_PATH=".env.dev"
-else
-  # Temporary compatibility until the current .env is renamed to .env.dev.
-  SBM_MANAGER_ENV_PATH=".env"
-fi
+get_env() {
+  local key="$1"
+  awk -v key="${key}" '
+    index($0, key "=") == 1 { value = substr($0, length(key) + 2) }
+    END { sub(/\r$/, "", value); sub(/^"/, "", value); sub(/"$/, "", value); printf "%s", value }
+  ' "${ENV_FILE}"
+}
 
-if [[ "${SBM_MANAGER_ENV_PATH}" != /* ]]; then
-  SBM_MANAGER_ENV_PATH="${PROJECT_ROOT}/${SBM_MANAGER_ENV_PATH}"
-fi
+SONAR_HOST_URL="$(get_env SONAR_HOST_URL)"
+SONAR_API_URL="$(get_env SONAR_API_URL)"
+SONAR_TOKEN="$(get_env SONAR_TOKEN)"
 
-if [[ ! -f "${SBM_MANAGER_ENV_PATH}" ]]; then
-  echo "Error: no existe el archivo de entorno ${SBM_MANAGER_ENV_PATH}." >&2
+[[ -n "${SONAR_HOST_URL}" ]] || { echo "ERROR: Falta SONAR_HOST_URL" >&2; exit 1; }
+[[ -n "${SONAR_API_URL}" ]] || { echo "ERROR: Falta SONAR_API_URL" >&2; exit 1; }
+[[ -n "${SONAR_TOKEN}" ]] || { echo "ERROR: Falta SONAR_TOKEN" >&2; exit 1; }
+[[ -s "${PROJECT_ROOT}/sbm-manager/coverage/lcov.info" ]] || {
+  echo "ERROR: falta sbm-manager/coverage/lcov.info. Ejecute coverage.sh primero." >&2
   exit 1
-fi
+}
 
-if ! grep -Eq '^[[:space:]]*SONAR_HOST_URL=.+$' "${SBM_MANAGER_ENV_PATH}"; then
-  echo "Error: SONAR_HOST_URL no está definida en ${SBM_MANAGER_ENV_PATH}." >&2
-  exit 1
-fi
-
-if ! grep -Eq '^[[:space:]]*SONAR_TOKEN=.+$' "${SBM_MANAGER_ENV_PATH}"; then
-  echo "Error: SONAR_TOKEN no está definida en ${SBM_MANAGER_ENV_PATH}." >&2
-  exit 1
-fi
-
-if [[ ! -s "${LCOV_REPORT}" ]]; then
-  echo "Error: falta ${LCOV_REPORT}. Ejecuta primero ./scripts/coverage.sh." >&2
-  exit 1
-fi
-
-if ! command -v docker >/dev/null 2>&1; then
-  echo "Error: Docker es obligatorio para ejecutar SonarScanner." >&2
-  exit 1
-fi
-
+rm -f "${REPORT_FILE}"
 mkdir -p "${PROJECT_ROOT}/.sonar/cache"
 
 docker run --rm --platform linux/amd64 \
-  --env-file "${SBM_MANAGER_ENV_PATH}" \
-  -v "${PROJECT_ROOT}:/usr/src:ro" \
+  --env-file "${ENV_FILE}" \
+  -v "${PROJECT_ROOT}:/usr/src" \
   -v "${PROJECT_ROOT}/.sonar/cache:/opt/sonar-scanner/.sonar/cache" \
   -w /usr/src \
-  sonarsource/sonar-scanner-cli
+  sonarsource/sonar-scanner-cli \
+  -Dsonar.host.url="${SONAR_HOST_URL}" \
+  -Dsonar.scanner.metadataFilePath=/usr/src/report-task.txt
+
+[[ -f "${REPORT_FILE}" ]] || { echo "ERROR: No se generó ${REPORT_FILE}" >&2; exit 1; }
+
+CE_TASK_URL="$(awk -F= '$1=="ceTaskUrl"{print substr($0,index($0,"=")+1)}' "${REPORT_FILE}")"
+[[ -n "${CE_TASK_URL}" ]] || { echo "ERROR: No se encontró ceTaskUrl" >&2; exit 1; }
+CE_TASK_PATH="${CE_TASK_URL#*://}"
+CE_TASK_PATH="/${CE_TASK_PATH#*/}"
+
+echo "Esperando procesamiento de SonarQube..."
+while true; do
+  CE_RESPONSE="$(curl --silent --show-error --fail \
+    --header "Authorization: Bearer ${SONAR_TOKEN}" \
+    "${SONAR_API_URL%/}${CE_TASK_PATH}")"
+  CE_STATUS="$(printf '%s' "${CE_RESPONSE}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["task"]["status"])')"
+  case "${CE_STATUS}" in
+    SUCCESS) break ;;
+    FAILED|CANCELED) echo "ERROR: Compute Engine ${CE_STATUS}" >&2; exit 1 ;;
+    PENDING|IN_PROGRESS) sleep 2 ;;
+    *) echo "ERROR: Estado CE desconocido: ${CE_STATUS}" >&2; exit 1 ;;
+  esac
+done
+
+ANALYSIS_ID="$(printf '%s' "${CE_RESPONSE}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["task"].get("analysisId",""))')"
+[[ -n "${ANALYSIS_ID}" ]] || { echo "ERROR: No se obtuvo analysisId" >&2; exit 1; }
+
+QUALITY_RESPONSE="$(curl --silent --show-error --fail \
+  --header "Authorization: Bearer ${SONAR_TOKEN}" \
+  "${SONAR_API_URL%/}/api/qualitygates/project_status?analysisId=${ANALYSIS_ID}")"
+QUALITY_STATUS="$(printf '%s' "${QUALITY_RESPONSE}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["projectStatus"]["status"])')"
+
+echo "SonarScanner: SUCCESS"
+echo "Quality Gate: ${QUALITY_STATUS}"
+
+case "${QUALITY_STATUS}" in
+  OK) ;;
+  *) echo "ERROR: Quality Gate no aprobado: ${QUALITY_STATUS}" >&2; exit 1 ;;
+esac
