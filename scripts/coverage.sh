@@ -23,7 +23,10 @@ if ! docker compose run --rm --no-deps app test -x /app/node_modules/.bin/vitest
   exit 1
 fi
 
-docker compose run --rm --no-deps app yarn test:coverage
+docker compose run --rm --no-deps \
+  -e VUE_APP_DP_API_USERNAME= \
+  -e VUE_APP_DP_API_PASSWORD= \
+  app yarn test:coverage
 
 if [[ ! -s "${LCOV_REPORT}" ]]; then
   echo "Error: no se generó ${LCOV_REPORT}." >&2

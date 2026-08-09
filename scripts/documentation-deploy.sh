@@ -67,6 +67,25 @@ if [[ -n "${CHANGED_FILES}" ]]; then
 else
   CHANGE_SUMMARY="No uncommitted changes detected in ${PROJECT_NAME}."
 fi
+
+PROJECT_CONTEXT_FILE="${PROJECT_ROOT}/context/PROJECT_CONTEXT.md"
+
+if [[ -f "${PROJECT_CONTEXT_FILE}" ]]; then
+  LIFECYCLE_OBJECTIVES="$(
+    awk '
+      /^## 3\. Active objectives$/ { capture=1; next }
+      /^## 4\. Pending objectives$/ { capture=1; next }
+      /^## [0-9]+\./ { capture=0 }
+      capture && /^\| SBM-MANAGER-/ { print }
+    ' "${PROJECT_CONTEXT_FILE}"
+  )"
+else
+  LIFECYCLE_OBJECTIVES=""
+fi
+
+if [[ -n "${LIFECYCLE_OBJECTIVES}" ]]; then
+  CHANGE_SUMMARY="${CHANGE_SUMMARY}"$'\n\n'"Current lifecycle objectives:"$'\n'"${LIFECYCLE_OBJECTIVES}"
+fi
 if [[ -f "${QA_RESULTS_FILE}" ]]; then QA_RESULTS="$(cat "${QA_RESULTS_FILE}")"; else QA_RESULTS="QA evidence not supplied"; fi
 PROJECT_TREE="$(cat "${PROJECT_TREE_FILE}")"
 
