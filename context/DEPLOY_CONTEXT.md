@@ -1,145 +1,94 @@
 # DEPLOY_CONTEXT.md
 
-> **Last updated:** 2026-08-07
+> **Last updated:** 2026-08-10
 >
-> **Purpose:** Deployment and governed context/documentation workflow for SBM-MANAGER.
->
-> **Accuracy note:** Runtime paths and configuration names are derived from the supplied repository.
+> **Purpose:** Deployment and governed Context/Documentation workflow for SBM-MANAGER.
 
 ## 1. Scope and ownership
 
-This file covers local Docker execution and SBM Suite context/documentation exchange for:
+SBM-MANAGER keeps only local entry points. The canonical lifecycle implementation, contracts, Project Registry integration, QA/Git collection, HTTP exchange, payload construction, ZIP handling, patch application and cleanup live in:
+
+```text
+SBM-SUITE/context/scripts/
+```
+
+The wrappers resolve `SBM_SUITE_ROOT` from the repository layout and require the corresponding global script to be executable.
+
+## 2. Canonical paths
+
+Project:
 
 ```text
 SBM-SUITE/SBM/SBM-MANAGER/
 ```
 
-## 2. Required configuration
-
-Local environment file:
+Global lifecycle and exchange areas:
 
 ```text
-.env.dev
+SBM-SUITE/context/scripts/
+SBM-SUITE/context/input/
+SBM-SUITE/context/output/
+SBM-SUITE/context/backup/
+SBM-SUITE/context/documentation/input/
+SBM-SUITE/context/documentation/output/
 ```
 
-Required lifecycle variables:
+The only Project Tree implementation is:
 
 ```text
-DOPPLER_PROJECT=sbm-manager
-AI_ASSISTANT_URL
-SBM_SUITE_ROOT
+SBM-SUITE/context/project-tree.sh
 ```
 
-Runtime/API and SonarQube variables remain in `.env.dev` but their values must never be exported into generated context/documentation packages.
+It is invoked by the global workflows; SBM-MANAGER does not own a copy or wrapper.
 
-## 3. Canonical paths
+## 3. Context deploy
 
-Repository-relative:
+Local command:
 
-```text
-SBM-SUITE/SBM/SBM-MANAGER/
+```bash
+./scripts/context-deploy.sh <lifecycle_phase> '<objectives-json-array>' [user_prompt]
 ```
 
-Expected container/runtime project path:
+The wrapper delegates literally to:
 
-```text
-/suite/sbm/SBM-MANAGER
+```bash
+SBM-SUITE/context/scripts/context-deploy.sh sbm-manager "$@"
 ```
 
-Suite exchange paths from repository root:
+Supported lifecycle phases are `planning-activation`, `implementation-progress` and `implementation-closure`. The canonical contract is `objectives[]`; the local wrapper does not translate legacy single-objective arguments or validate lifecycle data.
 
-```text
-../../context/input/
-../../context/output/
-../../context/backup/
-../../context/documentation/input/
-../../context/documentation/output/
-context/qa-results.md
-```
+## 4. Context upgrade
 
-## 4. Context deploy workflow
-
-```text
-./scripts/context-deploy.sh <lifecycle_phase> <objective_id> [user_prompt]
-→ GET /contexts/contract
-→ validate canonical project registration
-→ generate global project-tree.txt
-→ collect Git and QA evidence excluding .env files
-→ POST /contexts/export
-→ generate suite-global context package
-```
-
-Supported lifecycle phases:
-
-```text
-planning-activation
-implementation-progress
-implementation-closure
-```
-
-## 5. Manual review stage
-
-The user uploads only:
-
-```text
-../../context/output/context-deploy-package.zip
-```
-
-ChatGPT reads the embedded context package and rendered `SYS_PROMPT.md`, then returns:
-
-```text
-context-upgrade.zip
-```
-
-## 6. Context upgrade workflow
-
-Place:
-
-```text
-../../context/input/context-upgrade.zip
-```
-
-Run:
+Place the returned package at the global input path expected by the canonical workflow, then run:
 
 ```bash
 ./scripts/context-upgrade.sh
 ```
 
-Validate:
+The wrapper delegates all arguments unchanged to `SBM-SUITE/context/scripts/context-upgrade.sh`. The global script obtains `project_name` from the package manifest and owns validation, application, backup and cleanup.
 
-```text
-../../context/output/context-upgrade-response.json
+## 5. Documentation deploy
+
+Run:
+
+```bash
+./scripts/documentation-deploy.sh
 ```
 
-## 7. Atomicity and cleanup
+The wrapper delegates to the global workflow with `sbm-manager` as the originating project. Documentation collection and reconciliation are suite-global and multi-project: the local entry point neither reads or filters SBM-MANAGER objectives nor constructs payloads.
 
-- Suite-global input/output exchange directories are used.
-- Context input is removed only after successful backend application.
-- Backend validation remains authoritative.
-- Environment files are excluded from Git evidence packaging.
+## 6. Documentation upgrade
 
-## 8. Rollback
+Place the returned package at the global Documentation input path expected by the canonical workflow, then run:
 
-Backups must use only:
-
-```text
-SBM-SUITE/context/backup/<timestamp>_<project>/
+```bash
+./scripts/documentation-upgrade.sh
 ```
 
-Backend atomic replacement and rollback remain authoritative.
+The wrapper delegates all arguments unchanged to `SBM-SUITE/context/scripts/documentation-upgrade.sh`. Validation and patch application remain exclusively global.
 
-## 9. Validation performed
+## 7. Runtime configuration and boundaries
 
-Project-side scripts validate:
+Runtime/API and SonarQube settings may remain in the project `.env.dev`, but lifecycle behavior is governed centrally. Environment values must never be exported into Context or Documentation packages.
 
-- required `.env.dev`;
-- lifecycle parameters;
-- backend published contract;
-- canonical project path;
-- required ZIP filename and manifest;
-- response workflow/project/errors;
-- expected input cleanup.
-
-## 10. Current limitations
-
-`sbm-manager` must first be registered in the global context contract and `sbm-ai-assistant` canonical project registry. Until that occurs, project scripts intentionally fail contract preflight rather than bypassing governance.
+The global scripts and `sbm-ai-assistant` are authoritative for Project Registry mappings, API contracts, exchange filenames, responses, atomic updates and rollback behavior.

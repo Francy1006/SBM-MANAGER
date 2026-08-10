@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md
 
-> **Last updated:** 2026-08-07
+> **Last updated:** 2026-08-10
 >
 > **Purpose:** Canonical project context for SBM-MANAGER.
 >
@@ -168,7 +168,7 @@ This is current implementation state, not a final security design.
 | DP-API | SBM-MANAGER → DP-API | Client-owned business operations | active |
 | SBM-API | SBM-MANAGER → SBM-API | Internal/platform operations | active |
 | SonarQube | SBM-MANAGER → SonarQube | Static analysis and Quality Gate | active |
-| sbm-ai-assistant | SBM-MANAGER scripts → AI assistant | Context/documentation lifecycle | integration pending backend registration |
+| sbm-ai-assistant | Global Context/Documentation scripts → AI assistant | Centralized lifecycle and multi-project Documentation reconciliation | active |
 
 ## 14. Implemented behavior
 
@@ -216,7 +216,7 @@ No database or migration ownership exists in this frontend repository.
 
 - Current Product QA covers a defined frontend slice, not every repository module.
 - Historical Sonar findings remain technical debt even when the Quality Gate passes.
-- Context and documentation scripts require `sbm-ai-assistant` to publish `sbm-manager` in its canonical project contract before execution succeeds.
+- Context and Documentation lifecycle behavior depends on the global scripts and the contracts published by `sbm-ai-assistant`.
 
 ## 19. Completed work
 
@@ -227,7 +227,6 @@ No database or migration ownership exists in this frontend repository.
 
 ## 20. Pending work
 
-- Register `sbm-manager` as a canonical context/documentation project in `sbm-ai-assistant` and the global context contracts.
 - Synchronize SBM-MANAGER into global PROJECT, SUITE and QA contexts.
 - Execute a fresh `qa-check.sh` after lifecycle integration.
 - Extend QA scope only when explicitly approved.
@@ -238,7 +237,10 @@ No database or migration ownership exists in this frontend repository.
 - Run frontend tests and SonarScanner through Docker.
 - Require a server-side SonarQube Quality Gate for final QA when SonarQube applies.
 - Generate `context/qa-results.md` as bounded QA evidence.
-- Use suite-global context/documentation input, output and backup directories.
+- Keep local Context/Documentation lifecycle scripts as minimal wrappers over `SBM-SUITE/context/scripts/`.
+- Use suite-global Context/Documentation input, output and backup directories.
+- Use only `SBM-SUITE/context/project-tree.sh` for Project Tree generation.
+- Treat Documentation generation and reconciliation as global and multi-project.
 - Never package `.env*` values into context or documentation exports.
 
 ## 22. Historical decisions
@@ -246,7 +248,7 @@ No database or migration ownership exists in this frontend repository.
 - Product is the reference frontend QA slice.
 - Vue CLI remains the current build/runtime toolchain.
 - Vitest is the current unit/component test runner.
-- Context and documentation use the same governed SBM Suite lifecycle as other projects.
+- Context and Documentation use the centralized, governed SBM Suite lifecycle and the canonical `objectives[]` contract.
 
 ## 23. Related documentation
 
@@ -255,6 +257,7 @@ SBM-SUITE/context/SUITE_CONTEXT.md
 SBM-SUITE/context/PROJECT_CONTEXT.md
 SBM-SUITE/context/QA_CONTEXT.md
 SBM-SUITE/context/documentation/
+SBM-SUITE/context/project-tree.sh
 ```
 
 ## 24. Document boundary
