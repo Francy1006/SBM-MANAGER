@@ -1,18 +1,18 @@
 # DEPLOY_CONTEXT.md
 
-> **Last updated:** 2026-08-10
+> **Last updated:** 2026-08-11
 >
 > **Purpose:** Deployment and governed Context/Documentation workflow for SBM-MANAGER.
 
 ## 1. Scope and ownership
 
-SBM-MANAGER keeps only local entry points. The canonical lifecycle implementation, contracts, Project Registry integration, QA/Git collection, HTTP exchange, payload construction, ZIP handling, patch application and cleanup live in:
+SBM-MANAGER does not own Context or Documentation entry points. The canonical lifecycle scripts, contracts, Project Registry integration, QA/Git collection, HTTP exchange, payload construction, ZIP handling, patch application and cleanup live exclusively in:
 
 ```text
 SBM-SUITE/context/scripts/
 ```
 
-The wrappers resolve `SBM_SUITE_ROOT` from the repository layout and require the corresponding global script to be executable.
+All lifecycle commands must be run from `SBM-SUITE/context`; there are no local wrappers in SBM-MANAGER.
 
 ## 2. Canonical paths
 
@@ -36,56 +36,50 @@ SBM-SUITE/context/documentation/output/
 The only Project Tree implementation is:
 
 ```text
-SBM-SUITE/context/project-tree.sh
+SBM-SUITE/context/scripts/project-tree.sh
 ```
 
 It is invoked by the global workflows; SBM-MANAGER does not own a copy or wrapper.
 
 ## 3. Context deploy
 
-Local command:
+From `SBM-SUITE/context`, run:
 
 ```bash
-./scripts/context-deploy.sh <lifecycle_phase> '<objectives-json-array>' [user_prompt]
+./scripts/context-deploy.sh sbm-manager <lifecycle_phase> '<objectives-json-array>' [user_prompt]
 ```
 
-The wrapper delegates literally to:
-
-```bash
-SBM-SUITE/context/scripts/context-deploy.sh sbm-manager "$@"
-```
-
-Supported lifecycle phases are `planning-activation`, `implementation-progress` and `implementation-closure`. The canonical contract is `objectives[]`; the local wrapper does not translate legacy single-objective arguments or validate lifecycle data.
+Supported lifecycle phases are `planning-activation`, `objective-activation`, `implementation-progress` and `implementation-closure`. The canonical contract is `objectives[]`; SBM-MANAGER does not translate or validate lifecycle arguments locally.
 
 ## 4. Context upgrade
 
-Place the returned package at the global input path expected by the canonical workflow, then run:
+Place the returned package at the global input path expected by the canonical workflow. From `SBM-SUITE/context`, run:
 
 ```bash
 ./scripts/context-upgrade.sh
 ```
 
-The wrapper delegates all arguments unchanged to `SBM-SUITE/context/scripts/context-upgrade.sh`. The global script obtains `project_name` from the package manifest and owns validation, application, backup and cleanup.
+The global script obtains `project_name` from the package manifest and owns validation, application, backup and cleanup.
 
 ## 5. Documentation deploy
 
-Run:
+From `SBM-SUITE/context`, run:
 
 ```bash
 ./scripts/documentation-deploy.sh
 ```
 
-The wrapper delegates to the global workflow with `sbm-manager` as the originating project. Documentation collection and reconciliation are suite-global and multi-project: the local entry point neither reads or filters SBM-MANAGER objectives nor constructs payloads.
+Documentation collection and reconciliation are suite-global and multi-project. SBM-MANAGER neither selects an originating project nor reads or filters objectives, constructs payloads or owns an entry point.
 
 ## 6. Documentation upgrade
 
-Place the returned package at the global Documentation input path expected by the canonical workflow, then run:
+Place the returned package at the global Documentation input path expected by the canonical workflow. From `SBM-SUITE/context`, run:
 
 ```bash
 ./scripts/documentation-upgrade.sh
 ```
 
-The wrapper delegates all arguments unchanged to `SBM-SUITE/context/scripts/documentation-upgrade.sh`. Validation and patch application remain exclusively global.
+Validation and patch application remain exclusively in the global workflow.
 
 ## 7. Runtime configuration and boundaries
 

@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md
 
-> **Last updated:** 2026-08-10
+> **Last updated:** 2026-08-11
 >
 > **Purpose:** Canonical project context for SBM-MANAGER.
 >
@@ -237,9 +237,9 @@ No database or migration ownership exists in this frontend repository.
 - Run frontend tests and SonarScanner through Docker.
 - Require a server-side SonarQube Quality Gate for final QA when SonarQube applies.
 - Generate `context/qa-results.md` as bounded QA evidence.
-- Keep local Context/Documentation lifecycle scripts as minimal wrappers over `SBM-SUITE/context/scripts/`.
+- Keep Context/Documentation lifecycle scripts exclusively in `SBM-SUITE/context/scripts/`; SBM-MANAGER must not provide local wrappers.
 - Use suite-global Context/Documentation input, output and backup directories.
-- Use only `SBM-SUITE/context/project-tree.sh` for Project Tree generation.
+- Use only `SBM-SUITE/context/scripts/project-tree.sh` for Project Tree generation.
 - Treat Documentation generation and reconciliation as global and multi-project.
 - Never package `.env*` values into context or documentation exports.
 
@@ -257,7 +257,7 @@ SBM-SUITE/context/SUITE_CONTEXT.md
 SBM-SUITE/context/PROJECT_CONTEXT.md
 SBM-SUITE/context/QA_CONTEXT.md
 SBM-SUITE/context/documentation/
-SBM-SUITE/context/project-tree.sh
+SBM-SUITE/context/scripts/project-tree.sh
 ```
 
 ## 24. Document boundary
