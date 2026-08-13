@@ -19,12 +19,12 @@ Provide a reusable management UI for products, materials, services, catalogs, or
 | ID | Objective | Status | Priority | Target date | Branch | Documentation |
 |---|---|---|---:|---|---|---|
 | SBM-MANAGER-001 | Integrar SBM-MANAGER completamente a SBM Suite, incluyendo contextos, lifecycle scripts, QA/SonarQube, registro en sbm-ai-assistant, sincronización global y actualización del diagrama canónico de arquitectura en SUITE_CONTEXT.md. | active | 5 | 2026-08-07 | `FEATURE-integrates-sbm-manager` | `context/documentation/pages/🤖 AI Architect Roadmap/🏢 SBM-Suite 3a50bde8acd580d0a068d6abc3542603.md` |
+| SBM-MANAGER-002 | Corregir SBM-MANAGER para consumir correctamente SBM-API y DP-API según ownership canónico. | active | 5 | N/A | BUGFIX-corrects-api-ownership | N/A |
 
 ## 4. Pending objectives
 
 | ID | Objective | Status | Priority | Target date | Branch | Documentation |
 |---|---|---|---:|---|---|---|
-| SBM-MANAGER-002 | Corregir SBM-MANAGER para consumir correctamente SBM-API y DP-API según ownership canónico. | pending | 5 | N/A | BUGFIX-corrects-api-ownership | N/A |
 | SBM-MANAGER-003 | Corregir y completar QA de SBM-MANAGER. | pending | 5 | N/A | BUGFIX-completes-manager-qa | N/A |
 
 ## 5. Scope and ownership
