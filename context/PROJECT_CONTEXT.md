@@ -142,7 +142,7 @@ DP-API      → http://localhost:8081/api
 SBM-API     → http://localhost:8082/api
 ```
 
-The frontend uses explicit `dpApi` and `sbmApi` clients. Product and Material client operations are evidenced as DP-API consumers.
+The frontend uses explicit `dpApi` and `sbmApi` clients. Product, Material, Service, Catalog and Provider client-owned operations are evidenced as DP-API consumers. Franchise lookup for the corrected Service, Catalog and Provider views remains on SBM-API.
 
 ## 12. Authentication and authorization
 
@@ -182,7 +182,11 @@ Verified repository capabilities include:
 - Docker-based development;
 - Vitest unit/component QA;
 - LCOV coverage generation;
-- local SonarQube integration.
+- local SonarQube integration;
+- Service, Catalog and Provider views route client-owned list/detail/properties traffic through `dpApi`;
+- franchise lookup in those views remains on `sbmApi`;
+- Catalog uses the canonical `catalogs/` endpoint and DP contract fields, Service uses canonical `group`/`group_name`, and Provider uses canonical `bank_name`;
+- generic create/update/delete, calculation and extended-property writes remain disabled in the corrected Service, Catalog and Provider views until their write contracts are explicitly validated.
 
 ## 15. Validation evidence
 
@@ -199,6 +203,19 @@ Sonar coverage: 69.6%
 ```
 
 This baseline is historical. Fresh lifecycle closure must use a new `context/qa-results.md`.
+
+Current implementation-progress evidence from `context/qa-results.md` generated `2026-08-13T23:14:53Z`:
+
+```text
+45 tests collected
+45 tests passed
+0 tests failed
+Coverage: 70.14%
+SonarScanner exit code: 0
+Scanner execution result: success
+Server-side Quality Gate: PASSED
+Runtime: Docker
+```
 
 ## 16. Database and migration impact
 
@@ -227,8 +244,7 @@ No database or migration ownership exists in this frontend repository.
 
 ## 20. Pending work
 
-- Synchronize SBM-MANAGER into global PROJECT, SUITE and QA contexts.
-- Execute a fresh `qa-check.sh` after lifecycle integration.
+- Complete lifecycle reconciliation and closure for `SBM-MANAGER-002` after the current progress context is applied.
 - Extend QA scope only when explicitly approved.
 
 ## 21. Required behavior
