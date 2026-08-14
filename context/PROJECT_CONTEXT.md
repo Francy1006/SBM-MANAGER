@@ -19,7 +19,6 @@ Provide a reusable management UI for products, materials, services, catalogs, or
 | ID | Objective | Status | Priority | Target date | Branch | Documentation |
 |---|---|---|---:|---|---|---|
 | SBM-MANAGER-001 | Integrar SBM-MANAGER completamente a SBM Suite, incluyendo contextos, lifecycle scripts, QA/SonarQube, registro en sbm-ai-assistant, sincronización global y actualización del diagrama canónico de arquitectura en SUITE_CONTEXT.md. | active | 5 | 2026-08-07 | `FEATURE-integrates-sbm-manager` | `context/documentation/pages/🤖 AI Architect Roadmap/🏢 SBM-Suite 3a50bde8acd580d0a068d6abc3542603.md` |
-| SBM-MANAGER-002 | Corregir SBM-MANAGER para consumir correctamente SBM-API y DP-API según ownership canónico. | active | 5 | N/A | BUGFIX-corrects-api-ownership | N/A |
 
 ## 4. Pending objectives
 
@@ -204,7 +203,7 @@ Sonar coverage: 69.6%
 
 This baseline is historical. Fresh lifecycle closure must use a new `context/qa-results.md`.
 
-Current implementation-progress evidence from `context/qa-results.md` generated `2026-08-13T23:14:53Z`:
+Current implementation-closure evidence from `context/qa-results.md` generated `2026-08-14T16:05:03Z`:
 
 ```text
 45 tests collected
@@ -241,10 +240,10 @@ No database or migration ownership exists in this frontend repository.
 - SonarQube project `SBM-MANAGER` established.
 - DP-API and SBM-API client ownership separated.
 - `.env.dev` adopted by Docker Compose.
+- `SBM-MANAGER-002` corrected Service, Catalog and Provider client-owned API routing to DP-API while preserving internal/franchise traffic on SBM-API and aligning the evidenced DP contracts.
 
 ## 20. Pending work
 
-- Complete lifecycle reconciliation and closure for `SBM-MANAGER-002` after the current progress context is applied.
 - Extend QA scope only when explicitly approved.
 
 ## 21. Required behavior
