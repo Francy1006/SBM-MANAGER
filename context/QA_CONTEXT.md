@@ -74,9 +74,9 @@ sbm-manager/src/
 | SBM-MGR-FORM-001 | Generic form behavior | unit | `SimpleFormComponent.vue` | 4 | 2026-07-21 | passed | historical repository context |
 | SBM-MGR-PROP-001 | Product property behavior | unit | `PropertiesComponent.vue` | 4 | 2026-07-21 | passed | historical repository context |
 | SBM-MGR-CONFIRM-001 | Confirmation behavior | unit | `ConfirmComponent.vue` | 3 | 2026-07-21 | passed | historical repository context |
-| SBM-MANAGER-002-API | Current API client ownership and authentication regression | unit | `src/api/clients.js`; `src/api/__tests__/clients.spec.js` | 5 | 2026-08-13 | passed | `context/qa-results.md`; `src/api/__tests__/clients.spec.js` |
-| SBM-MANAGER-002-VIEWS | Service, Catalog and Provider canonical API ownership routing | unit | `ServiceView.vue`; `CatalogsView.vue`; `ProviderView.vue`; `ApiOwnershipViews.spec.js` | 5 | 2026-08-13 | passed | `context/qa-results.md`; `src/views/__tests__/ApiOwnershipViews.spec.js` |
-| SBM-MANAGER-002-FORM | Grouped form-field read and save regression | unit | `SimpleFormComponent.vue`; `SimpleFormComponent.spec.js` | 4 | 2026-08-13 | passed | `context/qa-results.md`; `src/components/__tests__/SimpleFormComponent.spec.js` |
+| SBM-MANAGER-002-API | Current API client ownership and authentication regression | unit | `src/api/clients.js`; `src/api/__tests__/clients.spec.js` | 5 | 2026-08-14 | passed | `context/qa-results.md`; `src/api/__tests__/clients.spec.js` |
+| SBM-MANAGER-002-VIEWS | Service, Catalog and Provider canonical API ownership routing | unit | `ServiceView.vue`; `CatalogsView.vue`; `ProviderView.vue`; `ApiOwnershipViews.spec.js` | 5 | 2026-08-14 | passed | `context/qa-results.md`; `src/views/__tests__/ApiOwnershipViews.spec.js` |
+| SBM-MANAGER-002-FORM | Grouped form-field read and save regression | unit | `SimpleFormComponent.vue`; `SimpleFormComponent.spec.js` | 4 | 2026-08-14 | passed | `context/qa-results.md`; `src/components/__tests__/SimpleFormComponent.spec.js` |
 
 ## 7. Test data and fixtures
 
@@ -129,7 +129,7 @@ Expected current artifact:
 sbm-manager/coverage/lcov.info
 ```
 
-Current execution from `context/qa-results.md` (`2026-08-13T23:14:53Z`):
+Current execution from `context/qa-results.md` (`2026-08-14T16:05:03Z`):
 
 ```text
 Coverage result: 70.14%
@@ -153,7 +153,7 @@ Duplicated lines density: 1.9%
 
 Historical findings are technical debt and do not become current evidence automatically.
 
-Current execution from `context/qa-results.md` (`2026-08-13T23:14:53Z`):
+Current execution from `context/qa-results.md` (`2026-08-14T16:05:03Z`):
 
 ```text
 SonarScanner exit code: 0
@@ -166,7 +166,7 @@ Server-side Quality Gate result: PASSED
 Current `context/qa-results.md` evidence:
 
 ```text
-Generated timestamp: 2026-08-13T23:14:53Z
+Generated timestamp: 2026-08-14T16:05:03Z
 Project: sbm-manager
 Overall status: passed
 Collected tests: 45
@@ -192,7 +192,7 @@ Historical Sonar baseline recorded 10 bugs and 52 code smells. Their current sta
 
 ## 19. Pending QA work
 
-- Keep the objective-specific API ownership regression coverage while `SBM-MANAGER-002` remains active.
+- Preserve the objective-specific API ownership regression coverage for future changes affecting SBM-MANAGER API ownership.
 - Expand QA scope beyond the current objective only through explicit approval.
 
 ## 20. Related documentation
