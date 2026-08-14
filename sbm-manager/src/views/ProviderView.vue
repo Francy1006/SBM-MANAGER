@@ -30,7 +30,9 @@
       post-endpoint="providers/"
       iconClass="fas fa-industry"
       :fields="fields"
-      :showPropertiesButton="true"
+      :apiClient="dpApi" rowKey="id" :includeVisibleFilter="false" :showDeletedFilter="false"
+      :allowCreate="false" :allowUpdate="false" :allowDelete="false"
+      :showPropertiesButton="true" :enableExtendedProperties="false"
       @refresh="handleRefresh"
       @row-selected="handleProviderSelected"
     >
@@ -39,8 +41,9 @@
           :product="selectedProvider"
           :fields="fields"
           title="Propiedades del Proveedor"
-          configResource="providers"
-          lookupField="code"
+          :apiClient="dpApi"
+          :enableExtendedData="false"
+          :editable="false"
           :hasItemConfiguration="false"
         />
       </template>
@@ -50,7 +53,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from '../api/axios'
+import { dpApi, sbmApi } from '../api/clients'
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue'
 import PropertiesComponent from '../components/PropertiesComponent.vue'
 import FranchiseSelector from '../components/FranchiseSelectorComponent.vue'
@@ -94,7 +97,7 @@ const fields = ref([
   { key: 'billing_phone', label: 'Teléfono facturación', type: 'number' },
 
   { key: 'company_bank', label: 'Banco', type: 'dynamic-select', endpoint: '/banks/', labelKey: 'bank', valueKey: 'id', hideInGrid: true },
-  { key: 'company_bank_name', label: 'Banco', hideInGrid: false, omitInForm: true },
+  { key: 'bank_name', label: 'Banco', hideInGrid: false, omitInForm: true },
 
   { key: 'bank_account_type', label: 'Tipo cuenta', type: 'dynamic-select', endpoint: '/bank-account-types/', labelKey: 'type', valueKey: 'id', hideInGrid: true },
   { key: 'bank_account_type_name', label: 'Tipo cuenta', hideInGrid: false, omitInForm: true },
@@ -140,7 +143,7 @@ const handleProviderSelected = provider => {
 const handleRefresh = () => window.location.reload()
 
 onMounted(async () => {
-  const res = await axios.get('franchises/')
+  const res = await sbmApi.get('franchises/')
   franchises.value = res.data.results || res.data
 })
 </script>

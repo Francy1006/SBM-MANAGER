@@ -17,19 +17,16 @@
       <br />
     </div>
 
-    <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="item Catálogo" endpoint="catalogs/list/"
-      get-endpoint="catalogs/list/" post-endpoint="catalogs/" iconClass="" :componentTitle="componentTitle"
-      :fields="fields" :showConfigForm="true" configFormName="Catálogo" configFormResourcePath="catalogs"
-      configFormPivotField="sku" configFormLookupField="sku" :showPropertiesButton="true" :showConfigList="false"
-      calculationTitle="Precio de venta" :configListFranchiseId="selectedFranchise" configListEndpointType="id"
-      configListTitle=""
-      calculationDescription="Permite calcular el precio de venta del ítem a partir del valor base neto y las variables contables asociadas (IVA, impuestos adicionales y retenciones), aplicando la fórmula fiscal configurada."
-      :endpointBase="`franchise-configuration-details/franchise_price_configurations_code/?franchise_code=${selectedFranchiseCode}`"
-      :optionsProps="optionsProps" @refresh="handleRefresh" @created="handleCreated" @updated="handleUpdated"
+    <CRUDManagerComponent v-if="selectedFranchise" title="" resourceName="item Catálogo" endpoint="catalogs/"
+      get-endpoint="catalogs/" post-endpoint="catalogs/" iconClass="" :componentTitle="componentTitle"
+      :fields="fields" :apiClient="dpApi" rowKey="id" :includeVisibleFilter="true" :showDeletedFilter="false"
+      :allowCreate="false" :allowUpdate="false" :allowDelete="false" :showConfigForm="false"
+      :showPropertiesButton="true" :showConfigList="false" :showCalculationComponent="false"
+      :enableExtendedProperties="false" :optionsProps="optionsProps" @refresh="handleRefresh"
       @row-selected="handleCatalogSelected" @import="handleImport" @export="handleExport">
       <template #properties>
         <PropertiesComponent :product="selectedCatalog" :fields="fields" title="Propiedades del Catálogo"
-          configResource="catalogs" lookupField="sku" />
+          :apiClient="dpApi" :enableExtendedData="false" :editable="false" />
       </template>
     </CRUDManagerComponent>
   </div>
@@ -37,7 +34,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import axios from '../api/axios';
+import { dpApi, sbmApi } from '../api/clients';
 import CRUDManagerComponent from '../components/CRUDManagerComponent.vue';
 import PropertiesComponent from '../components/PropertiesComponent.vue';
 import FranchiseSelector from '../components/FranchiseSelectorComponent.vue';
@@ -81,85 +78,44 @@ const optionsProps = ref({
 });
 
 const fields = ref([
-  { key: 'sku', label: 'SKU', type: 'text', maxlength: 50, omitInForm: true },
-  { key: 'cover_image', label: 'Imagen de Portada', type: 'url', required: false, maxlength: 500, omitInForm: true },
-  { key: 'menu', label: 'Menú', type: 'dynamic-select', required: true, endpoint: '/menus/', labelKey: 'menu', valueKey: 'id', hideInGrid: true },
+  { key: 'id', hideInGrid: true, omitInForm: true },
+  { key: 'code', hideInGrid: true, omitInForm: true },
+  { key: 'sku', label: 'SKU', type: 'text', omitInForm: true },
+  { key: 'cover_image', label: 'Imagen de Portada', type: 'url' },
+  { key: 'menu', hideInGrid: true, omitInForm: true },
   { key: 'menu_name', label: 'Menú', type: 'pill_name', omitInForm: true },
-  { key: 'menu_background_color', type: 'hidden', omitInForm: true, hideInGrid: true },
-  { key: 'menu_text_color', type: 'hidden', omitInForm: true, hideInGrid: true },
-  { key: 'category', label: 'Categoría', type: 'dynamic-select', required: true, endpoint: '/item-categories/', labelKey: 'category', valueKey: 'id', hideInGrid: true },
-  { key: 'category_name', label: 'Categoría', type: 'text', omitInForm: true },
-  { key: 'type', label: 'Tipo de Item', type: 'dynamic-select', required: true, endpoint: '/item-types/', labelKey: 'type', valueKey: 'id', hideInGrid: true },
-  { key: 'type_name', label: 'Tipo de Item', type: 'text', omitInForm: true },
-  { key: 'item_group', label: 'Grupo de Item', type: 'dynamic-select', required: true, endpoint: '/item-groups/', labelKey: 'group_name', valueKey: 'id', hideInGrid: true },
-  { key: 'restriction', label: 'Restricción', type: 'dynamic-select', required: true, endpoint: '/restrictions/', labelKey: 'restriction', valueKey: 'id', hideInGrid: true },
-  { key: 'group_name', label: 'Grupo de Item', type: 'text', omitInForm: true },
-  { key: 'name', label: 'Nombre', type: 'text', required: true, maxlength: 255 },
-  { key: 'description', label: 'Descripción', type: 'textarea', required: true },
-  { key: 'obs', label: 'Observaciones', type: 'textarea', required: true },
+  { key: 'group', hideInGrid: true, omitInForm: true },
+  { key: 'group_name', label: 'Grupo de Item', omitInForm: true },
+  { key: 'category', hideInGrid: true, omitInForm: true },
+  { key: 'category_name', label: 'Categoría', omitInForm: true },
+  { key: 'type', hideInGrid: true, omitInForm: true },
+  { key: 'type_name', label: 'Tipo de Item', omitInForm: true },
+  { key: 'restriction', label: 'Restricción', type: 'text' },
+  { key: 'name', label: 'Nombre', type: 'text' },
+  { key: 'description', label: 'Descripción', type: 'textarea' },
+  { key: 'obs', label: 'Observaciones', type: 'textarea' },
   { key: 'chef_recommendation', label: 'Recomendación del Chef', type: 'checkbox' },
-
-  // ==========================
-  // 🔵 VENTA (VISIBLE EN GRID PERO ENMASCARADA)
-  // ==========================
-
-  {
-    key: 'base_net_amount',
-    label: 'Venta Base NETO',
-    type: 'price',
-    secretField: true,
-    omitInForm: false,
-    formGroup: 'price_data'   // 🔥 FALTA ESTO
-  },
-  { key: 'net_amount', label: 'Venta NETO', type: 'price', secretField: false, omitInForm: true },
-  { key: 'iva_amount', label: 'IVA Venta', type: 'price', secretField: false, omitInForm: true },
-  { key: 'gross_amount', label: 'Venta BRUTO', type: 'price', secretField: false, omitInForm: true },
-
-  // ==========================
-  // 🔴 COSTOS (OCULTOS EN GRID)
-  // ==========================
-
-  { key: 'cost_net_amount', label: 'Costo NETO', type: 'price', secretField: true, omitInForm: true, hideInGrid: false },
-  { key: 'cost_iva_amount', label: 'IVA Costo', type: 'price', secretField: true, omitInForm: true, hideInGrid: false },
-  { key: 'cost_gross_amount', label: 'Costo BRUTO', type: 'price', secretField: true, omitInForm: true, hideInGrid: false },
-  { key: 'utility_net_amount', label: 'Utilidad NETA', type: 'price', secretField: true, omitInForm: true },
-  { key: 'utility_net_pct', label: '% Utilidad NETA', type: 'percent', secretField: true, omitInForm: true },
-  // ==========================
-  // 🟢 UTILIDAD (OCULTA EN GRID)
-  // ==========================
-
-
-
-  // ==========================
-
-  {
-    key: 'price_configuration',
-    label: 'Configuración de Precio',
-    type: 'dynamic-select',
-    endpoint: '/price-configuration/',
-    labelKey: 'price_configuration',
-    valueKey: 'code',
-    formGroup: 'price_data',   // 🔥 ESTO ES LA CLAVE
-    hideInGrid: true,
-    required: true,
-  },
-
-  { key: 'min_quantity_purchase', label: 'Cantidad Mínima de Compra', type: 'number', min: 1, required: true, },
-  { key: 'rations_quantity', label: 'Cantidad de Raciones', type: 'number', min: 1, required: true, },
-
-  { key: 'package', label: 'Empaque', type: 'dynamic-select', endpoint: '/packages/', labelKey: 'description', valueKey: 'id', hideInGrid: true, required: true, },
-
-  { key: 'item_configuration', label: 'Configuración de Item', type: 'text', omitInForm: true, hideInGrid: true },
-
-  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'dynamic-select', endpoint: '/instructions/', labelKey: 'instruction', valueKey: 'code', hideInGrid: true, required: true, },
-
-  { key: 'configuration', label: 'Configuración', type: 'dynamic-select', endpoint: '/item-configurations/', labelKey: 'configuration', valueKey: 'code', hideInGrid: true, omitInForm: true, required: true, },
-
+  { key: 'usage_instructions', label: 'Instrucciones de Uso', type: 'text' },
+  { key: 'price', label: 'Precio', type: 'text' },
+  { key: 'min_quantity_purchase', label: 'Cantidad Mínima de Compra', type: 'number' },
+  { key: 'rations_quantity', label: 'Cantidad de Raciones', type: 'number' },
+  { key: 'secondary_image', hideInGrid: true, omitInForm: true },
+  { key: 'complementary_image', hideInGrid: true, omitInForm: true },
+  { key: 'image_gallery', hideInGrid: true, omitInForm: true },
+  { key: 'configuration', label: 'Configuración', type: 'text' },
   { key: 'is_visible', label: 'Visible', type: 'checkbox' },
   { key: 'is_deleted', label: 'Eliminado', type: 'checkbox' },
   { key: 'is_confirmed', label: 'Confirmado', type: 'checkbox' },
-
-  { key: 'created_at', label: 'Creado en', type: 'text', hideInGrid: true, omitInForm: true }
+  { key: 'created_at', label: 'Creado en', omitInForm: true },
+  { key: 'updated_at', hideInGrid: true, omitInForm: true },
+  { key: 'confirmed_at', hideInGrid: true, omitInForm: true },
+  { key: 'deleted_at', hideInGrid: true, omitInForm: true },
+  { key: 'created_by', hideInGrid: true, omitInForm: true },
+  { key: 'confirmed_by', hideInGrid: true, omitInForm: true },
+  { key: 'updated_by', hideInGrid: true, omitInForm: true },
+  { key: 'deleted_by', hideInGrid: true, omitInForm: true },
+  { key: 'log', hideInGrid: true, omitInForm: true },
+  { key: 'version', hideInGrid: true, omitInForm: true },
 ]);
 
 const onFranchiseChange = (payload) => {
@@ -196,7 +152,7 @@ onMounted(async () => {
   }
 
   try {
-    const res = await axios.get('franchises/');
+    const res = await sbmApi.get('franchises/');
     franchises.value = Array.isArray(res.data) ? res.data : (res.data.results || []);
   } catch {
     franchises.value = [];

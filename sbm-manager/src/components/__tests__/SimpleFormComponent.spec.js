@@ -181,4 +181,39 @@ describe('SimpleFormComponent para Product', () => {
 
     expect(wrapper.emitted('save')[0][0]).toEqual({ name: 'PRODUCTO', amount: 2500 })
   })
+
+  it('lee y emite correctamente campos agrupados', async () => {
+    const wrapper = mount(SimpleFormComponent, {
+      props: {
+        show: true,
+        fields: [
+          {
+            key: 'name',
+            label: 'Nombre',
+            type: 'text',
+            formGroup: 'detail',
+          },
+        ],
+        values: {
+          detail: {
+            name: 'Inicial',
+          },
+        },
+        apiClient: { get: vi.fn() },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.vm.form.name).toBe('Inicial')
+
+    await wrapper.find('#simple-form-name').setValue('Actualizado')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.emitted('save')[0][0]).toEqual({
+      detail: {
+        name: 'Actualizado',
+      },
+    })
+  })
 })
