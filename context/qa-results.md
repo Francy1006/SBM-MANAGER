@@ -1,6 +1,6 @@
 # QA Results
 
-Generated timestamp: 2026-09-22T19:02:34Z
+Generated timestamp: 2026-09-23T20:26:40Z
 Project: sbm-manager
 Overall status: passed
 
@@ -10,7 +10,7 @@ Test exit code: 0
 Collected tests: 45
 Passed tests: 45
 Failed tests: 0
-Coverage result: 71.07%
+Coverage result: 70.14%
 Coverage artifact: sbm-manager/coverage/lcov.info
 
 ## SonarQube
