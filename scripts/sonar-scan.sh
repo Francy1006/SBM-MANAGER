@@ -3,6 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SUITE_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+source "${SUITE_ROOT}/context/scripts/sonar-scanner-common.sh"
 LCOV_REPORT="${PROJECT_ROOT}/sbm-manager/coverage/lcov.info"
 
 cd "${PROJECT_ROOT}"
@@ -45,11 +47,31 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "${PROJECT_ROOT}/.sonar/cache"
+SONAR_ARCH="$(sbm_sonar_detect_arch)"
+SONAR_SCANNER_PLATFORM="$(sbm_sonar_platform)"
+SONAR_CACHE_DIR="$(sbm_sonar_cache_dir "${PROJECT_ROOT}" "${SONAR_ARCH}")"
+SONAR_CONTAINER_NAME="sbm-sonar-${SONAR_ARCH}-$$"
+mkdir -p "${SONAR_CACHE_DIR}"
 
-docker run --rm --platform linux/amd64 \
-  --env-file "${SBM_MANAGER_ENV_PATH}" \
-  -v "${PROJECT_ROOT}:/usr/src:ro" \
-  -v "${PROJECT_ROOT}/.sonar/cache:/opt/sonar-scanner/.sonar/cache" \
-  -w /usr/src \
-  sonarsource/sonar-scanner-cli
+docker_args=(
+  docker
+  run
+  --rm
+  --name
+  "${SONAR_CONTAINER_NAME}"
+  --platform
+  "${SONAR_SCANNER_PLATFORM}"
+  --env-file
+  "${SBM_MANAGER_ENV_PATH}"
+  -v
+  "${PROJECT_ROOT}:/usr/src:ro"
+  -v
+  "${SONAR_CACHE_DIR}:/opt/sonar-scanner/.sonar/cache"
+  -w
+  "/usr/src"
+  "$(sbm_sonar_image)"
+  "-Dsonar.working.directory=/tmp/.scannerwork"
+)
+
+sbm_sonar_ensure_image
+sbm_sonar_run "${docker_args[@]}"
